@@ -7,9 +7,9 @@ build-backend = "setuptools.build_meta"
 # Project metadata
 [project]
 version = "0.1.0"
-name = "ext_template"  # TODO
-description = "Extension Template for Orbit"  # TODO
-keywords = ["extension", "template", "orbit"]  # TODO
+name = "maze"  # TODO
+description = "Maze Extension Task for RL Learning"  # TODO
+keywords = ["extension", "maze", "orbit"]  # TODO
 readme = "README.md"
 requires-python = ">=3.10"
 license = {file = "LICENSE.txt"}
@@ -17,10 +17,10 @@ classifiers = [
   "Programming Language :: Python :: 3",
 ]
 authors = [
-  {name = "Nico Burger", email = "nburger@theaiinstitute.com"},  # TODO
+  {name = "Kevin Schneider", email = "abc@xyz.ch"},  # TODO
 ]
 maintainers = [
-  {name = "Nico Burger", email = "nburger@theaiinstitute.com"},  # TODO
+  {name = "Kevin Schneider", email = "abc@xyz.ch"},  # TODO
 ]
 
 

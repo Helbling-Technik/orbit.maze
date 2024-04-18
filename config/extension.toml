@@ -4,10 +4,10 @@
 version = "0.1.0"
 
 # Description
-title = "Extension Template"  # TODO: Please adapt to your title.
-description="Extension Template for Orbit"  #TODO: Please adapt to your description.
-repository = "https://github.com/isaac-orbit/orbit.ext_template.git"  # TODO: Please adapt to your repository.
-keywords = ["extension", "template", "orbit"]  # TODO: Please adapt to your keywords.
+title = "Maze"  # TODO: Please adapt to your title.
+description="Maze Task for RL Learning"  #TODO: Please adapt to your description.
+repository = "https://github.com/kevchef/orbit.maze.git"  # TODO: Please adapt to your repository.
+keywords = ["extension", "maze","task","RL", "orbit"]  # TODO: Please adapt to your keywords.
 category = "orbit"
 readme  = "README.md"
 
@@ -24,4 +24,4 @@ readme  = "README.md"
 # "omni.kit" = {}
 
 [[python.module]]
-name = "orbit.ext_template"  # TODO: Please adapt to your package name.
+name = "orbit.maze"  # TODO: Please adapt to your package name.
