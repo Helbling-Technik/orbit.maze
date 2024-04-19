@@ -87,8 +87,8 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=.1)
-    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=.1)
+    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=0.5)
+    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=0.5)
 
 
 @configclass
@@ -106,16 +106,14 @@ class ObservationsCfg:
             func=mdp.root_pos_w,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
+        sphere_lin_vel = ObsTerm(
+            func=mdp.root_lin_vel_w,
+            params={"asset_cfg": SceneEntityCfg("sphere")},
+        )
 
         def __post_init__(self) -> None:
             self.enable_corruption = False
             self.concatenate_terms = True
-
-            # self.sphere_pos.func = self.get_sphere_pos
-
-        # def get_sphere_pos(self, env: Any, asset_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
-        #     """Wrapper method to get sphere position."""
-        #     return mdp.root_pos_w(env, asset_cfg)
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -146,26 +144,45 @@ class EventCfg:
         },
     )
 
+    reset_sphere_pos = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("sphere"),
+            "pose_range": {"x": (-0.05, 0.05),
+                           "y": (-0.05, 0.05)},
+            "velocity_range": {},
+        },
+    )
+
 
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Constant running reward
-    alive = RewTerm(func=mdp.is_alive, weight=1.0)
+    alive = RewTerm(func=mdp.is_alive, weight=0.1)
     # (2) Failure penalty
     terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
-    # (3) Primary task: keep pole upright
-    inner_joint_pos = RewTerm(
-        func=mdp.joint_pos_target_l2,
+    # (3) Primary task: keep sphere in center
+    sphere_pos = RewTerm(
+        func=mdp.root_xypos_target_l2,
         weight=-1.0,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"]), "target": 0.0},
+        params={"asset_cfg": SceneEntityCfg("sphere"), 
+                "target": {"x": 0.0, "y": 0.0},
+        },
     )
-    # (4) Shaping tasks: lower cart velocity
+    # (4) Shaping tasks: lower outer joint velocity
     outer_joint_pos = RewTerm(
-        func=mdp.joint_pos_target_l2,
+        func=mdp.joint_vel_l1,
         weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"]), "target": 0.0},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"])},
+    )
+    # (5) Shaping tasks: lower outer joint velocity
+    inner_joint_pos = RewTerm(
+        func=mdp.joint_vel_l1,
+        weight=-0.01,
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
     )
 
 @configclass
@@ -175,9 +192,9 @@ class TerminationsCfg:
     # (1) Time out
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Cart out of bounds
-    cart_out_of_bounds = DoneTerm(
-        func=mdp.joint_pos_manual_limit,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"]), "bounds": (-3.0, 3.0)},
+    sphere_on_ground = DoneTerm(
+        func=mdp.base_height,
+        params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
     )
 
 
@@ -217,6 +234,6 @@ class MazeEnvCfg(RLTaskEnvCfg):
         self.decimation = 2
         self.episode_length_s = 5
         # viewer settings
-        self.viewer.eye = (1.5, 0.0, 1.0)
+        self.viewer.eye = (0.5, 0.5, 0.5)
         # simulation settings
         self.sim.dt = 1 / 120
