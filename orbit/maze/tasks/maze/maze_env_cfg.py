@@ -4,9 +4,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import math
+import torch
 
 import omni.isaac.orbit.sim as sim_utils
-from omni.isaac.orbit.assets import ArticulationCfg, AssetBaseCfg
+from omni.isaac.orbit.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from omni.isaac.orbit.envs import RLTaskEnvCfg
 from omni.isaac.orbit.managers import EventTermCfg as EventTerm
 from omni.isaac.orbit.managers import ObservationGroupCfg as ObsGroup
@@ -43,6 +44,20 @@ class MazeSceneCfg(InteractiveSceneCfg):
     # cartpole
     robot: ArticulationCfg = MAZE_CFG.replace(prim_path="{ENV_REGEX_NS}/Labyrinth")
 
+    # Sphere with collision enabled but not actuated
+    sphere = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/sphere",
+        spawn=sim_utils.SphereCfg(
+            radius=0.005,  # Define the radius of the sphere
+            mass_props=sim_utils.MassPropertiesCfg(density=7850), # Density of steel in kg/m^3)
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True),
+            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9), metallic=0.8),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.15)),
+    )
+    # sphere_object = RigidObject(cfg=sphere_cfg)
+
     # lights
     dome_light = AssetBaseCfg(
         prim_path="/World/DomeLight",
@@ -72,7 +87,8 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=100.0)
+    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=.1)
+    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=.1)
 
 
 @configclass
@@ -86,10 +102,20 @@ class ObservationsCfg:
         # observation terms (order preserved)
         joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel)
+        sphere_pos = ObsTerm(
+            func=mdp.root_pos_w,
+            params={"asset_cfg": SceneEntityCfg("sphere")},
+        )
 
         def __post_init__(self) -> None:
             self.enable_corruption = False
             self.concatenate_terms = True
+
+            # self.sphere_pos.func = self.get_sphere_pos
+
+        # def get_sphere_pos(self, env: Any, asset_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
+        #     """Wrapper method to get sphere position."""
+        #     return mdp.root_pos_w(env, asset_cfg)
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
@@ -191,6 +217,6 @@ class MazeEnvCfg(RLTaskEnvCfg):
         self.decimation = 2
         self.episode_length_s = 5
         # viewer settings
-        self.viewer.eye = (8.0, 0.0, 5.0)
+        self.viewer.eye = (1.5, 0.0, 1.0)
         # simulation settings
         self.sim.dt = 1 / 120
