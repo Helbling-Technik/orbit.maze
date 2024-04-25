@@ -16,14 +16,64 @@ from omni.isaac.orbit.managers import RewardTermCfg as RewTerm
 from omni.isaac.orbit.managers import SceneEntityCfg
 from omni.isaac.orbit.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.orbit.scene import InteractiveSceneCfg
+from omni.isaac.orbit.actuators import ImplicitActuatorCfg
 from omni.isaac.orbit.utils import configclass
 
 import orbit.maze.tasks.maze.mdp as mdp
+import os
 
 ##
 # Pre-defined configs
 ##
-from omni.isaac.orbit_assets.maze import MAZE_CFG  # isort:skip
+# from omni.isaac.orbit_assets.maze import MAZE_CFG  # isort:skip
+# from maze import MAZE_CFG  # isort:skip
+
+# Absolute path of the current script
+current_script_path = os.path.abspath(__file__)
+# Absolute path of the project root (assuming it's three levels up from the current script)
+project_root = os.path.join(current_script_path, '../../../../..')
+
+MAZE_CFG = ArticulationCfg(
+    spawn=sim_utils.UsdFileCfg(
+        # usd_path=f"{ISAAC_ORBIT_NUCLEUS_DIR}/Robots/Classic/Cartpole/cartpole.usd",
+        # Path to the USD file relative to the project root
+        usd_path = os.path.join(project_root, 'usds/Maze_Simple.usd'),
+        # usd_path=f"../../../../usds/Maze_Simple.usd",
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            rigid_body_enabled=True,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=100.0,
+            enable_gyroscopic_forces=True,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=False,
+            solver_position_iteration_count=4,
+            solver_velocity_iteration_count=0,
+            sleep_threshold=0.005,
+            stabilization_threshold=0.001,
+        ),
+    ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
+    ),
+    actuators={
+        "outer_actuator": ImplicitActuatorCfg(
+            joint_names_expr=["OuterDOF_RevoluteJoint"],
+            effort_limit=.01,
+            velocity_limit=1.0/math.pi,
+            stiffness=0.0,
+            damping=10.0,
+        ),
+        "inner_actuator": ImplicitActuatorCfg(
+            joint_names_expr=["InnerDOF_RevoluteJoint"], 
+            effort_limit=.01, 
+            velocity_limit=1.0/math.pi, 
+            stiffness=0.0, 
+            damping=10.0
+        ),
+    },
+)
 
 
 ##
@@ -167,7 +217,7 @@ class RewardsCfg:
     # (3) Primary task: keep sphere in center
     sphere_pos = RewTerm(
         func=mdp.root_xypos_target_l2,
-        weight=-5000.0,
+        weight=-500.0,
         params={"asset_cfg": SceneEntityCfg("sphere"), 
                 "target": {"x": 0.0, "y": 0.0},
         },
@@ -175,13 +225,13 @@ class RewardsCfg:
     # (4) Shaping tasks: lower outer joint velocity
     outer_joint_pos = RewTerm(
         func=mdp.joint_vel_l1,
-        weight=-0.01,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"])},
     )
     # (5) Shaping tasks: lower outer joint velocity
     inner_joint_pos = RewTerm(
         func=mdp.joint_vel_l1,
-        weight=-0.01,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
     )
 
