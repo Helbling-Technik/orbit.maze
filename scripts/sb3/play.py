@@ -17,9 +17,10 @@ parser.add_argument("--cpu", action="store_true", default=False, help="Use CPU p
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
-parser.add_argument("--task", type=str, default=None, help="Name of the task.")
-parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint.")
+parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
+parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
+parser.add_argument("--checkpoint", type=str, default="/home/helbling/git/orbit.maze/logs/sb3/Isaac-Maze-v0/2404-L2AllbutHeavyWeightOvernight/model_243712000_steps.zip", help="Path to model checkpoint.")
+# parser.add_argument("--checkpoint", type=str, default="/home/helbling/git/orbit.maze/logs/sb3/Isaac-Maze-v0/2404-FirstLearned/model.zip", help="Path to model checkpoint.")
 parser.add_argument(
     "--use_last_checkpoint",
     action="store_true",
@@ -48,6 +49,7 @@ import omni.isaac.orbit_tasks  # noqa: F401
 from omni.isaac.orbit_tasks.utils.parse_cfg import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
 from omni.isaac.orbit_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 
+import orbit.maze
 
 def main():
     """Play with stable-baselines agent."""

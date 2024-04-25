@@ -54,7 +54,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9), metallic=0.8),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.15)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.11)),
     )
     # sphere_object = RigidObject(cfg=sphere_cfg)
 
@@ -87,8 +87,8 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=0.5)
-    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=0.5)
+    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=0.1)
+    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=0.1)
 
 
 @configclass
@@ -167,7 +167,7 @@ class RewardsCfg:
     # (3) Primary task: keep sphere in center
     sphere_pos = RewTerm(
         func=mdp.root_xypos_target_l2,
-        weight=-1.0,
+        weight=-5000.0,
         params={"asset_cfg": SceneEntityCfg("sphere"), 
                 "target": {"x": 0.0, "y": 0.0},
         },
@@ -234,6 +234,6 @@ class MazeEnvCfg(RLTaskEnvCfg):
         self.decimation = 2
         self.episode_length_s = 5
         # viewer settings
-        self.viewer.eye = (0.5, 0.5, 0.5)
+        self.viewer.eye = (1, 1, 1)
         # simulation settings
-        self.sim.dt = 1 / 120
+        self.sim.dt = 1 / 200
