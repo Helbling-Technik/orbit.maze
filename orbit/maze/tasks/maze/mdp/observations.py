@@ -22,5 +22,8 @@ def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     # extract the used quantities (to enable type-hinting)
     # asset: Articulation = env.scene[asset_cfg.name]
     asset: Camera = env.scene[asset_cfg.name]
-    return asset.data.output["rgb"]
+    # Assuming asset and its data are properly defined and initialized
+    n = asset.data.output["rgb"].numel()
+    # print("Size of the tensor asset.data.output['rgb']:", tensor.size())
+    return asset.data.output["rgb"].view(1, n)
     # return asset.data.output["rgb"]
