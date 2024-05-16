@@ -19,8 +19,13 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
-parser.add_argument("--checkpoint", type=str, default="/home/helbling/git/orbit.maze/logs/sb3/Isaac-Maze-v0/2404-L2AllbutHeavyWeightOvernight/model_243712000_steps.zip", help="Path to model checkpoint.")
-# parser.add_argument("--checkpoint", type=str, default="/home/helbling/git/orbit.maze/logs/sb3/Isaac-Maze-v0/2404-FirstLearned/model.zip", help="Path to model checkpoint.")
+# parser.add_argument("--livestream", type=int, default="1", help="stream remotely")
+parser.add_argument(
+    "--checkpoint",
+    type=str,
+    default="/home/sck/git/orbit.maze/logs/sb3/Isaac-Maze-v0/BestModel/model.zip",
+    help="Path to model checkpoint.",
+)
 parser.add_argument(
     "--use_last_checkpoint",
     action="store_true",
@@ -50,6 +55,7 @@ from omni.isaac.orbit_tasks.utils.parse_cfg import get_checkpoint_path, load_cfg
 from omni.isaac.orbit_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 
 import orbit.maze
+
 
 def main():
     """Play with stable-baselines agent."""

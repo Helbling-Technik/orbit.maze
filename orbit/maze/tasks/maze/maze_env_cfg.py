@@ -9,6 +9,7 @@ import torch
 import omni.isaac.orbit.sim as sim_utils
 from omni.isaac.orbit.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from omni.isaac.orbit.envs import RLTaskEnvCfg
+from omni.isaac.orbit.sensors import CameraCfg
 from omni.isaac.orbit.managers import EventTermCfg as EventTerm
 from omni.isaac.orbit.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.orbit.managers import ObservationTermCfg as ObsTerm
@@ -31,13 +32,13 @@ import os
 # Absolute path of the current script
 current_script_path = os.path.abspath(__file__)
 # Absolute path of the project root (assuming it's three levels up from the current script)
-project_root = os.path.join(current_script_path, '../../../../..')
+project_root = os.path.join(current_script_path, "../../../../..")
 
 MAZE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
         # usd_path=f"{ISAAC_ORBIT_NUCLEUS_DIR}/Robots/Classic/Cartpole/cartpole.usd",
         # Path to the USD file relative to the project root
-        usd_path = os.path.join(project_root, 'usds/Maze_Simple.usd'),
+        usd_path=os.path.join(project_root, "usds/Maze_Simple.usd"),
         # usd_path=f"../../../../usds/Maze_Simple.usd",
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
@@ -60,17 +61,17 @@ MAZE_CFG = ArticulationCfg(
     actuators={
         "outer_actuator": ImplicitActuatorCfg(
             joint_names_expr=["OuterDOF_RevoluteJoint"],
-            effort_limit=.01,
-            velocity_limit=1.0/math.pi,
+            effort_limit=0.01,
+            velocity_limit=1.0 / math.pi,
             stiffness=0.0,
             damping=10.0,
         ),
         "inner_actuator": ImplicitActuatorCfg(
-            joint_names_expr=["InnerDOF_RevoluteJoint"], 
-            effort_limit=.01, 
-            velocity_limit=1.0/math.pi, 
-            stiffness=0.0, 
-            damping=10.0
+            joint_names_expr=["InnerDOF_RevoluteJoint"],
+            effort_limit=0.01,
+            velocity_limit=1.0 / math.pi,
+            stiffness=0.0,
+            damping=10.0,
         ),
     },
 )
@@ -99,25 +100,39 @@ class MazeSceneCfg(InteractiveSceneCfg):
         prim_path="{ENV_REGEX_NS}/sphere",
         spawn=sim_utils.SphereCfg(
             radius=0.005,  # Define the radius of the sphere
-            mass_props=sim_utils.MassPropertiesCfg(density=7850), # Density of steel in kg/m^3)
+            mass_props=sim_utils.MassPropertiesCfg(density=7850),  # Density of steel in kg/m^3)
             rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9), metallic=0.8),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.11)),
     )
+
+    # sensors
+    top_cam = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/top_cam",
+        update_period=0.1,
+        height=128,
+        width=128,
+        data_types=["rgb"],  # , "distance_to_image_plane"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=18.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
+        ),
+        offset=CameraCfg.OffsetCfg(pos=(0.0, 0.02, 0.4), rot=(0, 1, 0, 0), convention="ros"),
+    )
+
     # sphere_object = RigidObject(cfg=sphere_cfg)
 
     # lights
     dome_light = AssetBaseCfg(
         prim_path="/World/DomeLight",
-        spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=500.0),
+        spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=1000.0),
     )
-    distant_light = AssetBaseCfg(
-        prim_path="/World/DistantLight",
-        spawn=sim_utils.DistantLightCfg(color=(0.9, 0.9, 0.9), intensity=2500.0),
-        init_state=AssetBaseCfg.InitialStateCfg(rot=(0.738, 0.477, 0.477, 0.0)),
-    )
+    # distant_light = AssetBaseCfg(
+    #     prim_path="/World/DistantLight",
+    #     spawn=sim_utils.DistantLightCfg(color=(0.9, 0.9, 0.9), intensity=2500.0),
+    #     init_state=AssetBaseCfg.InitialStateCfg(rot=(0.738, 0.477, 0.477, 0.0)),
+    # )
 
 
 ##
@@ -150,15 +165,20 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel)
-        sphere_pos = ObsTerm(
-            func=mdp.root_pos_w,
-            params={"asset_cfg": SceneEntityCfg("sphere")},
-        )
-        sphere_lin_vel = ObsTerm(
-            func=mdp.root_lin_vel_w,
-            params={"asset_cfg": SceneEntityCfg("sphere")},
+        # joint_pos_rel = ObsTerm(func=mdp.joint_pos_rel)
+        # joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel)
+        # sphere_pos = ObsTerm(
+        #     func=mdp.root_pos_w,
+        #     params={"asset_cfg": SceneEntityCfg("sphere")},
+        # )
+        # sphere_lin_vel = ObsTerm(
+        #     func=mdp.root_lin_vel_w,
+        #     params={"asset_cfg": SceneEntityCfg("sphere")},
+        # )
+
+        maze_top_view = ObsTerm(
+            func=mdp.camera_image,
+            params={"asset_cfg": SceneEntityCfg("top_cam")},
         )
 
         def __post_init__(self) -> None:
@@ -179,8 +199,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"]),
-            "position_range": (-0.01 * math.pi, 0.01 * math.pi),
-            "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
+            "position_range": (-0.05 * math.pi, 0.05 * math.pi),
+            "velocity_range": (-0.05 * math.pi, 0.05 * math.pi),
         },
     )
 
@@ -189,8 +209,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"]),
-            "position_range": (-0.01 * math.pi, 0.01 * math.pi),
-            "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
+            "position_range": (-0.05 * math.pi, 0.05 * math.pi),
+            "velocity_range": (-0.05 * math.pi, 0.05 * math.pi),
         },
     )
 
@@ -199,8 +219,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "pose_range": {"x": (-0.05, 0.05),
-                           "y": (-0.05, 0.05)},
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
             "velocity_range": {},
         },
     )
@@ -218,8 +237,9 @@ class RewardsCfg:
     sphere_pos = RewTerm(
         func=mdp.root_xypos_target_l2,
         weight=-500.0,
-        params={"asset_cfg": SceneEntityCfg("sphere"), 
-                "target": {"x": 0.0, "y": 0.0},
+        params={
+            "asset_cfg": SceneEntityCfg("sphere"),
+            "target": {"x": 0.0, "y": 0.0},
         },
     )
     # (4) Shaping tasks: lower outer joint velocity
@@ -235,6 +255,7 @@ class RewardsCfg:
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
     )
 
+
 @configclass
 class TerminationsCfg:
     """Termination terms for the MDP."""
@@ -243,7 +264,7 @@ class TerminationsCfg:
     time_out = DoneTerm(func=mdp.time_out, time_out=True)
     # (2) Cart out of bounds
     sphere_on_ground = DoneTerm(
-        func=mdp.base_height,
+        func=mdp.root_height_below_minimum,
         params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
     )
 
@@ -282,8 +303,8 @@ class MazeEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 5
+        self.episode_length_s = 3
         # viewer settings
-        self.viewer.eye = (1, 1, 1)
+        self.viewer.eye = (1, 1, 1.5)
         # simulation settings
         self.sim.dt = 1 / 200

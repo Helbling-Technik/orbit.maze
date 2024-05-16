@@ -13,6 +13,7 @@ there will be significant overhead in GPU->CPU transfer.
 """Launch Isaac Sim Simulator first."""
 
 import argparse
+import os
 
 from omni.isaac.orbit.app import AppLauncher
 
@@ -25,9 +26,11 @@ parser.add_argument("--cpu", action="store_true", default=False, help="Use CPU p
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+# parser.add_argument("--model_path", type=str, default="logs/sb3/Isaac-Maze-v0/2024-05-16_TrainWithImageObservation/model_1648000_steps.zip", help="Path to the existing model to continue training")
+parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -56,7 +59,8 @@ import omni.isaac.orbit_tasks  # noqa: F401
 from omni.isaac.orbit_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.orbit_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 
-import orbit.maze # noqa: F401  TODO: import orbit.<your_extension_name>
+import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
+
 
 def main():
     """Train with stable-baselines agent."""
@@ -113,8 +117,17 @@ def main():
             clip_reward=np.inf,
         )
 
-    # create agent from stable baselines
-    agent = PPO(policy_arch, env, verbose=1, **agent_cfg)
+    # Check if a model path is provided
+    if args_cli.model_path:
+        model_path = os.path.abspath(args_cli.model_path)
+        if os.path.isfile(model_path):
+            # Load the existing model
+            agent = PPO.load(args_cli.model_path, env=env)
+            print(f"[INFO] Loaded existing model from {args_cli.model_path}")
+    else:
+        # Create a new agent from scratch
+        agent = PPO(policy_arch, env, verbose=1, **agent_cfg)
+
     # configure the logger
     new_logger = configure(log_dir, ["stdout", "tensorboard"])
     agent.set_logger(new_logger)

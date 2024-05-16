@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+    
         // Attach to simulation during runtime. This is useful for debugging extensions.
         // For more information, visit: https://docs.omniverse.nvidia.com/isaacsim/latest/advanced_tutorials/tutorial_advanced_python_debugging.html#attaching-the-debugger-to-a-running-app
         {
@@ -12,6 +13,18 @@
             "request": "attach",
             "port": 3000,
             "host": "localhost"
+        },
+
+        {
+            "name": "Python: Orbit",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args" : "--livestream 1",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "/home/sck/miniconda3/envs/orbit/bin/python"
+            }
         },
 
         // For standalone script execution
