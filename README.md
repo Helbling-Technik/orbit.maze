@@ -49,28 +49,6 @@ This template depends on Isaac Sim and Orbit. For detailed instructions on how t
 
 #### Configuration
 
-Decide on a name for your project or extension. This guide will refer to this name as `<your_extension_name>`.
-
-- Create a new repository based off this template [here](https://github.com/new?owner=isaac-orbit&template_name=orbit.ext_template&template_owner=isaac-orbit). Name your forked repository using the following convention: `"orbit.<your_extension_name>"`.
-
-- Clone your forked repository to a location **outside** the orbit repository.
-
-```bash
-git clone <your_repository_url>
-```
-
-- Configure the template. Search for and replace **`TODO`**'s according to your extension's needs within the following files:
-
-    - `config/extension.toml`
-    - `pyproject.toml`
-
-- Rename your source folder.
-
-```bash
-cd orbit.<your_extension_name>
-mv orbit/ext_template orbit/<your_extension_name>
-```
-
 - Set up a symbolic link from Orbit to this directory.
 This makes it convenient to index the python modules and look for extensions shipped with Isaac Sim and Orbit.
 
@@ -96,7 +74,7 @@ This setup requires you to have set up the `ISAACSIM_PATH` environment variable.
 
 To setup the IDE, please follow these instructions:
 
-1. Open the `orbit.<your_extension_template>` directory on Visual Studio Code IDE
+1. Open the `orbit.maze` directory on Visual Studio Code IDE
 2. Run VSCode Tasks, by pressing Ctrl+Shift+P, selecting Tasks: Run Task and running the setup_python_env in the drop down menu.
 
 If everything executes correctly, it should create a file .python.env in the .vscode directory. The file contains the python paths to all the extensions provided by Isaac Sim and Omniverse. This helps in indexing all the python modules for intelligent suggestions while writing code.
@@ -149,55 +127,13 @@ Train a policy.
 
 ```bash
 cd <path_to_your_extension>
-${ISAACSIM_PATH}/python.sh scripts/rsl_rl/train.py --task Isaac-Velocity-Flat-Anymal-D-Template-v0 --num_envs 4096 --headless
+${ISAACSIM_PATH}/python.sh scripts/sb3/train.py --task Isaac-Maze-v0 --num_envs 4096 --headless
 ```
 
 Play the trained policy.
 
 ```bash
-${ISAACSIM_PATH}/python.sh scripts/rsl_rl/play.py --task Isaac-Velocity-Flat-Anymal-D-Template-Play-v0 --num_envs 16
-```
-
-### Omniverse Extension
-
-We provide an example UI extension that will load upon enabling your extension defined in `orbit/ext_template/ui_extension_example.py`. For more information on UI extensions, enable and check out the source code of the `omni.isaac.ui_template` extension and refer to the introduction on [Isaac Sim Workflows 1.2.3. GUI](https://docs.omniverse.nvidia.com/isaacsim/latest/introductory_tutorials/tutorial_intro_workflows.html#gui).
-
-## Pre-Commit
-
-
-Pre-committing involves using a framework to automate the process of enforcing code quality standards before code is actually committed to a version control system, like Git. This process involves setting up hooks that run automated checks, such as code formatting, linting (checking for programming errors, bugs, stylistic errors, and suspicious constructs), and running tests. If these checks pass, the commit is allowed; if not, the commit is blocked until the issues are resolved. This ensures that all code committed to the repository adheres to the defined quality standards, leading to a cleaner, more maintainable codebase. To do so, we use the [pre-commit](https://pre-commit.com/) module. Install the module using:
-
-```bash
-pip install pre-commit
-```
-
-Run the pre-commit with:
-
-```bash
-pre-commit run --all-files
-```
-
-## Finalize
-
-You are all set and no longer need the template instructions
-
-- The `orbit/ext_template` and `scripts/rsl_rl` directories act as a reference template for your convenience. Delete them if no longer required.
-
-- When ready, use this `README.md` as a template and customize where appropriate.
-
-## Docker / Cluster
-
-We are currently working on a docker and cluster setup for this template. In the meanwhile, please refer to the current setup provided in the Orbit [documentation](https://isaac-orbit.github.io/orbit/source/deployment/index.html).
-
-## Troubleshooting
-
-### Docker Container
-
-When running within a docker container, the following error has been encountered: `ModuleNotFoundError: No module named 'orbit'`. To mitigate, please comment out the docker specific environment definitions in `.vscode/launch.json` and run the following:
-
-```bash
-echo -e "\nexport PYTHONPATH=\$PYTHONPATH:/workspace/orbit.<your_extension_name>" >> ~/.bashrc
-source ~/.bashrc
+${ISAACSIM_PATH}/python.sh scripts/sb3/play.py --task Isaac-Maze-v0 --num_envs 16
 ```
 
 ## Bugs & Feature Requests
