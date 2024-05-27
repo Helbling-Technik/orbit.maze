@@ -23,7 +23,19 @@ def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     # asset: Articulation = env.scene[asset_cfg.name]
     asset: Camera = env.scene[asset_cfg.name]
     # Assuming asset and its data are properly defined and initialized
-    n = asset.data.output["rgb"].numel()
+    n_envs = asset.data.output["rgb"].size(0)
+    n = int(asset.data.output["rgb"].numel() / n_envs)
     # print("Size of the tensor asset.data.output['rgb']:", tensor.size())
-    return asset.data.output["rgb"].view(1, n)
+    return asset.data.output["rgb"].view(n_envs, n)
     # return asset.data.output["rgb"]
+
+
+def get_target_pos(env: RLTaskEnv, target: dict[str, float], asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Penalize joint position deviation from a target value."""
+    # extract the used quantities (to enable type-hinting)
+    # asset: RigidObject = env.scene[asset_cfg.name]
+    # target_tensor = torch.tensor([target.get(key, 0.0) for key in ["x", "y"]], device=asset.data.root_pos_w.device)
+    # root_pos = asset.data.root_pos_w - env.scene.env_origins
+    zeros_tensor = torch.zeros_like(env.scene.env_origins)
+    # return (zeros_tensor - root_pos)[:, :2].to(dtype=torch.float16)
+    return zeros_tensor[:, :2]

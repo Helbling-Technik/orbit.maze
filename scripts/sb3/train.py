@@ -26,11 +26,16 @@ parser.add_argument("--cpu", action="store_true", default=False, help="Use CPU p
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=1, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=2048, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
-# parser.add_argument("--model_path", type=str, default="logs/sb3/Isaac-Maze-v0/2024-05-16_TrainWithImageObservation/model_1648000_steps.zip", help="Path to the existing model to continue training")
+# parser.add_argument(
+#     "--model_path",
+#     type=str,
+#     default="logs/sb3/Isaac-Maze-v0/2024-05-17_11-32-07/model_51200000_steps.zip",
+# )
 parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
+
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -133,7 +138,7 @@ def main():
     agent.set_logger(new_logger)
 
     # callbacks for agent
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)
+    checkpoint_callback = CheckpointCallback(save_freq=10000, save_path=log_dir, name_prefix="model", verbose=2)
     # train the agent
     agent.learn(total_timesteps=n_timesteps, callback=checkpoint_callback)
     # save the final model
