@@ -109,19 +109,17 @@ class MazeSceneCfg(InteractiveSceneCfg):
     )
 
     # # sensors
-    # top_cam = CameraCfg(
-    #     prim_path="{ENV_REGEX_NS}/top_cam",
-    #     update_period=0.1,
-    #     height=128,
-    #     width=128,
-    #     data_types=["rgb"],  # , "distance_to_image_plane"],
-    #     spawn=sim_utils.PinholeCameraCfg(
-    #         focal_length=18.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
-    #     ),
-    #     offset=CameraCfg.OffsetCfg(pos=(0.0, 0.02, 0.4), rot=(0, 1, 0, 0), convention="ros"),
-    # )
-
-    # sphere_object = RigidObject(cfg=sphere_cfg)
+    top_cam = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/top_cam",
+        update_period=0.04,  # 25fps
+        height=128,
+        width=128,
+        data_types=["rgb"],  # , "distance_to_image_plane"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=18.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
+        ),
+        offset=CameraCfg.OffsetCfg(pos=(0.0, 0.02, 0.4), rot=(0, 1, 0, 0), convention="ros"),
+    )
 
     # lights
     dome_light = AssetBaseCfg(
@@ -167,14 +165,14 @@ class ObservationsCfg:
         # observation terms (order preserved)
         joint_pos = ObsTerm(func=mdp.joint_pos_rel)
         joint_vel = ObsTerm(func=mdp.joint_vel_rel)
-        sphere_pos = ObsTerm(
-            func=mdp.root_pos_w,
-            params={"asset_cfg": SceneEntityCfg("sphere")},
-        )
-        sphere_lin_vel = ObsTerm(
-            func=mdp.root_lin_vel_w,
-            params={"asset_cfg": SceneEntityCfg("sphere")},
-        )
+        # sphere_pos = ObsTerm(
+        #     func=mdp.root_pos_w,
+        #     params={"asset_cfg": SceneEntityCfg("sphere")},
+        # )
+        # sphere_lin_vel = ObsTerm(
+        #     func=mdp.root_lin_vel_w,
+        #     params={"asset_cfg": SceneEntityCfg("sphere")},
+        # )
 
         target_pos_rel = ObsTerm(
             func=mdp.get_target_pos,
@@ -184,10 +182,10 @@ class ObservationsCfg:
             },
         )
 
-        # maze_top_view = ObsTerm(
-        #     func=mdp.camera_image,
-        #     params={"asset_cfg": SceneEntityCfg("top_cam")},
-        # )
+        maze_top_view = ObsTerm(
+            func=mdp.camera_image,
+            params={"asset_cfg": SceneEntityCfg("top_cam")},
+        )
 
         def __post_init__(self) -> None:
             self.enable_corruption = False
@@ -251,17 +249,30 @@ class RewardsCfg:
         },
     )
     # (4) Shaping tasks: lower outer joint velocity
-    outer_joint_pos = RewTerm(
+    outer_joint_vel = RewTerm(
         func=mdp.joint_vel_l1,
         weight=-0.01,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"])},
     )
     # (5) Shaping tasks: lower outer joint velocity
-    inner_joint_pos = RewTerm(
+    inner_joint_vel = RewTerm(
         func=mdp.joint_vel_l1,
         weight=-0.01,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
     )
+
+    # # (4) Shaping tasks: lower outer joint velocity
+    # outer_joint_lim = RewTerm(
+    #     func=mdp.applied_torque_limits,
+    #     weight=-10,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"])},
+    # )
+    # # (5) Shaping tasks: lower outer joint velocity
+    # inner_joint_lim = RewTerm(
+    #     func=mdp.applied_torque_limits,
+    #     weight=-10,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
+    # )
 
 
 @configclass
@@ -310,7 +321,7 @@ class MazeEnvCfg(RLTaskEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 2
+        self.decimation = 8
         self.episode_length_s = 5
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)

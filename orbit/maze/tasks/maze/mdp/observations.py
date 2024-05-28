@@ -19,15 +19,30 @@ if TYPE_CHECKING:
 
 def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Camera image from top camera."""
-    # extract the used quantities (to enable type-hinting)
-    # asset: Articulation = env.scene[asset_cfg.name]
+    # Extract the used quantities (to enable type-hinting)
     asset: Camera = env.scene[asset_cfg.name]
-    # Assuming asset and its data are properly defined and initialized
-    n_envs = asset.data.output["rgb"].size(0)
-    n = int(asset.data.output["rgb"].numel() / n_envs)
-    # print("Size of the tensor asset.data.output['rgb']:", tensor.size())
-    return asset.data.output["rgb"].view(n_envs, n)
-    # return asset.data.output["rgb"]
+
+    # Get the RGBA image tensor
+    rgba_tensor = asset.data.output["rgb"]
+
+    # Check the shape of the input tensor
+    assert rgba_tensor.dim() == 4 and rgba_tensor.size(-1) == 4, "Expected tensor of shape (n, 128, 128, 4)"
+
+    # Ensure the tensor is on the correct device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    rgba_tensor = rgba_tensor.to(device)
+
+    # Convert the RGBA tensor to grayscale
+    # Using the weights for R, G, and B, and ignoring the Alpha channel
+    weights = torch.tensor([0.2989, 0.5870, 0.1140, 0.0], device=device).view(1, 1, 1, 4)
+    grayscale_tensor = (rgba_tensor * weights).sum(dim=-1)
+
+    # Flatten each image to a 1D tensor
+    n_envs = grayscale_tensor.size(0)
+    n_pixels = grayscale_tensor.size(1) * grayscale_tensor.size(2)
+    grayscale_tensor_flattened = grayscale_tensor.view(n_envs, n_pixels)
+
+    return grayscale_tensor_flattened
 
 
 def get_target_pos(env: RLTaskEnv, target: dict[str, float], asset_cfg: SceneEntityCfg) -> torch.Tensor:

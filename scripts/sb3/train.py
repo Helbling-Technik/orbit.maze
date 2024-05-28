@@ -21,20 +21,21 @@ from omni.isaac.orbit.app import AppLauncher
 parser = argparse.ArgumentParser(description="Train an RL agent with Stable-Baselines3.")
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
-parser.add_argument("--video_interval", type=int, default=1000, help="Interval between video recordings (in steps).")
+parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
 parser.add_argument("--cpu", action="store_true", default=False, help="Use CPU pipeline.")
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
-parser.add_argument("--num_envs", type=int, default=2048, help="Number of environments to simulate.")
+parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 # parser.add_argument(
 #     "--model_path",
 #     type=str,
-#     default="logs/sb3/Isaac-Maze-v0/2024-05-17_11-32-07/model_51200000_steps.zip",
+#     default="logs/sb3/Isaac-Maze-v0/2024-05-27_16-39-05/model_15040000_steps.zip",
 # )
 parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
+
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
