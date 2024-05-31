@@ -73,9 +73,6 @@ MAZE_CFG = ArticulationCfg(
     },
 )
 
-
-global_target_pos = torch.zeros((self.scene.num_envs, 2))
-##
 # Scene definition
 ##
 
@@ -124,13 +121,21 @@ class CommandsCfg:
     # no commands for this MDP
     null = mdp.NullCommandCfg()
 
+    # sphere_cmd_pos = mdp.UniformPose2dCommandCfg(
+    #     asset_name="sphere",
+    #     simple_heading=True,
+    #     resampling_time_range=(10000000000, 10000000000),
+    #     debug_vis=False,
+    #     ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-0.05, 0.05), pos_y=(-0.05, 0.05)),
+    # )
+
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1)
-    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1)
+    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=0.1)
+    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=0.1)
 
 
 @configclass
@@ -160,6 +165,10 @@ class ObservationsCfg:
             },
         )
 
+        # target_sphere_pos = ObsTerm(
+        #     func=mdp.get_generated_commands_xy,
+        #     params={"command_name": "sphere_cmd_pos"},
+        # )
         def __post_init__(self) -> None:
             self.enable_corruption = False
             self.concatenate_terms = True
@@ -203,28 +212,29 @@ class EventCfg:
         },
     )
 
-    # reset_target_pos = EventTerm(
-    #     func=mdp.set_random_target_pos,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("sphere"),
-    #         "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-    #     },
-    # )
-
 
 @configclass
 class RewardsCfg:
+    """Reward terms for the MDP."""
+
+    # (1) Constant running reward
     alive = RewTerm(func=mdp.is_alive, weight=0.1)
+    # (2) Failure penalty
     terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
+    # (3) Primary task: keep sphere in center
     sphere_pos = RewTerm(
         func=mdp.root_xypos_target_l2,
-        weight=-500.0,
+        weight=-5000.0,
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
             "target": {"x": 0.0, "y": 0.0},
         },
     )
+    # sphere_to_target = RewTerm(
+    #     func=mdp.object_goal_distance_l2,
+    #     params={"command_name": "sphere_cmd_pos", "object_cfg": SceneEntityCfg("sphere")},
+    #     weight=-5000.0,
+    # )
     outer_joint_vel = RewTerm(
         func=mdp.joint_vel_l1,
         weight=-0.01,
@@ -233,16 +243,6 @@ class RewardsCfg:
     inner_joint_vel = RewTerm(
         func=mdp.joint_vel_l1,
         weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
-    )
-    outer_joint_lim = RewTerm(
-        func=mdp.applied_torque_limits,
-        weight=-10,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"])},
-    )
-    inner_joint_lim = RewTerm(
-        func=mdp.applied_torque_limits,
-        weight=-10,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
     )
 
@@ -293,8 +293,8 @@ class MazeEnvCfg(RLTaskEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 8
-        self.episode_length_s = 5
+        self.decimation = 2
+        self.episode_length_s = 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

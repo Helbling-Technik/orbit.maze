@@ -54,3 +54,20 @@ def get_target_pos(env: RLTaskEnv, target: dict[str, float], asset_cfg: SceneEnt
     zeros_tensor = torch.zeros_like(env.scene.env_origins)
     # return (zeros_tensor - root_pos)[:, :2].to(dtype=torch.float16)
     return zeros_tensor[:, :2]
+
+
+def get_env_pos_of_command(env: RLTaskEnv, object_cfg: SceneEntityCfg, command_name: str) -> torch.Tensor:
+    """The generated command from command term in the command manager with the given name."""
+    """The env frame target position can not fully be recovered as one of the terms is updated less frequently"""
+    object: RigidObject = env.scene[object_cfg.name]
+    object_pos = object.data.root_pos_w - env.scene.env_origins
+    commanded = env.command_manager.get_command(command_name)
+    target_pos_env = commanded[:, :2] + object_pos[:, :2]
+    print("target_pos_env_observation: ", target_pos_env[:, :2])
+    return target_pos_env
+
+
+def get_generated_commands_xy(env: RLTaskEnv, command_name: str) -> torch.Tensor:
+    """The generated command from command term in the command manager with the given name."""
+    commanded = env.command_manager.get_command(command_name)
+    return commanded[:, :2]
