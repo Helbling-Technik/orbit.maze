@@ -16,56 +16,40 @@ if TYPE_CHECKING:
     from omni.isaac.orbit.envs import RLTaskEnv
 
 
-def joint_pos_target_l2(env: RLTaskEnv, target: float, asset_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Penalize joint position deviation from a target value."""
-    # extract the used quantities (to enable type-hinting)
-    asset: Articulation = env.scene[asset_cfg.name]
-    # wrap the joint positions to (-pi, pi)
-    joint_pos = wrap_to_pi(asset.data.joint_pos[:, asset_cfg.joint_ids])
-    # compute the reward
-    # print("joint pos reward: ", torch.sum(torch.square(joint_pos - target), dim=1))
-    return torch.sum(torch.square(joint_pos - target), dim=1)
-
-
-def root_pos_target_l2(env: RLTaskEnv, target: dict[str, float], asset_cfg: SceneEntityCfg) -> torch.Tensor:
+def root_xypos_target(
+    env: RLTaskEnv, target_cfg: SceneEntityCfg | dict[str, float], asset_cfg: SceneEntityCfg, LNorm: int = 2
+) -> torch.Tensor:
     """Penalize joint position deviation from a target value."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
-    target_list = torch.tensor([target.get(key, 0.0) for key in ["x", "y", "z"]], device=asset.data.root_pos_w.device)
+    if isinstance(target_cfg, SceneEntityCfg):
+        target: RigidObject = env.scene[target_cfg.name]
+        target_pos = target.data.root_pos_w - env.scene.env_origins
+    else:
+        target_pos = torch.tensor([target.get(key, 0.0) for key in ["x", "y"]], device=asset.data.root_pos_w.device)
+
     root_pos = asset.data.root_pos_w - env.scene.env_origins
     # compute the reward
-    return torch.sum(torch.square(root_pos - target_list), dim=1)
-
-
-def root_xypos_target_l2(env: RLTaskEnv, target: dict[str, float], asset_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Penalize joint position deviation from a target value."""
-    # extract the used quantities (to enable type-hinting)
-    asset: RigidObject = env.scene[asset_cfg.name]
-    target_tensor = torch.tensor([target.get(key, 0.0) for key in ["x", "y"]], device=asset.data.root_pos_w.device)
-    root_pos = asset.data.root_pos_w - env.scene.env_origins
-    # compute the reward
-    # xy_reward_l2 = (torch.sum(torch.square(root_pos[:,:2] - target_tensor), dim=1) <= 0.0025).float()*2 - 1
-    xy_reward_l2 = torch.sum(torch.square(root_pos[:, :2] - target_tensor), dim=1)
-    # print("sphere_xypos_rewards: ", xy_reward_l2.tolist())
+    xy_reward_l2 = torch.norm(root_pos[:, :2] - target_pos[:, :2], p=LNorm, dim=1)
     return xy_reward_l2
 
 
-def object_goal_distance_l2(
+def root_xy_sparse_target(
     env: RLTaskEnv,
-    command_name: str,
-    object_cfg: SceneEntityCfg = SceneEntityCfg("sphere"),
+    target_cfg: SceneEntityCfg | dict[str, float],
+    asset_cfg: SceneEntityCfg,
+    distance_from_target: float = 0.001,
 ) -> torch.Tensor:
-    """Reward the agent for tracking the goal pose using L2-kernel."""
+    """Penalize joint position deviation from a target value."""
     # extract the used quantities (to enable type-hinting)
-    object: RigidObject = env.scene[object_cfg.name]
-    command = env.command_manager.get_command(command_name)
-    # command_pos is difference between target in env frame and object in env frame
-    command_pos = command[:, :2]
-    object_pos = object.data.root_pos_w - env.scene.env_origins
-    # print("target_pos: ", command_pos)
-    # print("object_pos: ", object_pos[:, :2])
-    # distance of the target to the object: (num_envs,)
-    distance = torch.norm(command_pos, dim=1)
-    # print("distance: ", distance)
-    # rewarded if the object is closest to the target
-    return distance
+    asset: RigidObject = env.scene[asset_cfg.name]
+    if isinstance(target_cfg, SceneEntityCfg):
+        target: RigidObject = env.scene[target_cfg.name]
+        target_pos = target.data.root_pos_w - env.scene.env_origins
+    else:
+        target_pos = torch.tensor([target.get(key, 0.0) for key in ["x", "y"]], device=asset.data.root_pos_w.device)
+
+    root_pos = asset.data.root_pos_w - env.scene.env_origins
+    # compute the reward
+    xy_sparse_reward = torch.norm(root_pos[:, :2] - target_pos[:, :2]) < distance_from_target
+    return xy_sparse_reward

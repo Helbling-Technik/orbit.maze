@@ -36,7 +36,7 @@ project_root = os.path.join(current_script_path, "../../../../..")
 
 MAZE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=os.path.join(project_root, "usds/Maze_Simple.usd"),
+        usd_path=os.path.join(project_root, "usds/Maze_Centered.usd"),
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             max_linear_velocity=1000.0,
@@ -58,21 +58,43 @@ MAZE_CFG = ArticulationCfg(
     actuators={
         "outer_actuator": ImplicitActuatorCfg(
             joint_names_expr=["OuterDOF_RevoluteJoint"],
-            effort_limit=0.01,  # 5g * 9.81 * 0.15m = 0.007357
+            effort_limit=0.1,  # 5g * 9.81 * 0.15m = 0.007357
             velocity_limit=1.0 / math.pi,
-            stiffness=0.0,
-            damping=10.0,
+            stiffness=1000.0,
+            damping=0.0,
         ),
         "inner_actuator": ImplicitActuatorCfg(
             joint_names_expr=["InnerDOF_RevoluteJoint"],
-            effort_limit=0.01,  # 5g * 9.81 * 0.15m = 0.007357
+            effort_limit=0.1,  # 5g * 9.81 * 0.15m = 0.007357
             velocity_limit=1.0 / math.pi,
-            stiffness=0.0,
-            damping=10.0,
+            stiffness=1000.0,
+            damping=0.0,
         ),
     },
 )
 
+MAZE01_CFG = ArticulationCfg(
+    spawn=sim_utils.UsdFileCfg(
+        usd_path=os.path.join(project_root, "usds/Maze_Centered.usd"),
+        rigid_props=sim_utils.RigidBodyPropertiesCfg(
+            rigid_body_enabled=True,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
+            max_depenetration_velocity=100.0,
+            enable_gyroscopic_forces=True,
+        ),
+        articulation_props=sim_utils.ArticulationRootPropertiesCfg(
+            enabled_self_collisions=False,
+            solver_position_iteration_count=4,
+            solver_velocity_iteration_count=0,
+            sleep_threshold=0.005,
+            stabilization_threshold=0.001,
+        ),
+    ),
+    init_state=ArticulationCfg.InitialStateCfg(
+        pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
+    ),
+)
 # Scene definition
 ##
 
@@ -90,17 +112,41 @@ class MazeSceneCfg(InteractiveSceneCfg):
     # cartpole
     robot: ArticulationCfg = MAZE_CFG.replace(prim_path="{ENV_REGEX_NS}/Labyrinth")
 
+    # sensors
+    # top_cam = CameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/top_cam",
+    #     update_period=0.1,
+    #     height=256,
+    #     width=256,
+    #     data_types=["rgb"],  # , "distance_to_image_plane"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=24.0, focus_distance=0.4, horizontal_aperture=21, clipping_range=(0.1, 1)
+    #     ),
+    #     offset=CameraCfg.OffsetCfg(pos=(0.0, 0.02, 0.5), rot=(0, 1, 0, 0), convention="ros"),
+    # )
+
     # Sphere with collision enabled but not actuated
     sphere = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/sphere",
         spawn=sim_utils.SphereCfg(
-            radius=0.005,
+            radius=0.00625,
             mass_props=sim_utils.MassPropertiesCfg(density=7850),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9), metallic=0.8),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.11)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
+    )
+
+    target = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/target",
+        spawn=sim_utils.SphereCfg(
+            radius=0.003,
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
+            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 0.0), metallic=0.2),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
     dome_light = AssetBaseCfg(
@@ -121,21 +167,16 @@ class CommandsCfg:
     # no commands for this MDP
     null = mdp.NullCommandCfg()
 
-    # sphere_cmd_pos = mdp.UniformPose2dCommandCfg(
-    #     asset_name="sphere",
-    #     simple_heading=True,
-    #     resampling_time_range=(10000000000, 10000000000),
-    #     debug_vis=False,
-    #     ranges=mdp.UniformPose2dCommandCfg.Ranges(pos_x=(-0.05, 0.05), pos_y=(-0.05, 0.05)),
-    # )
-
 
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=0.1)
-    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=0.1)
+    outer_joint_effort = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1)
+    inner_joint_effort = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1)
+
+
+velocity_extractor = mdp.VelocityExtractor()
 
 
 @configclass
@@ -147,28 +188,36 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        joint_pos = ObsTerm(func=mdp.joint_pos_rel)
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel)
+        joint_pos = ObsTerm(func=mdp.joint_pos)
+        # joint_vel = ObsTerm(func=mdp.joint_vel)
+        joint_est_vel = ObsTerm(
+            func=velocity_extractor.extract_joint_velocity,
+            params={"asset_cfg": SceneEntityCfg("robot")},
+        )
         sphere_pos = ObsTerm(
             func=mdp.root_pos_w,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
-        sphere_lin_vel = ObsTerm(
-            func=mdp.root_lin_vel_w,
+        # sphere_lin_vel = ObsTerm(
+        #     func=mdp.root_lin_vel_w,
+        #     params={"asset_cfg": SceneEntityCfg("sphere")},
+        # )
+        sphere_est_vel = ObsTerm(
+            func=velocity_extractor.extract_root_velocity,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
-        target_pos_rel = ObsTerm(
-            func=mdp.get_target_pos,
+        target_pos = ObsTerm(
+            func=mdp.root_pos_w_xy,
             params={
-                "asset_cfg": SceneEntityCfg("sphere"),
-                "target": {"x": 0.0, "y": 0.0},
+                "asset_cfg": SceneEntityCfg("target"),
             },
         )
 
-        # target_sphere_pos = ObsTerm(
-        #     func=mdp.get_generated_commands_xy,
-        #     params={"command_name": "sphere_cmd_pos"},
+        # maze_top_view = ObsTerm(
+        #     func=mdp.camera_image,
+        #     params={"asset_cfg": SceneEntityCfg("top_cam")},
         # )
+
         def __post_init__(self) -> None:
             self.enable_corruption = False
             self.concatenate_terms = True
@@ -187,7 +236,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"]),
-            "position_range": (-0.01 * math.pi, 0.01 * math.pi),
+            "position_range": (-0.05 * math.pi, 0.05 * math.pi),
             "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
         },
     )
@@ -197,7 +246,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"]),
-            "position_range": (-0.01 * math.pi, 0.01 * math.pi),
+            "position_range": (-0.05 * math.pi, 0.05 * math.pi),
             "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
         },
     )
@@ -207,7 +256,17 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "pose_range": {"x": (-0.05, 0.05), "y": (-0.05, 0.05)},
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+            "velocity_range": {},
+        },
+    )
+
+    reset_target_pos = EventTerm(
+        func=mdp.reset_root_state_uniform,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("target"),
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
             "velocity_range": {},
         },
     )
@@ -223,27 +282,33 @@ class RewardsCfg:
     terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
     # (3) Primary task: keep sphere in center
     sphere_pos = RewTerm(
-        func=mdp.root_xypos_target_l2,
+        func=mdp.root_xypos_target,
         weight=-5000.0,
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "target": {"x": 0.0, "y": 0.0},
+            "target_cfg": SceneEntityCfg("target"),
+            "LNorm": 1,
         },
     )
-    # sphere_to_target = RewTerm(
-    #     func=mdp.object_goal_distance_l2,
-    #     params={"command_name": "sphere_cmd_pos", "object_cfg": SceneEntityCfg("sphere")},
-    #     weight=-5000.0,
-    # )
+    sphere_pos_sparse = RewTerm(
+        func=mdp.root_xy_sparse_target,
+        weight=1.0,
+        params={
+            "asset_cfg": SceneEntityCfg("sphere"),
+            "target_cfg": SceneEntityCfg("target"),
+            "distance_from_target": 0.001,
+        },
+    )
     outer_joint_vel = RewTerm(
         func=mdp.joint_vel_l1,
         weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
     )
-    inner_joint_vel = RewTerm(
-        func=mdp.joint_vel_l1,
+
+    outer_joint_torque = RewTerm(
+        func=mdp.joint_torques_l2,
         weight=-0.01,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"])},
+        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
     )
 
 
@@ -294,7 +359,7 @@ class MazeEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 10
+        self.episode_length_s = 3
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

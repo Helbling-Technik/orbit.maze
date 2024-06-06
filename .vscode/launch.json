@@ -9,6 +9,7 @@
 
 
 
+
     
         // Attach to simulation during runtime. This is useful for debugging extensions.
         // For more information, visit: https://docs.omniverse.nvidia.com/isaacsim/latest/advanced_tutorials/tutorial_advanced_python_debugging.html#attaching-the-debugger-to-a-running-app
@@ -26,7 +27,6 @@
             "request": "launch",
             "program": "${file}",
             "args" : "--livestream 1",
-            // "args" : "--headless",
             "console": "integratedTerminal",
             "env": {
                 "PYTHONPATH": "/home/sck/miniconda3/envs/orbit/bin/python"
