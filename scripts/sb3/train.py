@@ -32,7 +32,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-06-06_LearnSplineControl/model_spline.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-06-06_LearnSplineControl/model_0609_spline.zip",
 )
 # parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
 
@@ -64,7 +64,9 @@ from omni.isaac.orbit.utils.io import dump_pickle, dump_yaml
 import omni.isaac.orbit_tasks  # noqa: F401
 from omni.isaac.orbit_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.orbit_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
+import globals
 
+globals.init_globals()
 import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
 
 
