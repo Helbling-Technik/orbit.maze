@@ -32,7 +32,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-06-06_LearnSplineControl/model_0609_spline.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-06-21_LearnMaze/model.zip",
 )
 # parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
 
@@ -76,6 +76,7 @@ def main():
     env_cfg = parse_env_cfg(
         args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
+
     agent_cfg = load_cfg_from_registry(args_cli.task, "sb3_cfg_entry_point")
 
     # override configuration with command line arguments

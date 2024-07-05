@@ -38,13 +38,6 @@ class VelocityExtractor:
 
         current_vel = (current_root_pos - self.previous_root_pos) / env.step_dt
 
-        # # print nicely spaced values for debugging
-        # print("--------dt %4.2f --------------" % (env.step_dt))
-        # print("current_vel_est: \t %4.2f, \t %4.2f" % (current_vel[0, 0], current_vel[0, 1]))
-        # print(
-        #     "current_vel_true: \t %4.2f, \t %4.2f" % (asset.data.root_lin_vel_w[0, 0], asset.data.root_lin_vel_w[0, 1])
-        # )
-
         self.previous_root_pos = current_root_pos
 
         return current_vel
@@ -60,14 +53,6 @@ class VelocityExtractor:
             return torch.zeros_like(current_joint_pos)
 
         current_joint_vel = (current_joint_pos - self.previous_joint_pos) / env.step_dt
-
-        # # print nicely spaced values for debugging
-        # print("--------dt %4.2f --------------" % (env.step_dt))
-        # print("current_joint_pos: \t %4.4f, \t %4.4f" % (current_joint_pos[0, 0], current_joint_pos[0, 1]))
-        # print("previous_joint_pos: \t %4.4f, \t %4.4f" % (self.previous_joint_pos[0, 0], self.previous_joint_pos[0, 1]))
-        # print("current_joint_vel_est: \t %4.4f, \t %4.4f" % (current_joint_vel[0, 0], current_joint_vel[0, 1]))
-        # joint_vel = asset.data.joint_vel[0, asset_cfg.joint_ids]
-        # print("current_joint_vel_tr: \t %4.4f, \t %4.4f" % (joint_vel[0], joint_vel[1]))
 
         self.previous_joint_pos = current_joint_pos
 
@@ -89,7 +74,6 @@ def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     # Assuming asset and its data are properly defined and initialized
     n_envs = asset.data.output["rgb"].size(0)
     n = int(asset.data.output["rgb"].numel() / n_envs)
-    # print("Size of the tensor asset.data.output['rgb']:", tensor.size())
     return asset.data.output["rgb"].view(n_envs, n)
 
 

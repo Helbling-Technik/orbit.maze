@@ -103,6 +103,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9), metallic=0.8),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
     target1 = RigidObjectCfg(
@@ -114,6 +115,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target2 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target2",
@@ -124,6 +126,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[1, 0], maze_path[1, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target3 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target3",
@@ -134,6 +137,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[2, 0], maze_path[2, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
     dome_light = AssetBaseCfg(
@@ -302,19 +306,19 @@ class RewardsCfg:
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
             "sphere_cfg": SceneEntityCfg("sphere"),
-            "distance_from_target": 0.001,
+            "distance_from_target": 0.005,
             "idx_max": 60,
         },
     )
     joint_vel = RewTerm(
         func=mdp.joint_vel_l1,
-        weight=-1,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
     )
 
     joint_torque = RewTerm(
         func=mdp.joint_torques_l2,
-        weight=-1,
+        weight=-0.1,
         params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
     )
 
@@ -366,7 +370,7 @@ class MazeEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 30
+        self.episode_length_s = 20  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

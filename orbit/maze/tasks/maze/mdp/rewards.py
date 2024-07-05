@@ -71,6 +71,63 @@ def path_point_target(
     return xy_sparse_reward
 
 
+def random_path_point_target(
+    env: RLTaskEnv,
+    target1_cfg: SceneEntityCfg,
+    target2_cfg: SceneEntityCfg,
+    target3_cfg: SceneEntityCfg,
+    sphere_cfg: SceneEntityCfg,
+    pose_range: dict[str, tuple[float, float]],
+    distance_from_target: float = 0.005,
+    idx_max: int = None,
+) -> torch.Tensor:
+    """Asset root position in the environment frame."""
+    # extract the used quantities (to enable type-hinting)
+    sphere: RigidObject = env.scene[sphere_cfg.name]
+    target1: RigidObject = env.scene[target1_cfg.name]
+    target2: RigidObject = env.scene[target2_cfg.name]
+    target3: RigidObject = env.scene[target3_cfg.name]
+    sphere_pos = sphere.data.root_pos_w - env.scene.env_origins
+    target1_pos = target1.data.root_pos_w - env.scene.env_origins
+
+    global path_idx
+
+    if path_idx is None:
+        path_idx = 2 * torch.ones(env.num_envs, device=sphere.device, dtype=int)
+        path_idx = path_idx.to(sphere.device)
+
+    xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
+    target_reached_ids = torch.nonzero(xy_sparse_reward).view(-1)
+    if target_reached_ids.numel() == 0:
+        return xy_sparse_reward
+
+    target2to1 = target2.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+    target3to2 = target3.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+    targetNextto3 = target3.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+
+    if targetNextto3.dim() == 1:
+        targetNextto3 = targetNextto3.unsqueeze(0)
+        target3to2 = target3to2.unsqueeze(0)
+
+    # update the path index and last target
+    path_idx[target_reached_ids] += 1
+    path_idx[path_idx >= idx_max] = idx_max
+
+    # resample the target pose for the reached ids
+    range_size = (len(target_reached_ids), 3)
+    range_list = [pose_range.get(key, (0.0, 0.0)) for key in ["x", "y", "z"]]
+    ranges = torch.tensor(range_list, device=sphere.device)
+    rand_samples = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], range_size, device=sphere.device)
+    targetNextto3[:, :2] = rand_samples[:, :2] + env.scene.env_origins[target_reached_ids, :2]
+    last_reached = torch.tensor(path_idx[target_reached_ids] == idx_max).to(sphere.device)
+    targetNextto3[last_reached, :] = target3to2[last_reached, :]
+
+    target1.write_root_pose_to_sim(target2to1, env_ids=target_reached_ids)
+    target2.write_root_pose_to_sim(target3to2, env_ids=target_reached_ids)
+    target3.write_root_pose_to_sim(targetNextto3, env_ids=target_reached_ids)
+    return xy_sparse_reward
+
+
 def reset_maze_path_idx(env: BaseEnv, env_ids: torch.Tensor, sphere_cfg: SceneEntityCfg):
     sphere: RigidObject = env.scene[sphere_cfg.name]
 
