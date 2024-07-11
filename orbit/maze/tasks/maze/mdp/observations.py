@@ -59,6 +59,31 @@ class VelocityExtractor:
         return current_joint_vel
 
 
+def joint_pos_with_noise(
+    env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
+) -> torch.Tensor:
+    """The joint positions of the asset.
+
+    Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their positions returned.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+    joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    noise_tensor = torch.normal(mean=0, std=std, size=joint_pos.shape).to(joint_pos.device)
+    return joint_pos + noise_tensor
+
+
+def root_pos_w_with_noise(
+    env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
+) -> torch.Tensor:
+    """Asset root position in the environment frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    robot_pos = asset.data.root_pos_w - env.scene.env_origins
+    noise_tensor = torch.normal(mean=0, std=std, size=asset.data.root_pos_w.shape).to(robot_pos.device)
+    return robot_pos + noise_tensor
+
+
 def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Camera image from top camera."""
     # extract the used quantities (to enable type-hinting)

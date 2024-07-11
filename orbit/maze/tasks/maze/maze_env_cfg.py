@@ -57,18 +57,20 @@ MAZE_CFG = ArticulationCfg(
     init_state=ArticulationCfg.InitialStateCfg(
         pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
     ),
+    # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
+    # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
     actuators={
         "outer_actuator": ImplicitActuatorCfg(
             joint_names_expr=["OuterDOF_RevoluteJoint"],
-            effort_limit=0.1,  # 5g * 9.81 * 0.15m = 0.007357
-            velocity_limit=1.0 / math.pi,
+            effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
+            velocity_limit=20 * math.pi,
             stiffness=1000.0,
             damping=0.0,
         ),
         "inner_actuator": ImplicitActuatorCfg(
             joint_names_expr=["InnerDOF_RevoluteJoint"],
-            effort_limit=0.1,  # 5g * 9.81 * 0.15m = 0.007357
-            velocity_limit=1.0 / math.pi,
+            effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
+            velocity_limit=20 * math.pi,
             stiffness=1000.0,
             damping=0.0,
         ),
@@ -163,8 +165,12 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    outer_joint_effort = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1)
-    inner_joint_effort = mdp.JointPositionActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1)
+    outer_joint_effort = mdp.JointPositionActionCfg(
+        asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+    )
+    inner_joint_effort = mdp.JointPositionActionCfg(
+        asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+    )
 
 
 velocity_extractor = mdp.VelocityExtractor()
@@ -179,15 +185,18 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        joint_pos = ObsTerm(func=mdp.joint_pos)
+        joint_pos = ObsTerm(
+            func=mdp.joint_pos_with_noise,
+            params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.001},
+        )
         # joint_vel = ObsTerm(func=mdp.joint_vel)
         joint_est_vel = ObsTerm(
             func=velocity_extractor.extract_joint_velocity,
             params={"asset_cfg": SceneEntityCfg("robot")},
         )
         sphere_pos = ObsTerm(
-            func=mdp.root_pos_w,
-            params={"asset_cfg": SceneEntityCfg("sphere")},
+            func=mdp.root_pos_w_with_noise,
+            params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.002},
         )
         sphere_est_vel = ObsTerm(
             func=velocity_extractor.extract_root_velocity,
@@ -265,7 +274,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("target1"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
             "velocity_range": {},
         },
     )
@@ -274,7 +283,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("target2"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
             "velocity_range": {},
         },
     )
@@ -283,7 +292,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("target3"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
             "velocity_range": {},
         },
     )
@@ -307,19 +316,25 @@ class RewardsCfg:
             "target3_cfg": SceneEntityCfg("target3"),
             "sphere_cfg": SceneEntityCfg("sphere"),
             "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-            "distance_from_target": 0.005,
+            "distance_from_target": 0.01,
         },
     )
-    joint_vel = RewTerm(
-        func=mdp.joint_vel_l1,
-        weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
-    )
 
-    joint_torque = RewTerm(
-        func=mdp.joint_torques_l2,
+    # joint_vel = RewTerm(
+    #     func=mdp.joint_vel_l1,
+    #     weight=-0.1,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
+    # )
+
+    # joint_torque = RewTerm(
+    #     func=mdp.joint_torques_l2,
+    #     weight=-0.1,
+    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
+    # )
+
+    joint_action = RewTerm(
+        func=mdp.action_l2,
         weight=-0.1,
-        params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
     )
 
 
@@ -370,8 +385,8 @@ class MazeEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 20  # 20s enough to solve maze01
+        self.episode_length_s = 5  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
-        self.sim.dt = 1 / 200
+        self.sim.dt = 1 / 100

@@ -23,7 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-06-21_LearnMaze/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-07-11_ActionSpaceAndReward/model_32768000_steps.zip",
     # default="logs/sb3/Isaac-Maze-v0/2024-06-06_LearnSplineControl/model_0609_spline.zip",
     help="Path to model checkpoint.",
 )
@@ -67,14 +67,7 @@ def main():
     env_cfg = parse_env_cfg(
         args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
-    print("-----------------------------------------------")
-    print("---------- Environment Configuration ----------")
-    print("-----------------------------------------------")
-    print("-----------------------------------------------")
-    print("-----------------------------------------------")
-    print("-----------------------------------------------")
-    print("-----------------------------------------------")
-    print(env_cfg)
+
     agent_cfg = load_cfg_from_registry(args_cli.task, "sb3_cfg_entry_point")
     # post-process agent configuration
     agent_cfg = process_sb3_cfg(agent_cfg)
@@ -122,6 +115,9 @@ def main():
             actions, _ = agent.predict(obs, deterministic=True)
             # env stepping
             obs, _, _, _ = env.step(actions)
+
+            # print("observations: ", obs)
+            # print("actions: ", actions)
 
     # close the simulator
     env.close()
