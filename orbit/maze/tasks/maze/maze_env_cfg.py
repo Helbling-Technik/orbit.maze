@@ -39,7 +39,7 @@ project_root = os.path.join(current_script_path, "../../../../..")
 
 MAZE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=os.path.join(project_root, "usds/generated_mazes/centeredMaze01.usd"),
+        usd_path=os.path.join(project_root, "usds/generated_mazes/coloredMaze02.usd"),
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             max_linear_velocity=1000.0,
@@ -106,8 +106,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
     target1 = RigidObjectCfg(
@@ -118,8 +118,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.105)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target2 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target2",
@@ -129,8 +129,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[1, 0], maze_path[1, 1], 0.105)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[1, 0], maze_path[1, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target3 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target3",
@@ -140,8 +140,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[2, 0], maze_path[2, 1], 0.105)),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[2, 0], maze_path[2, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
     dome_light = AssetBaseCfg(
@@ -161,17 +161,6 @@ class MazeSceneCfg(InteractiveSceneCfg):
         ),
         offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.45), rot=(0, 1, 0, 0), convention="ros"),
     )
-
-    # Raycast sensor
-    # raycast = RayCasterCfg(
-    #     prim_path="{ENV_REGEX_NS}/sphere",
-    #     mesh_prim_paths=["/World/envs/env_0/Labyrinth/InnerDOF"],
-    #     update_period=0.0,
-    #     attach_yaw_only=True,
-    #     max_distance=1.2,
-    #     pattern_cfg=GridPatternCfg(resolution=1, size=[1.0, 2.0]),
-    #     debug_vis=True,
-    # )
 
 
 ##
@@ -299,7 +288,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("target1"),
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
             "velocity_range": {},
         },
     )
@@ -308,7 +297,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("target2"),
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
             "velocity_range": {},
         },
     )
@@ -317,7 +306,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("target3"),
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
             "velocity_range": {},
         },
     )
@@ -379,29 +368,17 @@ class RewardsCfg:
     terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
     # (3) Primary task: control maze path
     sphere_maze_path_target = RewTerm(
-        func=mdp.spline_point_target,
+        func=mdp.path_point_target,
         weight=1000.0,
         params={
             "target1_cfg": SceneEntityCfg("target1"),
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
             "sphere_cfg": SceneEntityCfg("sphere"),
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
-            "distance_from_target": 0.01,
+            "distance_from_target": 0.005,
+            "idx_max": 60,
         },
     )
-    # sphere_maze_path_target = RewTerm(
-    #     func=mdp.path_point_target,
-    #     weight=1000.0,
-    #     params={
-    #         "target1_cfg": SceneEntityCfg("target1"),
-    #         "target2_cfg": SceneEntityCfg("target2"),
-    #         "target3_cfg": SceneEntityCfg("target3"),
-    #         "sphere_cfg": SceneEntityCfg("sphere"),
-    #         "distance_from_target": 0.005,
-    #         "idx_max": 60,
-    #     },
-    # )
 
     joint_action = RewTerm(
         func=mdp.action_l2,
