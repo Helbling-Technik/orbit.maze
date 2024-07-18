@@ -23,8 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-07-11_ActionSpaceAndReward/model_32768000_steps.zip",
-    # default="logs/sb3/Isaac-Maze-v0/2024-06-06_LearnSplineControl/model_0609_spline.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-07-18_11-15-34/model_1232000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(

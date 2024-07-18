@@ -10,7 +10,8 @@ import yaml
 import omni.isaac.orbit.sim as sim_utils
 from omni.isaac.orbit.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from omni.isaac.orbit.envs import RLTaskEnvCfg
-from omni.isaac.orbit.sensors import CameraCfg
+from omni.isaac.orbit.sensors import CameraCfg, RayCasterCfg
+from omni.isaac.orbit.sensors.ray_caster.patterns import BpearlPatternCfg, GridPatternCfg
 from omni.isaac.orbit.managers import EventTermCfg as EventTerm
 from omni.isaac.orbit.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.orbit.managers import ObservationTermCfg as ObsTerm
@@ -38,7 +39,7 @@ project_root = os.path.join(current_script_path, "../../../../..")
 
 MAZE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=os.path.join(project_root, "usds/Maze_Centered.usd"),
+        usd_path=os.path.join(project_root, "usds/generated_mazes/centeredMaze01.usd"),
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             max_linear_velocity=1000.0,
@@ -65,14 +66,14 @@ MAZE_CFG = ArticulationCfg(
             effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
             velocity_limit=20 * math.pi,
             stiffness=1000.0,
-            damping=0.0,
+            damping=1.0,
         ),
         "inner_actuator": ImplicitActuatorCfg(
             joint_names_expr=["InnerDOF_RevoluteJoint"],
             effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
             velocity_limit=20 * math.pi,
             stiffness=1000.0,
-            damping=0.0,
+            damping=1.0,
         ),
     },
 )
@@ -102,7 +103,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             mass_props=sim_utils.MassPropertiesCfg(density=7850),
             rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.9, 0.9, 0.9), metallic=0.8),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
+            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         ),
         # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
@@ -146,6 +148,30 @@ class MazeSceneCfg(InteractiveSceneCfg):
         prim_path="/World/DomeLight",
         spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=1000.0),
     )
+
+    # sensors
+    top_cam = CameraCfg(
+        prim_path="{ENV_REGEX_NS}/top_cam",
+        update_period=0.02,
+        height=128,
+        width=128,
+        data_types=["rgb"],  # , "distance_to_image_plane"],
+        spawn=sim_utils.PinholeCameraCfg(
+            focal_length=18.0, focus_distance=350.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0)
+        ),
+        offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.45), rot=(0, 1, 0, 0), convention="ros"),
+    )
+
+    # Raycast sensor
+    # raycast = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/sphere",
+    #     mesh_prim_paths=["/World/envs/env_0/Labyrinth/InnerDOF"],
+    #     update_period=0.0,
+    #     attach_yaw_only=True,
+    #     max_distance=1.2,
+    #     pattern_cfg=GridPatternCfg(resolution=1, size=[1.0, 2.0]),
+    #     debug_vis=True,
+    # )
 
 
 ##
@@ -221,6 +247,14 @@ class ObservationsCfg:
             },
         )
 
+        image = ObsTerm(
+            func=mdp.camera_image,
+            params={
+                "asset_cfg": SceneEntityCfg("top_cam"),
+                "sphere_cfg": SceneEntityCfg("sphere"),
+            },
+        )
+
         def __post_init__(self) -> None:
             self.enable_corruption = False
             self.concatenate_terms = True
@@ -239,21 +273,12 @@ class EventCfg:
         mode="reset",
         params={"sphere_cfg": SceneEntityCfg("sphere")},
     )
-    reset_outer_joint = EventTerm(
-        func=mdp.reset_joints_by_offset,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint"]),
-            "position_range": (-0.05 * math.pi, 0.05 * math.pi),
-            "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
-        },
-    )
 
-    reset_inner_joint = EventTerm(
+    reset_joints = EventTerm(
         func=mdp.reset_joints_by_offset,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=["InnerDOF_RevoluteJoint"]),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
             "position_range": (-0.05 * math.pi, 0.05 * math.pi),
             "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
         },
@@ -264,7 +289,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "pose_range": {"x": (-0.1, 0.1), "y": (-0.1, 0.1)},
+            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
             "velocity_range": {},
         },
     )
@@ -297,6 +322,52 @@ class EventCfg:
         },
     )
 
+    randomize_outer_actuator = EventTerm(
+        func=mdp.randomize_actuator_stiffness_and_damping,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+            "stiffness_range": (0.1, 10),
+            "damping_range": (0.5, 2.0),
+            "operation": "scale",
+            "distribution": "log_uniform",
+        },
+    )
+
+    randomize_inner_actuator = EventTerm(
+        func=mdp.randomize_actuator_stiffness_and_damping,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+            "stiffness_range": (0.1, 10),
+            "damping_range": (0.5, 2.0),
+            "operation": "scale",
+            "distribution": "log_uniform",
+        },
+    )
+
+    randomize_outer_joint = EventTerm(
+        func=mdp.randomize_joint_friction_and_armature,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+            "friction_range": (0.05, 0.5),
+            "operation": "abs",
+            "distribution": "log_uniform",
+        },
+    )
+
+    randomize_inner_joint = EventTerm(
+        func=mdp.randomize_joint_friction_and_armature,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+            "friction_range": (0.05, 0.5),
+            "operation": "abs",
+            "distribution": "log_uniform",
+        },
+    )
+
 
 @configclass
 class RewardsCfg:
@@ -319,21 +390,26 @@ class RewardsCfg:
             "distance_from_target": 0.01,
         },
     )
-
-    # joint_vel = RewTerm(
-    #     func=mdp.joint_vel_l1,
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
-    # )
-
-    # joint_torque = RewTerm(
-    #     func=mdp.joint_torques_l2,
-    #     weight=-0.1,
-    #     params={"asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"])},
+    # sphere_maze_path_target = RewTerm(
+    #     func=mdp.path_point_target,
+    #     weight=1000.0,
+    #     params={
+    #         "target1_cfg": SceneEntityCfg("target1"),
+    #         "target2_cfg": SceneEntityCfg("target2"),
+    #         "target3_cfg": SceneEntityCfg("target3"),
+    #         "sphere_cfg": SceneEntityCfg("sphere"),
+    #         "distance_from_target": 0.005,
+    #         "idx_max": 60,
+    #     },
     # )
 
     joint_action = RewTerm(
         func=mdp.action_l2,
+        weight=-0.1,
+    )
+
+    joint_action_rate = RewTerm(
+        func=mdp.action_rate_l2,
         weight=-0.1,
     )
 
@@ -385,7 +461,7 @@ class MazeEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 5  # 20s enough to solve maze01
+        self.episode_length_s = 10  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

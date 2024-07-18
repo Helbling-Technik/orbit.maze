@@ -32,7 +32,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 # parser.add_argument(
 #     "--model_path",
 #     type=str,
-#     default="logs/sb3/Isaac-Maze-v0/2024-07-05_AdapteEffort/model_655360000_steps.zip",
+#     default="logs/sb3/Isaac-Maze-v0/2024-07-11_ActionRateReward/model_65536000_steps.zip",
 # )
 parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
 
