@@ -18,6 +18,7 @@ from omni.isaac.orbit.utils.warp import convert_to_warp_mesh, raycast_mesh
 from PIL import Image, ImageDraw
 
 from datetime import datetime
+from scipy.spatial.transform import Rotation
 import numpy as np
 
 if TYPE_CHECKING:
@@ -86,11 +87,11 @@ def root_pos_w_with_noise(
     return robot_pos + noise_tensor
 
 
-def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
+def camera_image(env: RLTaskEnv, camera_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
     """Camera image from top camera."""
     # extract the used quantities (to enable type-hinting)
-    # asset: Articulation = env.scene[asset_cfg.name]
-    asset: Camera = env.scene[asset_cfg.name]
+    # asset: Articulation = env.scene[camera_cfg.name]
+    asset: Camera = env.scene[camera_cfg.name]
 
     sphere: RigidObject = env.scene[sphere_cfg.name]
     pos = sphere.data.root_pos_w - env.scene.env_origins
@@ -140,6 +141,60 @@ def camera_image(env: RLTaskEnv, asset_cfg: SceneEntityCfg, sphere_cfg: SceneEnt
     #     img_pil = Image.fromarray(img_array_255, mode="L")
     #     img_pil.save("logs/sb3/Isaac-Maze-v0/test-images/gray_cropped_image_" + str(i) + "_" + date_string + ".png")
     # print("gray_cropped_image: ", gray_cropped_image.view(num_envs, -1).shape)
+
+    return gray_cropped_image.view(num_envs, -1)
+
+
+def cropped_camera_image(env: RLTaskEnv, camera_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
+
+    camera = env.scene[camera_cfg.name]
+    sphere: RigidObject = env.scene[sphere_cfg.name]
+    sphere_pos_w = sphere.data.root_pos_w
+    # add a column of ones to the sphere_pos_w
+    sphere_pos_w = torch.cat((sphere_pos_w, torch.ones(sphere_pos_w.shape[0], 1, device=sphere_pos_w.device)), dim=1)
+    sphere_pos_w = sphere_pos_w.view(-1, 4, 1)
+
+    camera_quat_w_ros = camera.data.quat_w_ros.cpu().numpy()
+    # convert quat from w,x,y,z to x,y,z,w
+    camera_quat_w_ros = np.hstack((camera_quat_w_ros[:, 1:], camera_quat_w_ros[:, [0]]))
+    camera_pos_w = camera.data.pos_w.cpu().numpy()
+
+    intrinsic_matrices = camera.data.intrinsic_matrices
+
+    # convert quaternion to rotation matrix
+    r = Rotation.from_quat(camera_quat_w_ros)
+    R_WC = r.inv().as_matrix()
+    t_wc_w = camera_pos_w.reshape(-1, 3, 1)
+    T = torch.tensor(np.concatenate((R_WC, -R_WC @ t_wc_w), axis=2), device=sphere_pos_w.device).to(torch.float32)
+
+    # convert sphere position to camera frame
+    sphere_pos_cam = intrinsic_matrices @ T @ sphere_pos_w
+    sphere_pos_cam = sphere_pos_cam.view(-1, 3)
+    z_value = sphere_pos_cam[:, 2].view(-1, 1)
+    sphere_pix_cam = sphere_pos_cam / z_value
+
+    image_tensor = camera.data.output["rgb"]
+    num_envs = image_tensor.shape[0]
+    img_size = image_tensor.shape[1]
+
+    # clip image pos 10 to 127-11 to avoid out of bounds
+    window_size = 10
+    img_pos = torch.clamp(sphere_pix_cam[:, :2], window_size, img_size - 1 - (window_size + 1))
+    img_pos = torch.round(img_pos).to(torch.int32)
+
+    # create empty tensor to store the cropped images
+    cropped_image = torch.zeros(
+        (num_envs, 2 * window_size + 1, 2 * window_size + 1, 3), dtype=torch.float16, device=sphere_pos_w.device
+    )
+
+    for i, (x, y) in enumerate(img_pos):
+        x_lo = x.item() - window_size
+        y_lo = y.item() - window_size
+        x_hi = x.item() + (window_size + 1)
+        y_hi = y.item() + (window_size + 1)
+        cropped_image[i, :, :, :] = image_tensor[i, y_lo:y_hi, x_lo:x_hi, :3].to(torch.float16) / 255.0
+
+    gray_cropped_image = torch.mean(cropped_image, dim=-1, keepdim=False)
 
     return gray_cropped_image.view(num_envs, -1)
 
