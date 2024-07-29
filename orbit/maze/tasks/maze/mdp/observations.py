@@ -8,12 +8,12 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from omni.isaac.orbit.sensors import Camera
-from omni.isaac.orbit.assets import Articulation, RigidObject
-from omni.isaac.orbit.managers import SceneEntityCfg
-from omni.isaac.orbit.utils.math import wrap_to_pi
-from omni.isaac.orbit.sensors import RayCaster
-from omni.isaac.orbit.utils.warp import convert_to_warp_mesh, raycast_mesh
+from omni.isaac.lab.sensors import Camera
+from omni.isaac.lab.assets import Articulation, RigidObject
+from omni.isaac.lab.managers import SceneEntityCfg
+from omni.isaac.lab.utils.math import wrap_to_pi
+from omni.isaac.lab.sensors import RayCaster
+from omni.isaac.lab.utils.warp import convert_to_warp_mesh, raycast_mesh
 
 from PIL import Image, ImageDraw
 
@@ -23,7 +23,7 @@ import numpy as np
 from globals import simulated_image_tensor
 
 if TYPE_CHECKING:
-    from omni.isaac.orbit.envs import RLTaskEnv
+    from omni.isaac.lab.envs import ManagerBasedRLEnv
 
 
 class VelocityExtractor:
@@ -31,7 +31,7 @@ class VelocityExtractor:
         self.previous_root_pos = None
         self.previous_joint_pos = None
 
-    def extract_root_velocity(self, env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    def extract_root_velocity(self, env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
         """Extract the velocity of the object."""
         asset: RigidObject = env.scene[asset_cfg.name]
         current_root_pos = asset.data.root_pos_w - env.scene.env_origins
@@ -46,7 +46,7 @@ class VelocityExtractor:
 
         return current_vel
 
-    def extract_joint_velocity(self, env: RLTaskEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    def extract_joint_velocity(self, env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
         """Extract the velocity of the object."""
         asset: Articulation = env.scene[asset_cfg.name]
         current_joint_pos = torch.clone(asset.data.joint_pos[:, asset_cfg.joint_ids])
@@ -64,7 +64,7 @@ class VelocityExtractor:
 
 
 def joint_pos_with_noise(
-    env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
 ) -> torch.Tensor:
     """The joint positions of the asset.
 
@@ -78,7 +78,7 @@ def joint_pos_with_noise(
 
 
 def root_pos_w_with_noise(
-    env: BaseEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
 ) -> torch.Tensor:
     """Asset root position in the environment frame."""
     # extract the used quantities (to enable type-hinting)
@@ -89,7 +89,7 @@ def root_pos_w_with_noise(
 
 
 def simulated_camera_image(
-    env: RLTaskEnv,
+    env: ManagerBasedRLEnv,
     sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere"),
     maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
@@ -140,7 +140,9 @@ def simulated_camera_image(
     return cropped_images.view(sphere_pos_env.shape[0], -1)
 
 
-def cropped_camera_image(env: RLTaskEnv, camera_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
+def cropped_camera_image(
+    env: ManagerBasedRLEnv, camera_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg
+) -> torch.Tensor:
 
     camera = env.scene[camera_cfg.name]
     sphere: RigidObject = env.scene[sphere_cfg.name]
@@ -194,7 +196,7 @@ def cropped_camera_image(env: RLTaskEnv, camera_cfg: SceneEntityCfg, sphere_cfg:
     return gray_cropped_image.view(num_envs, -1)
 
 
-def root_pos_w_xy(env: RLTaskEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+def root_pos_w_xy(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
     """Asset root position in the environment frame."""
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
@@ -202,7 +204,7 @@ def root_pos_w_xy(env: RLTaskEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("ro
     return position[:, :2]
 
 
-def lidar_scan_w(env: RLTaskEnv, sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
+def lidar_scan_w(env: ManagerBasedRLEnv, sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
     """Lidar scan in the environment frame."""
     # extract the used quantities (to enable type-hinting)
     sphere: RigidObject = env.scene[sphere_cfg.name]

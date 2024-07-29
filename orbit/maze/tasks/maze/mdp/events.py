@@ -8,19 +8,19 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-import omni.isaac.orbit.utils.math as math_utils
-from omni.isaac.orbit.assets import Articulation, RigidObject
-from omni.isaac.orbit.managers import SceneEntityCfg
+import omni.isaac.lab.utils.math as math_utils
+from omni.isaac.lab.assets import Articulation, RigidObject
+from omni.isaac.lab.managers import SceneEntityCfg
 
-import omni.isaac.orbit.sim as sim_utils
+import omni.isaac.lab.sim as sim_utils
 import omni.isaac.core.utils.stage as stage_utils
 
 if TYPE_CHECKING:
-    from omni.isaac.orbit.envs import RLTaskEnv
+    from omni.isaac.lab.envs import ManagerBasedRLEnv
 
 
 def set_random_target_pos(
-    env: RLTaskEnv,
+    env: ManagerBasedRLEnv,
     env_ids: torch.Tensor,
     pose_range: dict[str, tuple[float, float]],
     asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
@@ -39,7 +39,7 @@ def set_random_target_pos(
 
 
 def randomize_actuator_stiffness_and_damping(
-    env: BaseEnv,
+    env: ManagerBasedEnv,
     env_ids: torch.Tensor | None,
     asset_cfg: SceneEntityCfg,
     stiffness_range: tuple[float, float] | None = None,
@@ -98,7 +98,7 @@ def randomize_actuator_stiffness_and_damping(
 
 
 def randomize_joint_friction_and_armature(
-    env: BaseEnv,
+    env: ManagerBasedEnv,
     env_ids: torch.Tensor | None,
     asset_cfg: SceneEntityCfg,
     friction_range: tuple[float, float] | None = None,
@@ -208,7 +208,7 @@ def _randomize_values(
     return data
 
 
-def randomize_usds(env: BaseEnv, env_ids: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+def randomize_usds(env: ManagerBasedEnv, env_ids: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
 
     print("asset_cfg: ", asset_cfg)
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
@@ -255,7 +255,9 @@ def randomize_usds(env: BaseEnv, env_ids: torch.Tensor, asset_cfg: SceneEntityCf
     )
 
 
-def randomize_usd_paths(env: BaseEnv, env_ids: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
+def randomize_usd_paths(
+    env: ManagerBasedEnv, env_ids: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")
+):
 
     asset: RigidObject | Articulation = env.scene[asset_cfg.name]
     maze_path = "/home/sck/git/orbit.maze/usds/generated_mazes/maze02.usd"

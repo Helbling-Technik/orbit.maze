@@ -8,19 +8,19 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from omni.isaac.orbit.assets import Articulation, RigidObject
-from omni.isaac.orbit.managers import SceneEntityCfg
-from omni.isaac.orbit.utils.math import wrap_to_pi
-import omni.isaac.orbit.utils.math as math_utils
-from omni.isaac.orbit.utils import configclass
+from omni.isaac.lab.assets import Articulation, RigidObject
+from omni.isaac.lab.managers import SceneEntityCfg
+from omni.isaac.lab.utils.math import wrap_to_pi
+import omni.isaac.lab.utils.math as math_utils
+from omni.isaac.lab.utils import configclass
 from globals import path_idx, maze_path
 
 if TYPE_CHECKING:
-    from omni.isaac.orbit.envs import RLTaskEnv
+    from omni.isaac.lab.envs import ManagerBasedRLEnv
 
 
 def path_point_target(
-    env: RLTaskEnv,
+    env: ManagerBasedRLEnv,
     target1_cfg: SceneEntityCfg,
     target2_cfg: SceneEntityCfg,
     target3_cfg: SceneEntityCfg,
@@ -71,7 +71,7 @@ def path_point_target(
     return xy_sparse_reward
 
 
-def reset_maze_path_idx(env: BaseEnv, env_ids: torch.Tensor, sphere_cfg: SceneEntityCfg):
+def reset_maze_path_idx(env: ManagerBasedEnv, env_ids: torch.Tensor, sphere_cfg: SceneEntityCfg):
     sphere: RigidObject = env.scene[sphere_cfg.name]
 
     global path_idx
@@ -86,7 +86,7 @@ def reset_maze_path_idx(env: BaseEnv, env_ids: torch.Tensor, sphere_cfg: SceneEn
 
 
 def root_xypos_target(
-    env: RLTaskEnv, target_cfg: SceneEntityCfg | dict[str, float], asset_cfg: SceneEntityCfg, LNorm: int = 2
+    env: ManagerBasedRLEnv, target_cfg: SceneEntityCfg | dict[str, float], asset_cfg: SceneEntityCfg, LNorm: int = 2
 ) -> torch.Tensor:
     """Penalize joint position deviation from a target value."""
     # extract the used quantities (to enable type-hinting)
@@ -104,7 +104,7 @@ def root_xypos_target(
 
 
 def spline_point_target(
-    env: RLTaskEnv,
+    env: ManagerBasedRLEnv,
     target1_cfg: SceneEntityCfg,
     target2_cfg: SceneEntityCfg,
     target3_cfg: SceneEntityCfg,
@@ -155,7 +155,7 @@ def spline_point_target(
 
 
 def root_xy_sparse_target(
-    env: RLTaskEnv,
+    env: ManagerBasedRLEnv,
     sphere_cfg: SceneEntityCfg,
     target_cfg: SceneEntityCfg | dict[str, float],
     distance_from_target: float = 0.001,

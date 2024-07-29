@@ -13,9 +13,9 @@ readme  = "README.md"
 
 [dependencies]
 "omni.kit.uiapp" = {}
-"omni.isaac.orbit" = {}
-"omni.isaac.orbit_assets" = {}
-"omni.isaac.orbit_tasks" = {}
+"omni.isaac.lab" = {}
+"omni.isaac.lab_assets" = {}
+"omni.isaac.lab_tasks" = {}
 "omni.isaac.core" = {}
 "omni.isaac.gym" = {}
 "omni.replicator.isaac" = {}

@@ -7,20 +7,20 @@ import math
 import torch
 import yaml
 
-import omni.isaac.orbit.sim as sim_utils
-from omni.isaac.orbit.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
-from omni.isaac.orbit.envs import RLTaskEnvCfg
-from omni.isaac.orbit.sensors import CameraCfg, RayCasterCfg
-from omni.isaac.orbit.sensors.ray_caster.patterns import BpearlPatternCfg, GridPatternCfg
-from omni.isaac.orbit.managers import EventTermCfg as EventTerm
-from omni.isaac.orbit.managers import ObservationGroupCfg as ObsGroup
-from omni.isaac.orbit.managers import ObservationTermCfg as ObsTerm
-from omni.isaac.orbit.managers import RewardTermCfg as RewTerm
-from omni.isaac.orbit.managers import SceneEntityCfg
-from omni.isaac.orbit.managers import TerminationTermCfg as DoneTerm
-from omni.isaac.orbit.scene import InteractiveSceneCfg
-from omni.isaac.orbit.actuators import ImplicitActuatorCfg
-from omni.isaac.orbit.utils import configclass
+import omni.isaac.lab.sim as sim_utils
+from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
+from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
+from omni.isaac.lab.sensors import CameraCfg, RayCasterCfg
+from omni.isaac.lab.sensors.ray_caster.patterns import BpearlPatternCfg, GridPatternCfg
+from omni.isaac.lab.managers import EventTermCfg as EventTerm
+from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
+from omni.isaac.lab.managers import ObservationTermCfg as ObsTerm
+from omni.isaac.lab.managers import RewardTermCfg as RewTerm
+from omni.isaac.lab.managers import SceneEntityCfg
+from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
+from omni.isaac.lab.scene import InteractiveSceneCfg
+from omni.isaac.lab.actuators import ImplicitActuatorCfg
+from omni.isaac.lab.utils import configclass
 from globals import path_idx, maze_path
 
 import orbit.maze.tasks.maze.mdp as mdp
@@ -29,7 +29,7 @@ import os
 ##
 # Pre-defined configs
 ##
-# from omni.isaac.orbit_assets.maze import MAZE_CFG  # isort:skip
+# from omni.isaac.lab_assets.maze import MAZE_CFG  # isort:skip
 # from maze import MAZE_CFG  # isort:skip
 
 # Absolute path of the current script
@@ -323,51 +323,51 @@ class EventCfg:
         },
     )
 
-    randomize_outer_actuator = EventTerm(
-        func=mdp.randomize_actuator_stiffness_and_damping,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "stiffness_range": (0.5, 2.0),
-            "damping_range": (0.5, 2.0),
-            "operation": "scale",
-            "distribution": "log_uniform",
-        },
-    )
+    # randomize_outer_actuator = EventTerm(
+    #     func=mdp.randomize_actuator_stiffness_and_damping,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+    #         "stiffness_range": (0.5, 2.0),
+    #         "damping_range": (0.5, 2.0),
+    #         "operation": "scale",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
-    randomize_inner_actuator = EventTerm(
-        func=mdp.randomize_actuator_stiffness_and_damping,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "stiffness_range": (0.5, 2.0),
-            "damping_range": (0.5, 2.0),
-            "operation": "scale",
-            "distribution": "log_uniform",
-        },
-    )
+    # randomize_inner_actuator = EventTerm(
+    #     func=mdp.randomize_actuator_stiffness_and_damping,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+    #         "stiffness_range": (0.5, 2.0),
+    #         "damping_range": (0.5, 2.0),
+    #         "operation": "scale",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
-    randomize_outer_joint = EventTerm(
-        func=mdp.randomize_joint_friction_and_armature,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "friction_range": (0.05, 0.1),
-            "operation": "abs",
-            "distribution": "log_uniform",
-        },
-    )
+    # randomize_outer_joint = EventTerm(
+    #     func=mdp.randomize_joint_friction_and_armature,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+    #         "friction_range": (0.05, 0.1),
+    #         "operation": "abs",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
-    randomize_inner_joint = EventTerm(
-        func=mdp.randomize_joint_friction_and_armature,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "friction_range": (0.05, 0.1),
-            "operation": "abs",
-            "distribution": "log_uniform",
-        },
-    )
+    # randomize_inner_joint = EventTerm(
+    #     func=mdp.randomize_joint_friction_and_armature,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+    #         "friction_range": (0.05, 0.1),
+    #         "operation": "abs",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
 
 @configclass
@@ -429,7 +429,7 @@ class CurriculumCfg:
 
 
 @configclass
-class MazeEnvCfg(RLTaskEnvCfg):
+class MazeEnvCfg(ManagerBasedRLEnvCfg):
     """Configuration for the locomotion velocity-tracking environment."""
 
     # Scene settings

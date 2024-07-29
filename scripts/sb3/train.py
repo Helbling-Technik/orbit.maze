@@ -15,7 +15,8 @@ there will be significant overhead in GPU->CPU transfer.
 import argparse
 import os
 
-from omni.isaac.orbit.app import AppLauncher
+from isaacsim import SimulationApp
+
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with Stable-Baselines3.")
@@ -32,19 +33,19 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-07-24_17-12-25/model_114688000_steps.zip",
+    default=None,
 )
-# parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
 
-
-# append AppLauncher cli args
-AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
 
 # launch omniverse app
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
+simulation_app = SimulationApp({"hide_ui": False})
+from omni.isaac.core.utils.extensions import enable_extension
+
+enable_extension("omni.kit.streamsdk.plugins-3.2.1")
+enable_extension("omni.kit.livestream.core-3.2.0")
+enable_extension("omni.kit.livestream.native")
 
 """Rest everything follows."""
 
@@ -58,12 +59,12 @@ from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.vec_env import VecNormalize
 
-from omni.isaac.orbit.utils.dict import print_dict
-from omni.isaac.orbit.utils.io import dump_pickle, dump_yaml
+from omni.isaac.lab.utils.dict import print_dict
+from omni.isaac.lab.utils.io import dump_pickle, dump_yaml
 
-import omni.isaac.orbit_tasks  # noqa: F401
-from omni.isaac.orbit_tasks.utils import load_cfg_from_registry, parse_env_cfg
-from omni.isaac.orbit_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
+import omni.isaac.lab_tasks  # noqa: F401
+from omni.isaac.lab_tasks.utils import load_cfg_from_registry, parse_env_cfg
+from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 import globals
 
 globals.init_globals()

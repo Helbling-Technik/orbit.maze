@@ -9,7 +9,7 @@
 
 import argparse
 
-from omni.isaac.orbit.app import AppLauncher
+from isaacsim import SimulationApp
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a checkpoint of an RL agent from Stable-Baselines3.")
@@ -23,7 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-07-24_17-12-25/model_114688000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-07-26_13-42-53/model_98304000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -31,14 +31,16 @@ parser.add_argument(
     action="store_true",
     help="When no checkpoint provided, use the last saved model. Otherwise use the best saved model.",
 )
-# append AppLauncher cli args
-AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
 
 # launch omniverse app
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
+simulation_app = SimulationApp({"hide_ui": False})
+from omni.isaac.core.utils.extensions import enable_extension
+
+enable_extension("omni.kit.streamsdk.plugins-3.2.1")
+enable_extension("omni.kit.livestream.core-3.2.0")
+enable_extension("omni.kit.livestream.native")
 
 """Rest everything follows."""
 
@@ -50,9 +52,9 @@ import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import VecNormalize
 
-import omni.isaac.orbit_tasks  # noqa: F401
-from omni.isaac.orbit_tasks.utils.parse_cfg import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
-from omni.isaac.orbit_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
+import omni.isaac.lab_tasks  # noqa: F401
+from omni.isaac.lab_tasks.utils.parse_cfg import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
+from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 import globals
 
 globals.init_globals()

@@ -31,7 +31,7 @@ optional arguments:
 
 import argparse
 
-from omni.isaac.orbit.app import AppLauncher
+from omni.isaac.lab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD format.")
@@ -78,19 +78,19 @@ import carb
 import omni.isaac.core.utils.stage as stage_utils
 import omni.kit.app
 
-from omni.isaac.orbit.sim.converters import UrdfConverter, UrdfConverterCfg
-from omni.isaac.orbit.utils.assets import check_file_path
-from omni.isaac.orbit.utils.dict import print_dict
+from omni.isaac.lab.sim.converters import UrdfConverter, UrdfConverterCfg
+from omni.isaac.lab.utils.assets import check_file_path
+from omni.isaac.lab.utils.dict import print_dict
 
 from omni.isaac.kit import SimulationApp
 from omni.isaac.core import World
 from omni.isaac.core.utils import prims
 
-from omni.isaac.orbit.sim.spawners.lights import LightCfg, spawn_light
-from omni.isaac.orbit.assets import ArticulationCfg, Articulation
-from omni.isaac.orbit.sim.schemas import ArticulationRootPropertiesCfg
-from omni.isaac.orbit.actuators import ImplicitActuatorCfg
-import omni.isaac.orbit.sim as sim_utils
+from omni.isaac.lab.sim.spawners.lights import LightCfg, spawn_light
+from omni.isaac.lab.assets import ArticulationCfg, Articulation
+from omni.isaac.lab.sim.schemas import ArticulationRootPropertiesCfg
+from omni.isaac.lab.actuators import ImplicitActuatorCfg
+import omni.isaac.lab.sim as sim_utils
 import math
 
 

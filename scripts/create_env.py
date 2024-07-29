@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from omni.isaac.orbit.app import AppLauncher
+from omni.isaac.lab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Test adding sensors on a robot.")
@@ -31,15 +31,15 @@ import traceback
 
 import carb
 import os
-import omni.isaac.orbit.sim as sim_utils
-from omni.isaac.orbit.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
-from omni.isaac.orbit.scene import InteractiveScene, InteractiveSceneCfg
-from omni.isaac.orbit.sensors import CameraCfg, ContactSensorCfg, RayCasterCfg, patterns
-from omni.isaac.orbit.actuators import ImplicitActuatorCfg
-from omni.isaac.orbit.utils import configclass
-from omni.isaac.orbit.utils.timer import Timer
+import omni.isaac.lab.sim as sim_utils
+from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
+from omni.isaac.lab.scene import InteractiveScene, InteractiveSceneCfg
+from omni.isaac.lab.sensors import CameraCfg, ContactSensorCfg, RayCasterCfg, patterns
+from omni.isaac.lab.actuators import ImplicitActuatorCfg
+from omni.isaac.lab.utils import configclass
+from omni.isaac.lab.utils.timer import Timer
 import omni.replicator.core as rep
-from omni.isaac.orbit.utils import convert_dict_to_backend
+from omni.isaac.lab.utils import convert_dict_to_backend
 from tqdm import tqdm
 
 current_script_path = os.path.abspath(__file__)
@@ -88,11 +88,12 @@ MAZE_CFG = ArticulationCfg(
     },
 )
 
+
 @configclass
 class SensorsSceneCfg(InteractiveSceneCfg):
     """Design the scene with sensors on the robot."""
 
- # ground plane
+    # ground plane
     ground = AssetBaseCfg(
         prim_path="/World/ground",
         spawn=sim_utils.GroundPlaneCfg(size=(100.0, 100.0)),
@@ -113,20 +114,20 @@ class SensorsSceneCfg(InteractiveSceneCfg):
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.11)),
     )
-    
+
     # sensors
     camera_1 = CameraCfg(
         prim_path="{ENV_REGEX_NS}/top_cam",
         update_period=0.1,
         height=8,
         width=8,
-        data_types=["rgb"],#, "distance_to_image_plane"],
+        data_types=["rgb"],  # , "distance_to_image_plane"],
         spawn=sim_utils.PinholeCameraCfg(
             focal_length=24.0, focus_distance=400.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0e5)
         ),
-        offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.5), rot=(0,1,0,0), convention="ros"),
+        offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.5), rot=(0, 1, 0, 0), convention="ros"),
     )
-    
+
     # sphere_object = RigidObject(cfg=sphere_cfg)
 
     # lights
@@ -150,7 +151,7 @@ def run_simulator(
     # Define simulation stepping
     sim_dt = sim.get_physics_dt()
     sim_time = 0.0
-    
+
     def reset():
         # reset the scene entities
         # root state
@@ -172,14 +173,14 @@ def run_simulator(
 
     output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "output", "camera")
     rep_writer = rep.BasicWriter(output_dir=output_dir, frame_padding=3)
-    
+
     episode_steps = 500
 
     while simulation_app.is_running():
         reset()
-        
+
         with Timer(f"Time taken for {episode_steps} steps with {args_cli.num_envs} envs"):
-            with tqdm(range(episode_steps*args_cli.num_envs)) as pbar:
+            with tqdm(range(episode_steps * args_cli.num_envs)) as pbar:
                 for count in range(episode_steps):
                     # Apply default actions to the robot
                     # -- generate actions/commands
@@ -196,35 +197,41 @@ def run_simulator(
                     # update buffers
                     scene.update(sim_dt)
                     pbar.update(args_cli.num_envs)
-                    
+
                     # Extract camera data
                     if args_cli.save:
                         for i in range(args_cli.num_envs):
                             for j in range(args_cli.num_cams):
-                                single_cam_data = convert_dict_to_backend(scene[f"camera_{j+1}"].data.output, backend="numpy")
-                                #single_cam_info = scene[f"camera_{j+1}"].data.info
+                                single_cam_data = convert_dict_to_backend(
+                                    scene[f"camera_{j+1}"].data.output, backend="numpy"
+                                )
+                                # single_cam_info = scene[f"camera_{j+1}"].data.info
 
                                 # Pack data back into replicator format to save them using its writer
                                 rep_output = dict()
-                                for key, data in zip(single_cam_data.keys(), single_cam_data.values()):#, single_cam_info):
+                                for key, data in zip(
+                                    single_cam_data.keys(), single_cam_data.values()
+                                ):  # , single_cam_info):
                                     # if info is not None:
                                     #     rep_output[key] = {"data": data, "info": info}
                                     # else:
                                     rep_output[key] = data[i]
                                 # Save images
                                 # Note: We need to provide On-time data for Replicator to save the images.
-                                rep_output["trigger_outputs"] = {"on_time":f"{count}_{i}_{j}"}#{"on_time": scene["camera_1"].frame}
+                                rep_output["trigger_outputs"] = {
+                                    "on_time": f"{count}_{i}_{j}"
+                                }  # {"on_time": scene["camera_1"].frame}
                                 rep_writer.write(rep_output)
-                    
+
                     if args_cli.num_cams > 0:
                         cam1_rgb = scene["camera_1"].data.output["rgb"]
-                        squeezed_img = cam1_rgb.squeeze(0).cpu().numpy().astype('uint8')
+                        squeezed_img = cam1_rgb.squeeze(0).cpu().numpy().astype("uint8")
                         image = Image.fromarray(squeezed_img)
                         # image.save('test_cam'+str(count)+'.png')
                     if args_cli.num_cams > 1:
                         cam2_rgb = scene["camera_2"].data.output["rgb"]
-                    
-                
+
+
 def main():
     """Main function."""
 
