@@ -29,12 +29,12 @@ parser.add_argument(
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
-# parser.add_argument(
-#     "--model_path",
-#     type=str,
-#     default="logs/sb3/Isaac-Maze-v0/2024-07-11_ActionRateReward/model_65536000_steps.zip",
-# )
-parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
+parser.add_argument(
+    "--model_path",
+    type=str,
+    default="logs/sb3/Isaac-Maze-v0/2024-07-24_17-12-25/model_114688000_steps.zip",
+)
+# parser.add_argument("--model_path", type=str, default=None, help="Path to the existing model to continue training")
 
 
 # append AppLauncher cli args

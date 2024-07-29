@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw
 from datetime import datetime
 from scipy.spatial.transform import Rotation
 import numpy as np
+from globals import simulated_image_tensor
 
 if TYPE_CHECKING:
     from omni.isaac.orbit.envs import RLTaskEnv
@@ -87,62 +88,56 @@ def root_pos_w_with_noise(
     return robot_pos + noise_tensor
 
 
-def camera_image(env: RLTaskEnv, camera_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Camera image from top camera."""
-    # extract the used quantities (to enable type-hinting)
-    # asset: Articulation = env.scene[camera_cfg.name]
-    asset: Camera = env.scene[camera_cfg.name]
+def simulated_camera_image(
+    env: RLTaskEnv,
+    sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere"),
+    maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
 
-    sphere: RigidObject = env.scene[sphere_cfg.name]
-    pos = sphere.data.root_pos_w - env.scene.env_origins
-    pos[:, 1] = -pos[:, 1]  # flip y axis
+    global simulated_image_tensor
 
-    # round to the closest integer
-    image_tensor = asset.data.output["rgb"]
-    num_envs = image_tensor.shape[0]
-    img_size = image_tensor.shape[1]
+    maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
+    image_size = torch.tensor([63, 63], device="cuda:0")
+    pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
 
-    img_pos = torch.round(img_size / 0.40 * pos[:, :2] + img_size / 2).to(torch.int32)
+    sphere = env.scene[sphere_cfg.name]
+    sphere_pos_env = sphere.data.root_pos_w - env.scene.env_origins
+    maze = env.scene[maze_cfg.name]
+    maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
 
-    # clip image pos 10 to 127-11 to avoid out of bounds
-    window_size = 10
-    img_pos = torch.clamp(img_pos, window_size, img_size - 1 - (window_size + 1))
+    sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
+    sphere_pos_image = torch.round(image_size / maze_size * sphere_pos_env + image_size / 2 + pad_size).to(torch.int16)
+    sphere_pos_image = torch.clamp(sphere_pos_image, pad_size, image_size + pad_size)
 
-    # create empty tensor to store the cropped images
-    cropped_image = torch.zeros(
-        (num_envs, 2 * window_size + 1, 2 * window_size + 1, 3), dtype=torch.float16, device=pos.device
-    )
+    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float16, device="cuda:0")
+    for i in range(sphere_pos_env.shape[0]):
+        # extract 16x16 patch around sphere
+        x_lo = sphere_pos_image[i, 0].item() - pad_size[1].item()  # padding size pad_size[1].item()
+        x_hi = sphere_pos_image[i, 0].item() + pad_size[1].item()
+        y_lo = sphere_pos_image[i, 1].item() - pad_size[0].item()
+        y_hi = sphere_pos_image[i, 1].item() + pad_size[0].item()
+        cropped_images[i, :, :] = simulated_image_tensor[y_lo:y_hi, x_lo:x_hi]
+        # color center pixels black to visualize the sphere
+        cropped_images[i, 7:9, 7:9] = 128
 
-    for i, (x, y) in enumerate(img_pos):
-        x_lo = x.item() - window_size
-        y_lo = y.item() - window_size
-        x_hi = x.item() + (window_size + 1)
-        y_hi = y.item() + (window_size + 1)
-        cropped_image[i, :, :, :] = image_tensor[i, y_lo:y_hi, x_lo:x_hi, :3].to(torch.float16) / 255.0
-
-        # if i == 0:  # debugging with the first environment
+        # if i == 0:
         #     now = datetime.now()
         #     date_string = now.strftime("%Y%m%d-%H%M%S")
-        #     print("pos: ", pos[0, :2])
-        #     print("img_pos: ", img_pos[0, :])
-        #     print("x_lo: ", x_lo, "x_hi: ", x_hi, "y_lo: ", y_lo, "y_hi: ", y_hi)
-        #     image = Image.fromarray(image_tensor[i, :, :, :3].cpu().numpy())
+        #     numpy_image = simulated_image_tensor.cpu().numpy().copy()
+        #     # repeat the image 3 times to get RGB image using tile
+        #     numpy_image = np.stack((numpy_image, numpy_image, numpy_image), axis=-1)
+        #     image = Image.fromarray(numpy_image.astype(np.uint8))
         #     draw = ImageDraw.Draw(image)
-        #     draw.rectangle((x_lo, y_lo, x_hi, y_hi), outline=(255, 0, 0), width=5)
+        #     draw.rectangle((y_lo, x_lo, y_hi, x_hi), outline=(255, 0, 0), width=1)
         #     image.save("logs/sb3/Isaac-Maze-v0/test-images/output_image_" + str(i) + "_" + date_string + ".png")
 
-    # Assuming asset and its data are properly defined and initialized
-    # convert to grayscale
-    gray_cropped_image = torch.mean(cropped_image, dim=-1, keepdim=False)
-    # for i in range(num_envs):
-    #     now = datetime.now()
-    #     date_string = now.strftime("%Y%m%d-%H%M%S")
-    #     img_array_255 = (gray_cropped_image[i, :, :].cpu().numpy() * 255).astype(np.uint8)
-    #     img_pil = Image.fromarray(img_array_255, mode="L")
-    #     img_pil.save("logs/sb3/Isaac-Maze-v0/test-images/gray_cropped_image_" + str(i) + "_" + date_string + ".png")
-    # print("gray_cropped_image: ", gray_cropped_image.view(num_envs, -1).shape)
+        #     numpy_cropped_image = cropped_images[i].cpu().numpy().copy()
+        #     cropped_image_PIL = Image.fromarray(numpy_cropped_image.astype(np.uint8), "L")
+        #     cropped_image_PIL.save(
+        #         "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
+        #     )
 
-    return gray_cropped_image.view(num_envs, -1)
+    return cropped_images.view(sphere_pos_env.shape[0], -1)
 
 
 def cropped_camera_image(env: RLTaskEnv, camera_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:

@@ -39,7 +39,9 @@ project_root = os.path.join(current_script_path, "../../../../..")
 
 MAZE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        usd_path=os.path.join(project_root, "usds/generated_mazes/coloredMaze02.usd"),
+        # usd_path=os.path.join(project_root, "usds/maze01/maze02.usd"),
+        usd_path=os.path.join(project_root, "usds/generated_mazes/generated_maze_02.usd"),
+        # usd_path=os.path.join(project_root, "urdfs/generated_maze_03/generated_maze_03.usd"),
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             max_linear_velocity=1000.0,
@@ -65,15 +67,15 @@ MAZE_CFG = ArticulationCfg(
             joint_names_expr=["OuterDOF_RevoluteJoint"],
             effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
             velocity_limit=20 * math.pi,
-            stiffness=1000.0,
-            damping=1.0,
+            stiffness=0.0,
+            damping=10.0,
         ),
         "inner_actuator": ImplicitActuatorCfg(
             joint_names_expr=["InnerDOF_RevoluteJoint"],
             effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
             velocity_limit=20 * math.pi,
-            stiffness=1000.0,
-            damping=1.0,
+            stiffness=0.0,
+            damping=10.0,
         ),
     },
 )
@@ -150,17 +152,17 @@ class MazeSceneCfg(InteractiveSceneCfg):
     )
 
     # sensors
-    top_cam = CameraCfg(
-        prim_path="{ENV_REGEX_NS}/top_cam",
-        update_period=0.02,
-        height=128,
-        width=128,
-        data_types=["rgb"],  # , "distance_to_image_plane"],
-        spawn=sim_utils.PinholeCameraCfg(
-            focal_length=18.0, focus_distance=350.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0)
-        ),
-        offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.45), rot=(0, 1, 0, 0), convention="ros"),
-    )
+    # top_cam = CameraCfg(
+    #     prim_path="{ENV_REGEX_NS}/top_cam",
+    #     update_period=0.02,
+    #     height=128,
+    #     width=128,
+    #     data_types=["rgb"],  # , "distance_to_image_plane"],
+    #     spawn=sim_utils.PinholeCameraCfg(
+    #         focal_length=18.0, focus_distance=350.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0)
+    #     ),
+    #     offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.45), rot=(0, 1, 0, 0), convention="ros"),
+    # )
 
 
 ##
@@ -180,12 +182,14 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    outer_joint_effort = mdp.JointPositionActionCfg(
-        asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
-    )
-    inner_joint_effort = mdp.JointPositionActionCfg(
-        asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
-    )
+    # outer_joint_effort = mdp.JointPositionActionCfg(
+    #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+    # )
+    # inner_joint_effort = mdp.JointPositionActionCfg(
+    #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+    # )
+    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1.0)
+    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1.0)
 
 
 velocity_extractor = mdp.VelocityExtractor()
@@ -236,11 +240,19 @@ class ObservationsCfg:
             },
         )
 
+        # image = ObsTerm(
+        #     func=mdp.cropped_camera_image,
+        #     params={
+        #         "camera_cfg": SceneEntityCfg("top_cam"),
+        #         "sphere_cfg": SceneEntityCfg("sphere"),
+        #     },
+        # )
+
         image = ObsTerm(
-            func=mdp.camera_image,
+            func=mdp.simulated_camera_image,
             params={
-                "asset_cfg": SceneEntityCfg("top_cam"),
                 "sphere_cfg": SceneEntityCfg("sphere"),
+                "maze_cfg": SceneEntityCfg("robot"),
             },
         )
 
@@ -316,7 +328,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "stiffness_range": (0.1, 10),
+            "stiffness_range": (0.5, 2.0),
             "damping_range": (0.5, 2.0),
             "operation": "scale",
             "distribution": "log_uniform",
@@ -328,7 +340,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "stiffness_range": (0.1, 10),
+            "stiffness_range": (0.5, 2.0),
             "damping_range": (0.5, 2.0),
             "operation": "scale",
             "distribution": "log_uniform",
@@ -340,7 +352,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "friction_range": (0.05, 0.5),
+            "friction_range": (0.05, 0.1),
             "operation": "abs",
             "distribution": "log_uniform",
         },
@@ -351,7 +363,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "friction_range": (0.05, 0.5),
+            "friction_range": (0.05, 0.1),
             "operation": "abs",
             "distribution": "log_uniform",
         },
@@ -375,8 +387,8 @@ class RewardsCfg:
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
             "sphere_cfg": SceneEntityCfg("sphere"),
-            "distance_from_target": 0.005,
-            "idx_max": 60,
+            "distance_from_target": 0.02,
+            "idx_max": 55,
         },
     )
 
@@ -438,7 +450,7 @@ class MazeEnvCfg(RLTaskEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 10  # 20s enough to solve maze01
+        self.episode_length_s = 20  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
