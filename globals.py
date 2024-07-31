@@ -4,9 +4,10 @@ import yaml
 import os
 from PIL import Image
 
-global path_idx, maze_path, simulated_image_tensor
+global path_idx, maze_path, path_direction, simulated_image_tensor
 path_idx = None
 maze_path = None
+path_direction = None
 # simulated_image_tensor = None
 
 

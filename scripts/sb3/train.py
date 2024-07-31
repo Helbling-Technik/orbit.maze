@@ -15,8 +15,7 @@ there will be significant overhead in GPU->CPU transfer.
 import argparse
 import os
 
-from isaacsim import SimulationApp
-
+from omni.isaac.lab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Train an RL agent with Stable-Baselines3.")
@@ -36,16 +35,14 @@ parser.add_argument(
     default=None,
 )
 
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
 
 # launch omniverse app
-simulation_app = SimulationApp({"hide_ui": False})
-from omni.isaac.core.utils.extensions import enable_extension
-
-enable_extension("omni.kit.streamsdk.plugins-3.2.1")
-enable_extension("omni.kit.livestream.core-3.2.0")
-enable_extension("omni.kit.livestream.native")
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
 
 """Rest everything follows."""
 

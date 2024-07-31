@@ -31,7 +31,8 @@ optional arguments:
 
 import argparse
 
-from omni.isaac.lab.app import AppLauncher
+# from omni.isaac.lab.app import AppLauncher
+from isaacsim import SimulationApp
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD format.")
@@ -60,14 +61,16 @@ parser.add_argument(
     default=True,
     help="Make the asset instanceable for efficient cloning.",
 )
-# append AppLauncher cli args
-AppLauncher.add_app_launcher_args(parser)
-# parse the arguments
+
+# # parse the arguments
 args_cli = parser.parse_args()
 
-# launch omniverse app
-app_launcher = AppLauncher(args_cli)
-simulation_app = app_launcher.app
+simulation_app = SimulationApp({"hide_ui": False})
+from omni.isaac.core.utils.extensions import enable_extension
+
+enable_extension("omni.kit.streamsdk.plugins-3.2.1")
+enable_extension("omni.kit.livestream.core-3.2.0")
+enable_extension("omni.kit.livestream.native")
 
 """Rest everything follows."""
 
@@ -91,7 +94,9 @@ from omni.isaac.lab.assets import ArticulationCfg, Articulation
 from omni.isaac.lab.sim.schemas import ArticulationRootPropertiesCfg
 from omni.isaac.lab.actuators import ImplicitActuatorCfg
 import omni.isaac.lab.sim as sim_utils
+import omni.physics.tensors.impl.api as physx
 import math
+import torch
 
 
 def main():
@@ -193,9 +198,13 @@ def main():
         )
 
         robot = Articulation(robot_cfg)
-        # robot.write_joint_limits_to_sim(limits=15 / 180 * math.pi)
-        print(robot._data.joint_limits[:, :])
-        # robot.root_physx_view.set_dof_limits(
+        # joint_ids = torch.tensor([0, 1], dtype=torch.int, device="cuda:0")
+        # print(robot.data())
+        # robot.write_joint_limits_to_sim(limits=15 / 180 * math.pi, joint_ids=joint_ids)
+        limits = torch.tensor([15 / 180 * math.pi, 15 / 180 * math.pi], dtype=torch.float32, device="cuda:0")
+        indices = torch.tensor([0, 1], dtype=torch.int32, device="cuda:0")
+        ArtView = physx.ArticulationView()
+        ArtView.set_dof_limits(data=limits, indices=indices)
 
         art_cfg = ArticulationRootPropertiesCfg(articulation_enabled=True, fix_root_link=True)
         sim_utils.schemas.modify_articulation_root_properties("/Labyrinth", art_cfg)

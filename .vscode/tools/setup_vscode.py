@@ -88,7 +88,7 @@ def main():
         settings_template = f.read()
 
     # Overwrite the python.analysis.extraPaths in the orbit settings file with the path names
-    isaacsim_path = os.path.join(WS_DIR, "_orbit", "_isaac_sim")
+    isaacsim_path = os.path.join(WS_DIR, "_isaaclab", "_isaac_sim")
     settings = overwrite_python_analysis_extra_paths(settings_template, isaacsim_path)
 
     # add template notice to the top of the file

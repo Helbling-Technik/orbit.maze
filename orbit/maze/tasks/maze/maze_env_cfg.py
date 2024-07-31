@@ -49,8 +49,11 @@ MAZE_CFG = ArticulationCfg(
             max_depenetration_velocity=100.0,
             enable_gyroscopic_forces=True,
         ),
+        collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
+        # physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(
             enabled_self_collisions=False,
+            fix_root_link=True,
             solver_position_iteration_count=4,
             solver_velocity_iteration_count=0,
             sleep_threshold=0.005,
@@ -94,7 +97,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.GroundPlaneCfg(size=(100.0, 100.0)),
     )
 
-    # cartpole
+    # maze
     robot: ArticulationCfg = MAZE_CFG.replace(prim_path="{ENV_REGEX_NS}/Labyrinth")
 
     # Sphere with collision enabled but not actuated
@@ -108,8 +111,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
     target1 = RigidObjectCfg(
@@ -120,8 +123,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.105)),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.105)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target2 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target2",
@@ -131,8 +134,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[1, 0], maze_path[1, 1], 0.105)),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[1, 0], maze_path[1, 1], 0.105)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target3 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target3",
@@ -142,27 +145,14 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
         ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[2, 0], maze_path[2, 1], 0.105)),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[2, 0], maze_path[2, 1], 0.105)),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
     dome_light = AssetBaseCfg(
         prim_path="/World/DomeLight",
         spawn=sim_utils.DomeLightCfg(color=(0.9, 0.9, 0.9), intensity=1000.0),
     )
-
-    # sensors
-    # top_cam = CameraCfg(
-    #     prim_path="{ENV_REGEX_NS}/top_cam",
-    #     update_period=0.02,
-    #     height=128,
-    #     width=128,
-    #     data_types=["rgb"],  # , "distance_to_image_plane"],
-    #     spawn=sim_utils.PinholeCameraCfg(
-    #         focal_length=18.0, focus_distance=350.0, horizontal_aperture=20.955, clipping_range=(0.1, 1.0)
-    #     ),
-    #     offset=CameraCfg.OffsetCfg(pos=(0.0, 0.0, 0.45), rot=(0, 1, 0, 0), convention="ros"),
-    # )
 
 
 ##
@@ -240,14 +230,6 @@ class ObservationsCfg:
             },
         )
 
-        # image = ObsTerm(
-        #     func=mdp.cropped_camera_image,
-        #     params={
-        #         "camera_cfg": SceneEntityCfg("top_cam"),
-        #         "sphere_cfg": SceneEntityCfg("sphere"),
-        #     },
-        # )
-
         image = ObsTerm(
             func=mdp.simulated_camera_image,
             params={
@@ -269,10 +251,21 @@ class EventCfg:
     """Configuration for events."""
 
     # reset
-    reset_maze_path_idx = EventTerm(
-        func=mdp.reset_maze_path_idx,
+    # reset_maze_path_idx = EventTerm(
+    #     func=mdp.reset_maze_path_idx,
+    #     mode="reset",
+    #     params={"sphere_cfg": SceneEntityCfg("sphere")},
+    # )
+
+    reset_maze_state = EventTerm(
+        func=mdp.reset_maze_state,
         mode="reset",
-        params={"sphere_cfg": SceneEntityCfg("sphere")},
+        params={
+            "target1_cfg": SceneEntityCfg("target1"),
+            "target2_cfg": SceneEntityCfg("target2"),
+            "target3_cfg": SceneEntityCfg("target3"),
+            "sphere_cfg": SceneEntityCfg("sphere"),
+        },
     )
 
     reset_joints = EventTerm(
@@ -285,89 +278,89 @@ class EventCfg:
         },
     )
 
-    reset_sphere_pos = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("sphere"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-            "velocity_range": {},
-        },
-    )
-
-    reset_target1_pos = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("target1"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-            "velocity_range": {},
-        },
-    )
-    reset_target2_pos = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("target2"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-            "velocity_range": {},
-        },
-    )
-    reset_target3_pos = EventTerm(
-        func=mdp.reset_root_state_uniform,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("target3"),
-            "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-            "velocity_range": {},
-        },
-    )
-
-    # randomize_outer_actuator = EventTerm(
-    #     func=mdp.randomize_actuator_stiffness_and_damping,
+    # reset_sphere_pos = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
     #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-    #         "stiffness_range": (0.5, 2.0),
-    #         "damping_range": (0.5, 2.0),
-    #         "operation": "scale",
-    #         "distribution": "log_uniform",
+    #         "asset_cfg": SceneEntityCfg("sphere"),
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+    #         "velocity_range": {},
     #     },
     # )
 
-    # randomize_inner_actuator = EventTerm(
-    #     func=mdp.randomize_actuator_stiffness_and_damping,
+    # reset_target1_pos = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
     #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-    #         "stiffness_range": (0.5, 2.0),
-    #         "damping_range": (0.5, 2.0),
-    #         "operation": "scale",
-    #         "distribution": "log_uniform",
+    #         "asset_cfg": SceneEntityCfg("target1"),
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+    #         "velocity_range": {},
+    #     },
+    # )
+    # reset_target2_pos = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("target2"),
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+    #         "velocity_range": {},
+    #     },
+    # )
+    # reset_target3_pos = EventTerm(
+    #     func=mdp.reset_root_state_uniform,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("target3"),
+    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
+    #         "velocity_range": {},
     #     },
     # )
 
-    # randomize_outer_joint = EventTerm(
-    #     func=mdp.randomize_joint_friction_and_armature,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-    #         "friction_range": (0.05, 0.1),
-    #         "operation": "abs",
-    #         "distribution": "log_uniform",
-    #     },
-    # )
+    randomize_outer_actuator = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "operation": "scale",
+            "distribution": "log_uniform",
+        },
+    )
 
-    # randomize_inner_joint = EventTerm(
-    #     func=mdp.randomize_joint_friction_and_armature,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-    #         "friction_range": (0.05, 0.1),
-    #         "operation": "abs",
-    #         "distribution": "log_uniform",
-    #     },
-    # )
+    randomize_inner_actuator = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "operation": "scale",
+            "distribution": "log_uniform",
+        },
+    )
+
+    randomize_outer_joint = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+            "friction_distribution_params": (0.05, 0.1),
+            "operation": "abs",
+            "distribution": "log_uniform",
+        },
+    )
+
+    randomize_inner_joint = EventTerm(
+        func=mdp.randomize_joint_parameters,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+            "friction_distribution_params": (0.05, 0.1),
+            "operation": "abs",
+            "distribution": "log_uniform",
+        },
+    )
 
 
 @configclass
@@ -450,8 +443,9 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 20  # 20s enough to solve maze01
+        self.episode_length_s = 5  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
         self.sim.dt = 1 / 100
+        self.sim.render_interval = 10
