@@ -39,26 +39,26 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/generated_maze_03/generated_maze_03.urdf",
+    default="urdfs/real_maze_01/real_maze_01.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/generated_maze_03/generated_maze_03",
+    default="urdfs/generated_maze/real_maze_01",
     help="The path to store the USD file.",
 )
 parser.add_argument(
-    "--merge-joints",
-    action="store_true",
-    default=False,
-    help="Consolidate links that are connected by fixed joints.",
-)
-parser.add_argument("--fix-base", action="store_true", default=True, help="Fix the base to where it is imported.")
-parser.add_argument(
-    "--make-instanceable",
+    "--run_gui",
     action="store_true",
     default=True,
+    help="Run simulation gui to verify visually if convert was correct",
+)
+parser.add_argument("--fix_base", action="store_true", default=True, help="Fix the base to where it is imported.")
+parser.add_argument(
+    "--make_instanceable",
+    action="store_true",
+    default=False,
     help="Make the asset instanceable for efficient cloning.",
 )
 
@@ -77,26 +77,16 @@ enable_extension("omni.kit.livestream.native")
 import contextlib
 import os
 
-import carb
-import omni.isaac.core.utils.stage as stage_utils
 import omni.kit.app
 
 from omni.isaac.lab.sim.converters import UrdfConverter, UrdfConverterCfg
 from omni.isaac.lab.utils.assets import check_file_path
 from omni.isaac.lab.utils.dict import print_dict
 
-from omni.isaac.kit import SimulationApp
-from omni.isaac.core import World
-from omni.isaac.core.utils import prims
-
-from omni.isaac.lab.sim.spawners.lights import LightCfg, spawn_light
-from omni.isaac.lab.assets import ArticulationCfg, Articulation
-from omni.isaac.lab.sim.schemas import ArticulationRootPropertiesCfg
-from omni.isaac.lab.actuators import ImplicitActuatorCfg
-import omni.isaac.lab.sim as sim_utils
-import omni.physics.tensors.impl.api as physx
-import math
-import torch
+import omni.usd
+from pxr import UsdPhysics, UsdShade, Sdf, Gf
+from omni.physx.scripts import utils
+import omni.isaac.core.utils.stage as stage_utils
 
 
 def main():
@@ -112,12 +102,13 @@ def main():
         dest_path = os.path.abspath(dest_path)
 
     # Create Urdf converter config
+    # TODO ROV we would like to have it instanceable but then we have to update the references since they are wrong and change material in reference?
     urdf_converter_cfg = UrdfConverterCfg(
         asset_path=urdf_path,
         usd_dir=os.path.dirname(dest_path),
         usd_file_name=os.path.basename(dest_path),
         fix_base=args_cli.fix_base,
-        merge_fixed_joints=args_cli.merge_joints,
+        merge_fixed_joints=False,
         force_usd_conversion=True,
         make_instanceable=args_cli.make_instanceable,
     )
@@ -139,86 +130,154 @@ def main():
     print("-" * 80)
     print("-" * 80)
 
-    # Determine if there is a GUI to update:
-    # acquire settings interface
-    carb_settings_iface = carb.settings.get_settings()
-    # read flag for whether a local GUI is enabled
-    local_gui = carb_settings_iface.get("/app/window/enabled")
-    # read flag for whether livestreaming GUI is enabled
-    livestream_gui = carb_settings_iface.get("/app/livestream/enabled")
+    # Now to adjust the usd parameters
+    usd_path = os.path.abspath(urdf_converter.usd_path)
 
-    # Simulate scene (if not headless)
-    if local_gui or livestream_gui:
-        # Reinitialize the simulation
-        app = omni.kit.app.get_app_interface()
+    usd_context = omni.usd.get_context()
+    stage_utils.open_stage(usd_path)
+    stage = usd_context.get_stage()
 
-        # create prim
-        world = World(stage_units_in_meters=1.0)
+    robot = stage.GetPrimAtPath("/Labyrinth")
+    supportvisual = stage.GetPrimAtPath("/Labyrinth/Support/visuals")
+    outerDOFvisual = stage.GetPrimAtPath("/Labyrinth/OuterDOF/visuals")
+    innerDOFvisual = stage.GetPrimAtPath("/Labyrinth/InnerDOF/visuals")
+    innerDOFWallsvisual = stage.GetPrimAtPath("/Labyrinth/InnerDOFWalls/visuals")
 
-        robot_cfg = ArticulationCfg(
-            prim_path="/Labyrinth",
-            spawn=sim_utils.UsdFileCfg(
-                usd_path=urdf_converter.usd_path,
-                rigid_props=sim_utils.RigidBodyPropertiesCfg(
-                    rigid_body_enabled=True,
-                    max_linear_velocity=1000.0,
-                    max_angular_velocity=1000.0,
-                    max_depenetration_velocity=100.0,
-                    enable_gyroscopic_forces=True,
-                ),
-                articulation_props=sim_utils.ArticulationRootPropertiesCfg(
-                    enabled_self_collisions=False,
-                    solver_position_iteration_count=4,
-                    solver_velocity_iteration_count=0,
-                    sleep_threshold=0.005,
-                    stabilization_threshold=0.001,
-                ),
-            ),
-            init_state=ArticulationCfg.InitialStateCfg(
-                pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
-            ),
-            # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
-            # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
-            actuators={
-                "outer_actuator": ImplicitActuatorCfg(
-                    joint_names_expr=["OuterDOF_RevoluteJoint"],
-                    effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
-                    velocity_limit=20 * math.pi,
-                    stiffness=0.0,
-                    damping=10.0,
-                ),
-                "inner_actuator": ImplicitActuatorCfg(
-                    joint_names_expr=["InnerDOF_RevoluteJoint"],
-                    effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
-                    velocity_limit=20 * math.pi,
-                    stiffness=0.0,
-                    damping=10.0,
-                ),
-            },
-        )
+    # Define the path for the physics scene
+    physics_scene_path = "/physicsScene"
 
-        robot = Articulation(robot_cfg)
-        # joint_ids = torch.tensor([0, 1], dtype=torch.int, device="cuda:0")
-        # print(robot.data())
-        # robot.write_joint_limits_to_sim(limits=15 / 180 * math.pi, joint_ids=joint_ids)
-        limits = torch.tensor([15 / 180 * math.pi, 15 / 180 * math.pi], dtype=torch.float32, device="cuda:0")
-        indices = torch.tensor([0, 1], dtype=torch.int32, device="cuda:0")
-        ArtView = physx.ArticulationView()
-        ArtView.set_dof_limits(data=limits, indices=indices)
+    # Create the physics scene if it doesn't exist
+    if not stage.GetPrimAtPath(physics_scene_path):
+        physics_scene = UsdPhysics.Scene.Define(stage, physics_scene_path)
 
-        art_cfg = ArticulationRootPropertiesCfg(articulation_enabled=True, fix_root_link=True)
-        sim_utils.schemas.modify_articulation_root_properties("/Labyrinth", art_cfg)
+        # Set gravity for the physics scene
+        gravity_vector = Gf.Vec3f(0.0, 0.0, -9.81)
+        physics_scene.CreateGravityDirectionAttr(gravity_vector)
+        physics_scene.CreateGravityMagnitudeAttr(gravity_vector.GetLength())
 
-        # robot = prims.create_prim("/Labyrinth", usd_path=urdf_converter.usd_path)
-        # prims.create_prim("/DomeLight", "DomeLight")
-        light_cfg = LightCfg(intensity=1000.0, prim_type="DomeLight")
-        light = spawn_light("/DomeLight", light_cfg)
+    # Set the colliders
+    utils.setCollider(supportvisual, "sdf")
+    utils.setCollider(outerDOFvisual, "sdf")
+    utils.setCollider(innerDOFvisual, "sdf")
+    utils.setCollider(innerDOFWallsvisual, "sdf")
 
+    # TODO ROV use something like this if you plan on doing instanced meshes
+    # Create a new reference
+    # new_reference = Sdf.Reference("path/to/new/mesh.usd", "/path/in/mesh.usd")
+
+    # # Clear existing references and set the new one
+    # mesh_prim.GetReferences().ClearReferences()
+    # mesh_prim.GetReferences().AddReference(new_reference)
+
+    # Reset the mass to autocompute for rigid bodies and ignore diagonal inertia
+    for prim in stage.Traverse():
+        if prim.GetPath().HasPrefix(robot.GetPath()):
+            if UsdPhysics.RigidBodyAPI(prim):
+                if UsdPhysics.MassAPI(prim):
+                    usd_physics_mass_api = UsdPhysics.MassAPI(prim)
+
+                    mass_attr = usd_physics_mass_api.GetMassAttr()
+                    if mass_attr.HasValue():
+                        mass_attr.Clear()
+                        print(f"Mass for {prim} set to auto (mass attribute cleared).")
+                    else:
+                        print(f"Mass attribute is already set to auto for {prim}.")
+
+                    inertia_attr = usd_physics_mass_api.GetDiagonalInertiaAttr()
+                    if inertia_attr.HasValue():
+                        inertia_attr.Clear()
+                        print(f"Inertia for {prim} set to ignore.")
+                    else:
+                        print(f"Inertia is already set to ignore for {prim}.")
+
+    # Define the material path
+    material_path = "/Labyrinth/Looks/BlackMaterial"
+    # Create a new material
+    material = UsdShade.Material.Define(stage, material_path)
+
+    # Create a surface shader
+    shader = UsdShade.Shader.Define(stage, material_path + "/Shader")
+    shader.CreateIdAttr("UsdPreviewSurface")
+
+    # Set the diffuse color to black (RGB values of 0, 0, 0)
+    shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(0.0, 0.0, 0.0))
+
+    # Connect the shader to the material
+    material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+
+    # Ensure the mesh exists before applying the material
+    if innerDOFWallsvisual:
+        UsdShade.MaterialBindingAPI(innerDOFWallsvisual).Bind(material)
+    else:
+        print(f"Mesh at path {innerDOFWallsvisual} does not exist.")
+
+    # In revolutejoint set limits +-15 and in drive change stiffness 10000000 and damping 100000 and max force 1000
+    for prim in stage.Traverse():
+        if prim.GetPath().HasPrefix(robot.GetPath()):
+            # Ensure the prim is a revolute joint
+            if "revolute" in str(prim.GetPath()).lower():
+                # Set revolute joint properties
+                if UsdPhysics.RevoluteJoint(prim):
+                    # Access the RevoluteJointAPI
+                    joint_api = UsdPhysics.RevoluteJoint(prim)
+
+                    lower_attr = joint_api.GetLowerLimitAttr()
+                    if lower_attr:
+                        lower_attr.Set(-15.0)
+                        print(f"Lower Limit for {prim.GetPath()} set to -15.0.")
+                    else:
+                        print(f"No Lower Limit attribute found for {prim.GetPath()}.")
+
+                    upper_attr = joint_api.GetUpperLimitAttr()
+                    if upper_attr:
+                        upper_attr.Set(15.0)
+                        print(f"Upper Limit for {prim.GetPath()} set to 15.0.")
+                    else:
+                        print(f"No Upper Limit attribute found for {prim.GetPath()}.")
+                else:
+                    print(f"No revolute joint found at {prim.GetPath()}.")
+
+                # Set drive properties
+                if UsdPhysics.DriveAPI(prim, "angular"):
+                    # Access the DriveAPI
+                    drive_api = UsdPhysics.DriveAPI(prim, "angular")
+
+                    stiffness_attr = drive_api.GetStiffnessAttr()
+                    if stiffness_attr:
+                        stiffness_attr.Set(10000000.0)
+                        print(f"Stiffness for {prim.GetPath()} set to 10000000.0.")
+                    else:
+                        print(f"No Stiffness attribute found for {prim.GetPath()}.")
+
+                    damping_attr = drive_api.GetDampingAttr()
+                    if damping_attr:
+                        damping_attr.Set(100000.0)
+                        print(f"Damping for {prim.GetPath()} set to 100000.0.")
+                    else:
+                        print(f"No Damping attribute found for {prim.GetPath()}.")
+
+                    force_attr = drive_api.GetMaxForceAttr()
+                    if force_attr:
+                        force_attr.Set(1000.0)
+                        print(f"Max Force for {prim.GetPath()} set to 1000.0.")
+                    else:
+                        print(f"No Force attribute found for {prim.GetPath()}.")
+                else:
+                    print(f"No Drive found at {prim.GetPath()}.")
+
+    stage.GetRootLayer().Save()
+
+    # Reinitialize the simulation
+    app = omni.kit.app.get_app_interface()
+    run_gui = args_cli.run_gui
+    if run_gui:
         # Run simulation
         with contextlib.suppress(KeyboardInterrupt):
             while app.is_running():
                 # perform step
                 app.update()
+    else:
+        app.update()
 
 
 if __name__ == "__main__":
