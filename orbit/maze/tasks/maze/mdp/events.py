@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 import omni.isaac.lab.utils.math as math_utils
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
+from omni.isaac.lab.envs import ManagerBasedEnv
 
 import omni.isaac.lab.sim as sim_utils
 import omni.isaac.core.utils.stage as stage_utils
@@ -38,6 +39,7 @@ def set_random_target_pos(
     return target_positions
 
 
+# TODO ROV here is already some randomization stuff
 def randomize_usds(env: ManagerBasedEnv, env_ids: torch.Tensor, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")):
 
     print("asset_cfg: ", asset_cfg)

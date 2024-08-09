@@ -30,6 +30,10 @@ parser.add_argument("--num_envs", type=int, default=4, help="Number of environme
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
 parser.add_argument(
+    "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
+)
+# TODO ROV here I can specify a starting model
+parser.add_argument(
     "--model_path",
     type=str,
     default=None,
@@ -48,7 +52,6 @@ simulation_app = app_launcher.app
 
 import gymnasium as gym
 import numpy as np
-import os
 from datetime import datetime
 
 from stable_baselines3 import PPO
@@ -62,13 +65,15 @@ from omni.isaac.lab.utils.io import dump_pickle, dump_yaml
 import omni.isaac.lab_tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
-import globals
-
-globals.init_globals()
 import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
+
+import globals
 
 
 def main():
+    # Init globals before everything else
+    globals.init_globals()
+
     """Train with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
@@ -80,6 +85,13 @@ def main():
     # override configuration with command line arguments
     if args_cli.seed is not None:
         agent_cfg["seed"] = args_cli.seed
+
+    # override maze_start_point
+    if args_cli.maze_start_point is not None:
+        globals.maze_start_point = args_cli.maze_start_point
+        path_length = globals.maze_path.shape[0]
+        if globals.maze_start_point >= path_length:
+            globals.maze_start_point = path_length - 1
 
     # directory for logging into
     log_dir = os.path.join("logs", "sb3", args_cli.task, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))

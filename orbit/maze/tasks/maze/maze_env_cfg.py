@@ -4,14 +4,16 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import math
-import torch
-import yaml
+
+# import torch
+# import yaml
 
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
-from omni.isaac.lab.sensors import CameraCfg, RayCasterCfg
-from omni.isaac.lab.sensors.ray_caster.patterns import BpearlPatternCfg, GridPatternCfg
+
+# from omni.isaac.lab.sensors import CameraCfg, RayCasterCfg
+# from omni.isaac.lab.sensors.ray_caster.patterns import BpearlPatternCfg, GridPatternCfg
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.lab.managers import ObservationTermCfg as ObsTerm
@@ -21,7 +23,8 @@ from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.actuators import ImplicitActuatorCfg
 from omni.isaac.lab.utils import configclass
-from globals import path_idx, maze_path
+
+# import globals
 
 import orbit.maze.tasks.maze.mdp as mdp
 import os
@@ -37,11 +40,14 @@ current_script_path = os.path.abspath(__file__)
 # Absolute path of the project root (assuming it's three levels up from the current script)
 project_root = os.path.join(current_script_path, "../../../../..")
 
+# TODO ROV make this into a function to be able to change usd path with randomization
 MAZE_CFG = ArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
+        # TODO ROV change usd here
         # usd_path=os.path.join(project_root, "usds/maze01/maze02.usd"),
-        usd_path=os.path.join(project_root, "usds/generated_mazes/generated_maze_02.usd"),
+        # usd_path=os.path.join(project_root, "usds/generated_mazes/generated_maze_02.usd"),
         # usd_path=os.path.join(project_root, "urdfs/generated_maze_03/generated_maze_03.usd"),
+        usd_path=os.path.join(project_root, "usds/generated_mazes/real_maze_01.usd"),
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
             rigid_body_enabled=True,
             max_linear_velocity=1000.0,
@@ -98,6 +104,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
     )
 
     # maze
+    # TODO ROV make this with function to be able to change usd path based on env
     robot: ArticulationCfg = MAZE_CFG.replace(prim_path="{ENV_REGEX_NS}/Labyrinth")
 
     # Sphere with collision enabled but not actuated
@@ -111,7 +118,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.12)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[0, 0], globals.maze_path[0, 1], 0.12)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
@@ -123,7 +130,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[0, 0], maze_path[0, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[0, 0], globals.maze_path[0, 1], 0.105)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target2 = RigidObjectCfg(
@@ -134,7 +141,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[1, 0], maze_path[1, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[1, 0], globals.maze_path[1, 1], 0.105)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target3 = RigidObjectCfg(
@@ -145,7 +152,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(maze_path[2, 0], maze_path[2, 1], 0.105)),
+        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[2, 0], globals.maze_path[2, 1], 0.105)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
@@ -442,10 +449,13 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 2
-        self.episode_length_s = 5  # 20s enough to solve maze01
+        self.decimation = 1  # TODO ROV was 2
+        self.episode_length_s = 15  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
-        self.sim.dt = 1 / 100
+        self.sim.dt = 1 / 50  # TODO ROV was 100
         self.sim.render_interval = 10
+
+        # TODO ROV set physics properties if warning
+        self.sim.physx.gpu_collision_stack_size = 2**29

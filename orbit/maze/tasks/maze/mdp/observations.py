@@ -8,19 +8,20 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from omni.isaac.lab.sensors import Camera
+# from omni.isaac.lab.sensors import Camera
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
-from omni.isaac.lab.utils.math import wrap_to_pi
-from omni.isaac.lab.sensors import RayCaster
-from omni.isaac.lab.utils.warp import convert_to_warp_mesh, raycast_mesh
+from omni.isaac.lab.envs import ManagerBasedEnv
+
+# from omni.isaac.lab.sensors import RayCaster
+from omni.isaac.lab.utils.warp import raycast_mesh  # noqa: F401
 
 from PIL import Image, ImageDraw
 
 from datetime import datetime
 from scipy.spatial.transform import Rotation
 import numpy as np
-from globals import simulated_image_tensor
+import globals
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
@@ -94,11 +95,13 @@ def simulated_camera_image(
     maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
 
-    global simulated_image_tensor
-
-    maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
-    image_size = torch.tensor([63, 63], device="cuda:0")
+    # TODO ROV double check maze size
+    maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
     pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
+    padded_image_size = torch.tensor(
+        [globals.simulated_image_tensor.shape[0], globals.simulated_image_tensor.shape[1]], device="cuda:0"
+    )
+    image_size = torch.tensor(padded_image_size - pad_size * 2, device="cuda:0")
 
     sphere = env.scene[sphere_cfg.name]
     sphere_pos_env = sphere.data.root_pos_w - env.scene.env_origins
@@ -106,36 +109,38 @@ def simulated_camera_image(
     maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
 
     sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
-    sphere_pos_image = torch.round(image_size / maze_size * sphere_pos_env + image_size / 2 + pad_size).to(torch.int16)
+    sphere_pos_image = (image_size / maze_size * sphere_pos_env + image_size / 2 + pad_size).to(torch.int16)
     sphere_pos_image = torch.clamp(sphere_pos_image, pad_size, image_size + pad_size)
 
     cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float16, device="cuda:0")
+
     for i in range(sphere_pos_env.shape[0]):
         # extract 16x16 patch around sphere
         x_lo = sphere_pos_image[i, 0].item() - pad_size[1].item()  # padding size pad_size[1].item()
         x_hi = sphere_pos_image[i, 0].item() + pad_size[1].item()
         y_lo = sphere_pos_image[i, 1].item() - pad_size[0].item()
         y_hi = sphere_pos_image[i, 1].item() + pad_size[0].item()
-        cropped_images[i, :, :] = simulated_image_tensor[y_lo:y_hi, x_lo:x_hi]
-        # color center pixels black to visualize the sphere
+        cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
+        # color center pixels grey to visualize the sphere
         cropped_images[i, 7:9, 7:9] = 128
 
-        # if i == 0:
-        #     now = datetime.now()
-        #     date_string = now.strftime("%Y%m%d-%H%M%S")
-        #     numpy_image = simulated_image_tensor.cpu().numpy().copy()
-        #     # repeat the image 3 times to get RGB image using tile
-        #     numpy_image = np.stack((numpy_image, numpy_image, numpy_image), axis=-1)
-        #     image = Image.fromarray(numpy_image.astype(np.uint8))
-        #     draw = ImageDraw.Draw(image)
-        #     draw.rectangle((y_lo, x_lo, y_hi, x_hi), outline=(255, 0, 0), width=1)
-        #     image.save("logs/sb3/Isaac-Maze-v0/test-images/output_image_" + str(i) + "_" + date_string + ".png")
+        if globals.debug_images:
+            if i == 0:
+                now = datetime.now()
+                date_string = now.strftime("%Y%m%d-%H%M%S")
+                numpy_image = globals.simulated_image_tensor.cpu().numpy().copy()
+                # repeat the image 3 times to get RGB image using tile
+                numpy_image = np.stack((numpy_image, numpy_image, numpy_image), axis=-1)
+                image = Image.fromarray(numpy_image.astype(np.uint8))
+                draw = ImageDraw.Draw(image)
+                draw.rectangle((y_lo, x_lo, y_hi, x_hi), outline=(255, 0, 0), width=1)
+                image.save("logs/sb3/Isaac-Maze-v0/test-images/output_image_" + str(i) + "_" + date_string + ".png")
 
-        #     numpy_cropped_image = cropped_images[i].cpu().numpy().copy()
-        #     cropped_image_PIL = Image.fromarray(numpy_cropped_image.astype(np.uint8), "L")
-        #     cropped_image_PIL.save(
-        #         "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
-        #     )
+                numpy_cropped_image = cropped_images[i].cpu().numpy().copy()
+                cropped_image_PIL = Image.fromarray(numpy_cropped_image.astype(np.uint8), "L")
+                cropped_image_PIL.save(
+                    "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
+                )
 
     return cropped_images.view(sphere_pos_env.shape[0], -1)
 
@@ -204,25 +209,25 @@ def root_pos_w_xy(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntit
     return position[:, :2]
 
 
-def lidar_scan_w(env: ManagerBasedRLEnv, sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
-    """Lidar scan in the environment frame."""
-    # extract the used quantities (to enable type-hinting)
-    sphere: RigidObject = env.scene[sphere_cfg.name]
+# def lidar_scan_w(env: ManagerBasedRLEnv, sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
+#     """Lidar scan in the environment frame."""
+#     # extract the used quantities (to enable type-hinting)
+#     sphere: RigidObject = env.scene[sphere_cfg.name]
 
-    raycaster = RayCaster = env.scene["raycast"]
-    print(raycaster.data.ray_hits_w)
+#     raycaster = RayCaster = env.scene["raycast"]
+#     print(raycaster.data.ray_hits_w)
 
-    # pos = sphere.data.root_pos_w
-    # dir = torch.tensor([1.0, 1.0, -0.1], device=sphere.data.root_pos_w.device)
+#     # pos = sphere.data.root_pos_w
+#     # dir = torch.tensor([1.0, 1.0, -0.1], device=sphere.data.root_pos_w.device)
 
-    # maze: Articulation = env.scene["robot"]
-    # print("Labyrinth.cfg: ", maze.cfg)
-    # print("Labyrinth.cfg.prim_path: ", maze.cfg.prim_path)
+#     # maze: Articulation = env.scene["robot"]
+#     # print("Labyrinth.cfg: ", maze.cfg)
+#     # print("Labyrinth.cfg.prim_path: ", maze.cfg.prim_path)
 
-    # ray_hits_w = raycast_mesh(
-    #         pos,
-    #         dir,
-    #         max_dist=0.2,
-    #         mesh=RayCaster.meshes["/World/envs/env_0/Labyrinth"])
+#     # ray_hits_w = raycast_mesh(
+#     #         pos,
+#     #         dir,
+#     #         max_dist=0.2,
+#     #         mesh=RayCaster.meshes["/World/envs/env_0/Labyrinth"])
 
-    return env.scene.env_origins
+#     return env.scene.env_origins

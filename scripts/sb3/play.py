@@ -20,6 +20,7 @@ parser.add_argument(
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 # parser.add_argument("--livestream", type=int, default="1", help="stream remotely")
+# TODO ROV change model here if needed
 parser.add_argument(
     "--checkpoint",
     type=str,
@@ -31,7 +32,9 @@ parser.add_argument(
     action="store_true",
     help="When no checkpoint provided, use the last saved model. Otherwise use the best saved model.",
 )
-
+parser.add_argument(
+    "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
+)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
@@ -54,19 +57,29 @@ from stable_baselines3.common.vec_env import VecNormalize
 import omni.isaac.lab_tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils.parse_cfg import get_checkpoint_path, load_cfg_from_registry, parse_env_cfg
 from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
+import orbit.maze  # noqa: F401
+
 import globals
-
-globals.init_globals()
-
-import orbit.maze
 
 
 def main():
+    # Init globals before everything else
+    globals.init_globals()
+    # TODO ROV make this through parser?
+    # globals.debug_images = True
+
     """Play with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
         args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
     )
+
+    # override maze_start_point
+    if args_cli.maze_start_point is not None:
+        globals.maze_start_point = args_cli.maze_start_point
+        path_length = globals.maze_path.shape[0]
+        if globals.maze_start_point >= path_length:
+            globals.maze_start_point = path_length - 1
 
     agent_cfg = load_cfg_from_registry(args_cli.task, "sb3_cfg_entry_point")
     # post-process agent configuration
