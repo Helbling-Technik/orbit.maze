@@ -24,7 +24,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-07-31_StartSomewhereInMaze/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-08-13_11-04-17/model_196608000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -35,10 +35,19 @@ parser.add_argument(
 parser.add_argument(
     "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
 )
+parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
+parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
+
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
+
+# Running real maze or simple maze
+import globals
+
+if args_cli.real_maze:
+    globals.real_maze = True
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -59,14 +68,14 @@ from omni.isaac.lab_tasks.utils.parse_cfg import get_checkpoint_path, load_cfg_f
 from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 import orbit.maze  # noqa: F401
 
-import globals
-
 
 def main():
+    # Plot debug images of camera
+    if args_cli.debug_images:
+        globals.debug_images = True
+
     # Init globals before everything else
     globals.init_globals()
-    # TODO ROV make this through parser?
-    # globals.debug_images = True
 
     """Play with stable-baselines agent."""
     # parse configuration

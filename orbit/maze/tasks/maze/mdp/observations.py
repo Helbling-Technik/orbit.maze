@@ -95,8 +95,12 @@ def simulated_camera_image(
     maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
 
-    # TODO ROV double check maze size
-    maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
+    # change maze size here to required size for usds
+    if globals.real_maze:
+        maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
+    else:
+        maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
+
     pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
     padded_image_size = torch.tensor(
         [globals.simulated_image_tensor.shape[0], globals.simulated_image_tensor.shape[1]], device="cuda:0"
@@ -120,6 +124,7 @@ def simulated_camera_image(
         x_hi = sphere_pos_image[i, 0].item() + pad_size[1].item()
         y_lo = sphere_pos_image[i, 1].item() - pad_size[0].item()
         y_hi = sphere_pos_image[i, 1].item() + pad_size[0].item()
+        # TODO ROV was [y_lo:y_hi, x_lo:x_hi]
         cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
         # color center pixels grey to visualize the sphere
         cropped_images[i, 7:9, 7:9] = 128

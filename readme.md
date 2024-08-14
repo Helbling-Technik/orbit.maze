@@ -109,3 +109,13 @@ enable_extension("omni.kit.streamsdk.plugins-3.2.1")
 enable_extension("omni.kit.livestream.core-3.2.0")
 enable_extension("omni.kit.livestream.native")
 ```
+
+### Remote training in background
+
+The easiest way to train the model in the background (i.e over night) without needing an active terminal is to use the tool screen in your bash terminal.
+```bash
+screen -S maze  #  -> create screen session with name maze
+${ISAACSIM_PATH}/python.sh scripts/sb3/train.py --task Isaac-Maze-v0 --num_envs 4096 --headless
+(Hit ctrl-a followed by d)  #  -> detach from active session
+screen -r maze  #  -> reattach to maze session
+```

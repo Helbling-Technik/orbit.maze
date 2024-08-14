@@ -26,7 +26,6 @@ def path_point_target(
     target3_cfg: SceneEntityCfg,
     sphere_cfg: SceneEntityCfg,
     distance_from_target: float = 0.005,
-    idx_max: int = None,
 ) -> torch.Tensor:
     """Asset root position in the environment frame."""
     # extract the used quantities (to enable type-hinting)
@@ -53,8 +52,8 @@ def path_point_target(
 
     # update the path index and last target
     globals.path_idx[target_reached_ids] += globals.path_direction[target_reached_ids]
-    # globals.path_idx[target_reached_ids] += 1
-    # check out of bounds
+
+    # check out of bounds and set last target point to beginning/end of path, will propagate to the others in next target reached
     globals.path_idx[globals.path_idx < 0] = 0
     globals.path_idx[globals.path_idx >= path_length] = path_length - 1
 

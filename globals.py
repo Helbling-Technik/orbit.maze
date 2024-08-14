@@ -4,30 +4,35 @@ import yaml
 import os
 from PIL import Image
 
-global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, debug_images
+global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, debug_images, real_maze
 path_idx = None
 maze_path = None
 path_direction = None
 maze_start_point = None
 simulated_image_tensor = None
 debug_images = None
+real_maze = None
 
 
 # load maze path from yaml file
 def init_globals():
+    # Take correct paths to real maze or simple maze
+    global real_maze
+    # TODO ROV change yaml and image file here, would not work like that for multiple different usds
+    if real_maze:
+        yaml_path = "usds/generated_mazes/real_maze_01.yaml"
+        image_path = "usds/generated_mazes/real_maze_01.png"
+    else:
+        yaml_path = "usds/generated_mazes/generated_maze_01.yaml"
+        image_path = "usds/generated_mazes/generated_maze_01.png"
+
     # load maze path from yaml file
-    # TODO ROV change yaml file here, would not work like that for multiple different usds
-    yaml_path = "usds/generated_mazes/real_maze_01.yaml"
-    # yaml_path = "usds/generated_mazes/generated_maze_01.yaml"
     with open(os.path.join(yaml_path), "r") as file:
         global maze_path
         data = yaml.safe_load(file)
         maze_path = torch.tensor([data["x"], data["y"]]).T
 
     # load simulated image into a torch binary tensor
-    # TODO ROV change image file here, would not work like that for multiple different usds
-    image_path = "usds/generated_mazes/real_maze_01.png"
-    # image_path = "usds/generated_mazes/generated_maze_01.png"
     image = Image.open(os.path.join(image_path))
     image = image.convert("L")  # Convert to grayscale
 
@@ -42,7 +47,7 @@ def init_globals():
     # Save the image
     global debug_images
     if debug_images:
-        image.save("padded_image.jpg")
+        image.save("logs/sb3/Isaac-Maze-v0/test-images/padded_image.png")
 
     # Convert image (0-1) to NumPy array and scale it back to 0 - 255
     image_array = np.array(image).astype(np.uint8) * 255

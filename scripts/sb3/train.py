@@ -32,6 +32,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument(
     "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
 )
+parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 # TODO ROV here I can specify a starting model
 parser.add_argument(
     "--model_path",
@@ -43,6 +44,12 @@ parser.add_argument(
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
+
+# Running real maze or simple maze
+import globals
+
+if args_cli.real_maze:
+    globals.real_maze = True
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -66,8 +73,6 @@ import omni.isaac.lab_tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
-
-import globals
 
 
 def main():
