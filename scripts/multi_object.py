@@ -35,6 +35,7 @@ simulation_app = app_launcher.app
 """Rest everything follows."""
 
 import os
+import yaml
 import traceback
 from dataclasses import MISSING
 
@@ -54,10 +55,6 @@ from omni.isaac.lab.sim.utils import bind_visual_material, select_usd_variants
 
 import math
 import re
-
-# TODO ROV find better way
-global list_counter
-list_counter = 0
 
 
 # This is from isaac lab directly, but not includable without modifying isaacs code
@@ -160,8 +157,6 @@ def spawn_multi_mazes(
 ) -> Usd.Prim:
 
     # return the prim
-    global list_counter
-
     # return _spawn_from_usd_file(prim_path, usd_path, cfg, translation, orientation)
     # resolve: {SPAWN_NS}/AssetName
     # note: this assumes that the spawn namespace already exists in the stage
@@ -184,14 +179,14 @@ def spawn_multi_mazes(
     # resolve prim paths for spawning
     prim_paths = [f"{source_prim_path}/{asset_path}" for source_prim_path in source_prim_paths]
     # spawn asset from the given usd file
-    for prim_path in prim_paths:
+    for idx, prim_path in enumerate(prim_paths):
         # sample the asset config to load
-        usd_path = os.path.join(cfg.project_root, cfg.maze_usd_cfgs[list_counter].usd_path)
-        usd_cfg = cfg.maze_usd_cfgs[list_counter]
-        list_counter += 1
+        usd_idx = idx % len(cfg.maze_usd_cfgs)
+        usd_path = os.path.join(cfg.project_root, cfg.maze_usd_cfgs[usd_idx].usd_path)
+        usd_cfg = cfg.maze_usd_cfgs[usd_idx]
+
         print(f"Prim path {prim_path}")
         print(f"USD path {usd_path}")
-        # cfg = random.choice(my_asset_list)
         # load the asset
         prim = _spawn_from_usd_file(prim_path, usd_path, usd_cfg, translation, orientation)
 
@@ -200,11 +195,12 @@ def spawn_multi_mazes(
 
 def get_maze_cfg():
     # articulation
-    global list_counter
-    maze_usd_paths = [
-        "usds/generated_mazes/articulationroot_generated_maze_02.usd",
-        "usds/generated_mazes/real_maze_01.usd",
-    ]
+    # load maze path from yaml file
+    yaml_path = "usds/multi_usd_paths.yaml"
+    with open(os.path.join(yaml_path), "r") as file:
+        data = yaml.safe_load(file)
+        maze_usd_paths = data["usd_paths"]
+
     usd_file_cfgs = []
     for usd in maze_usd_paths:
         maze_usd_cfg = sim_utils.UsdFileCfg(
@@ -264,10 +260,11 @@ class MultiMazeCfg(sim_utils.SpawnerCfg):
     """Configuration parameters for loading multiple mazes looping over a list"""
 
     func: sim_utils.SpawnerCfg.func = spawn_multi_mazes
+    """Overriden spawner function"""
     maze_usd_cfgs: list[sim_utils.UsdFileCfg] = MISSING
     """List of mazes to spawn, usd configs."""
     current_script_path = os.path.abspath(__file__)
-    # Absolute path of the project root (assuming it's three levels up from the current script)
+    # Absolute path of the project root (assuming it's two levels up from the current script)
     project_root = os.path.join(current_script_path, "../..")
 
 
