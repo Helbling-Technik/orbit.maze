@@ -2,5 +2,5 @@
 *.egg-info
 logs/
 _orbit*
-*generated_maze/.asset_hash
-*generated_maze/config.yaml
+*/converter_output/.asset_hash
+*/converter_output/config.yaml

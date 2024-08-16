@@ -39,13 +39,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/real_maze_01/real_maze_01.urdf",
+    default="urdfs/generated_rov/generated_maze_rov.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/generated_maze/real_maze_01",
+    default="urdfs/generated_maze/generated_maze_rov_02",
     help="The path to store the USD file.",
 )
 parser.add_argument(

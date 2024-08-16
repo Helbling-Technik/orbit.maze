@@ -19,12 +19,11 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
-# parser.add_argument("--livestream", type=int, default="1", help="stream remotely")
 # TODO ROV change model here if needed
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-13_11-04-17/model_196608000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-08-16_08-28-26/model_32768000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -37,6 +36,7 @@ parser.add_argument(
 )
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
+parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -48,6 +48,8 @@ import globals
 
 if args_cli.real_maze:
     globals.real_maze = True
+if args_cli.pos_ctrl:
+    globals.position_control = True
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -103,7 +105,7 @@ def main():
     if "normalize_input" in agent_cfg:
         env = VecNormalize(
             env,
-            training=True,
+            training=False,
             norm_obs="normalize_input" in agent_cfg and agent_cfg.pop("normalize_input"),
             norm_reward="normalize_value" in agent_cfg and agent_cfg.pop("normalize_value"),
             clip_obs="clip_obs" in agent_cfg and agent_cfg.pop("clip_obs"),

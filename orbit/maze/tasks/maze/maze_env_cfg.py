@@ -33,7 +33,7 @@ import os
 def get_maze_cfg():
     # Absolute path of the current script
     current_script_path = os.path.abspath(__file__)
-    # Absolute path of the project root (assuming it's three levels up from the current script)
+    # Absolute path of the project root (assuming it's five levels up from the current script)
     project_root = os.path.join(current_script_path, "../../../../..")
 
     # TODO ROV change usd here
@@ -66,7 +66,7 @@ def get_maze_cfg():
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
         ),
-        # TODO ROV maybe switch to position joint
+        # TODO ROV double check those values pos: stiffness=1000, damping 0.0 or 1?
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
@@ -74,15 +74,15 @@ def get_maze_cfg():
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
-                stiffness=0.0,
-                damping=10.0,
+                stiffness=1000.0 if globals.position_control else 0.0,
+                damping=1.0 if globals.position_control else 10.0,
             ),
             "inner_actuator": ImplicitActuatorCfg(
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
-                stiffness=0.0,
-                damping=10.0,
+                stiffness=1000.0 if globals.position_control else 0.0,
+                damping=1.0 if globals.position_control else 10.0,
             ),
         },
     )
@@ -179,14 +179,20 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    # outer_joint_effort = mdp.JointPositionActionCfg(
-    #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
-    # )
-    # inner_joint_effort = mdp.JointPositionActionCfg(
-    #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
-    # )
-    outer_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1.0)
-    inner_joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1.0)
+    if globals.position_control:
+        outer_joint_effort = mdp.JointPositionActionCfg(
+            asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+        )
+        inner_joint_effort = mdp.JointPositionActionCfg(
+            asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+        )
+    else:
+        outer_joint_effort = mdp.JointEffortActionCfg(
+            asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1.0
+        )
+        inner_joint_effort = mdp.JointEffortActionCfg(
+            asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1.0
+        )
 
 
 velocity_extractor = mdp.VelocityExtractor()
@@ -275,6 +281,7 @@ class EventCfg:
         },
     )
 
+    # TODO ROV maybe make the reset flat?
     reset_joints = EventTerm(
         func=mdp.reset_joints_by_offset,
         mode="reset",
@@ -323,29 +330,31 @@ class EventCfg:
     #     },
     # )
 
-    randomize_outer_actuator = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "operation": "scale",
-            "distribution": "log_uniform",
-        },
-    )
+    # TODO ROV check values produced by this? not sure if scaled log_uniform is correct distribution method
+    # I would rather sample uniform around 0 in given interval and use operation add
+    # randomize_outer_actuator = EventTerm(
+    #     func=mdp.randomize_actuator_gains,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+    #         "stiffness_distribution_params": (0.1, 10) if globals.position_control else (0.5, 2.0),
+    #         "damping_distribution_params": (0.5, 2.0) if globals.position_control else (0.1, 10.0),
+    #         "operation": "scale",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
-    randomize_inner_actuator = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        mode="startup",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "operation": "scale",
-            "distribution": "log_uniform",
-        },
-    )
+    # randomize_inner_actuator = EventTerm(
+    #     func=mdp.randomize_actuator_gains,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+    #         "stiffness_distribution_params": (0.1, 10) if globals.position_control else (0.5, 2.0),
+    #         "damping_distribution_params": (0.5, 2.0) if globals.position_control else (0.1, 10.0),
+    #         "operation": "scale",
+    #         "distribution": "log_uniform",
+    #     },
+    # )
 
     randomize_outer_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
@@ -386,7 +395,6 @@ class RewardsCfg:
     )
     # (3) Primary task: control maze path
 
-    # TODO ROV Change distance to target based on usds
     sphere_maze_path_target = RewTerm(
         func=mdp.path_point_target,
         weight=1000.0,
@@ -395,7 +403,7 @@ class RewardsCfg:
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
             "sphere_cfg": SceneEntityCfg("sphere"),
-            "distance_from_target": 0.02 if globals.real_maze else 0.03,
+            "distance_from_target": 0.02 if globals.real_maze else 0.03,  # Change based on maze
         },
     )
 
@@ -404,9 +412,10 @@ class RewardsCfg:
         weight=-0.1,
     )
 
+    # TODO ROV was -1 from me before
     joint_action_rate = RewTerm(
         func=mdp.action_rate_l2,
-        weight=-1,
+        weight=-0.1,
     )
 
 
@@ -457,7 +466,8 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 15  # 20s enough to solve maze01
+        # TODO ROV I trained with 15
+        self.episode_length_s = 10  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

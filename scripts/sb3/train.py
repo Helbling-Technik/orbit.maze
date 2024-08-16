@@ -33,6 +33,7 @@ parser.add_argument(
     "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
 )
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
+parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 # TODO ROV here I can specify a starting model
 parser.add_argument(
     "--model_path",
@@ -50,6 +51,8 @@ import globals
 
 if args_cli.real_maze:
     globals.real_maze = True
+if args_cli.pos_ctrl:
+    globals.position_control = True
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)

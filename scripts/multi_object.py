@@ -8,7 +8,7 @@
 .. code-block:: bash
 
     # Usage
-    python scripts/multi_object.py --num_envs 2
+    python scripts/multi_object.py --livestream 1 --num_envs 2
 
 """
 from __future__ import annotations
@@ -231,7 +231,6 @@ def get_maze_cfg():
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
         ),
-        # TODO ROV maybe switch to position joint
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
