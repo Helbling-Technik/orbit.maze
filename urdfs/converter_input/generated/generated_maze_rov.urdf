@@ -34,7 +34,7 @@
     <visual>
       <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
       <geometry>
-        <mesh filename="meshes/generated_maze_rov_02.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="meshes/generated_simple_maze_01.stl" scale="0.001 0.001 0.001"/>
       </geometry>
       <material name="Black">
           <color rgba="0.0 0.0 0.0 1.0"/> <!-- RGB + Alpha (transparency) -->

@@ -57,6 +57,17 @@ import math
 import re
 
 
+@configclass
+class MultiMazeCfg(sim_utils.SpawnerCfg):
+    """Configuration parameters for loading multiple mazes looping over a list"""
+
+    maze_usd_cfgs: list[sim_utils.UsdFileCfg] = MISSING
+    """List of mazes to spawn, usd configs."""
+    current_script_path = os.path.abspath(__file__)
+    # Absolute path of the project root (assuming it's two levels up from the current script)
+    project_root = os.path.join(current_script_path, "../..")
+
+
 # This is from isaac lab directly, but not includable without modifying isaacs code
 def _spawn_from_usd_file(
     prim_path: str,
@@ -193,7 +204,7 @@ def spawn_multi_mazes(
     return prim
 
 
-def get_maze_cfg():
+def get_multi_maze_cfg():
     # articulation
     # load maze path from yaml file
     yaml_path = "usds/multi_usd_paths.yaml"
@@ -204,7 +215,7 @@ def get_maze_cfg():
     usd_file_cfgs = []
     for usd in maze_usd_paths:
         maze_usd_cfg = sim_utils.UsdFileCfg(
-            usd_path=usd,
+            usd_path=usd["location"],
             rigid_props=sim_utils.RigidBodyPropertiesCfg(
                 rigid_body_enabled=True,
                 max_linear_velocity=1000.0,
@@ -213,7 +224,6 @@ def get_maze_cfg():
                 enable_gyroscopic_forces=True,
             ),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
-            # physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                 enabled_self_collisions=False,
                 fix_root_link=True,
@@ -227,7 +237,7 @@ def get_maze_cfg():
 
     maze_cfg = ArticulationCfg(
         prim_path="{ENV_REGEX_NS}/Labyrinth",
-        spawn=MultiMazeCfg(maze_usd_cfgs=usd_file_cfgs),
+        spawn=MultiMazeCfg(maze_usd_cfgs=usd_file_cfgs, func=spawn_multi_mazes),
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
         ),
@@ -255,19 +265,6 @@ def get_maze_cfg():
 
 
 @configclass
-class MultiMazeCfg(sim_utils.SpawnerCfg):
-    """Configuration parameters for loading multiple mazes looping over a list"""
-
-    func: sim_utils.SpawnerCfg.func = spawn_multi_mazes
-    """Overriden spawner function"""
-    maze_usd_cfgs: list[sim_utils.UsdFileCfg] = MISSING
-    """List of mazes to spawn, usd configs."""
-    current_script_path = os.path.abspath(__file__)
-    # Absolute path of the project root (assuming it's two levels up from the current script)
-    project_root = os.path.join(current_script_path, "../..")
-
-
-@configclass
 class MultiObjectSceneCfg(InteractiveSceneCfg):
     """Configuration for a multi-object scene."""
 
@@ -277,7 +274,7 @@ class MultiObjectSceneCfg(InteractiveSceneCfg):
         spawn=sim_utils.GroundPlaneCfg(size=(100.0, 100.0)),
     )
 
-    maze_cfg = get_maze_cfg()
+    maze_cfg = get_multi_maze_cfg()
 
     # Sphere with collision enabled but not actuated
     sphere = RigidObjectCfg(
@@ -290,7 +287,6 @@ class MultiObjectSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[0, 0], globals.maze_path[0, 1], 0.12)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
@@ -358,7 +354,6 @@ def main():
     sim_cfg = sim_utils.SimulationCfg(device="cpu", use_gpu_pipeline=False)
     sim = SimulationContext(sim_cfg)
     # Set main camera
-    # sim.set_camera_view([2.5, 0.0, 4.0], [0.0, 0.0, 2.0])
     # Design scene
     scene_cfg = MultiObjectSceneCfg(num_envs=args_cli.num_envs, env_spacing=0.5, replicate_physics=False)
     with Timer("[INFO] Time to create scene: "):

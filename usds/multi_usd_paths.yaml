@@ -1,5 +1,11 @@
 usd_paths:
-- "usds/generated_mazes/articulationroot_generated_maze_02.usd"
-- "usds/generated_mazes/real_maze_01.usd"
-- "usds/generated_mazes/generated_maze_rov_01.usd"
-- "usds/generated_mazes/generated_maze_rov_02.usd"
+- location: "usds/generated_mazes/generated_maze_02.usd"
+  type: generated
+- location: "usds/generated_mazes/real_maze_01.usd"
+  type: real
+- location: "usds/generated_mazes/generated_maze_rov_01.usd"
+  type: generated
+- location: "usds/generated_mazes/generated_maze_rov_02.usd"
+  type: generated
+- location: "usds/generated_mazes/generated_simple_maze_01.usd"
+  type: generated

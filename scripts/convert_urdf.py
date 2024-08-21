@@ -39,13 +39,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/generated_rov/generated_maze_rov.urdf",
+    default="urdfs/converter_input/generated/generated_maze_rov.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/generated_maze/generated_maze_rov_02",
+    default="urdfs/converter_output/generated_simple_maze_01",
     help="The path to store the USD file.",
 )
 parser.add_argument(
@@ -102,7 +102,7 @@ def main():
         dest_path = os.path.abspath(dest_path)
 
     # Create Urdf converter config
-    # TODO ROV we would like to have it instanceable but then we have to update the references since they are wrong and change material in reference?
+    # TODO we would like to have it instanceable but then we have to update the references since they are wrong and change material in reference?
     urdf_converter_cfg = UrdfConverterCfg(
         asset_path=urdf_path,
         usd_dir=os.path.dirname(dest_path),
@@ -161,7 +161,7 @@ def main():
     utils.setCollider(innerDOFvisual, "sdf")
     utils.setCollider(innerDOFWallsvisual, "sdf")
 
-    # TODO ROV use something like this if you plan on doing instanced meshes
+    # TODO use something like this if you plan on doing instanced meshes
     # Create a new reference
     # new_reference = Sdf.Reference("path/to/new/mesh.usd", "/path/in/mesh.usd")
 
