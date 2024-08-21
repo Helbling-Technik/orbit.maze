@@ -23,7 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-16_08-28-26/model_32768000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-08-21_07-54-02/model_131072000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -37,19 +37,29 @@ parser.add_argument(
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
-
+parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment")
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
 
-# Running real maze or simple maze
 import globals
 
+# Need to initialize these for proper env config
+if args_cli.debug_images:
+    globals.debug_images = True
 if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:
     globals.position_control = True
+
+# Init globals before everything else
+if args_cli.multi_maze:
+    globals.use_multi_maze = True
+    globals.init_multi_usd()
+else:
+    globals.init_single_usd()
+
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -72,13 +82,6 @@ import orbit.maze  # noqa: F401
 
 
 def main():
-    # Plot debug images of camera
-    if args_cli.debug_images:
-        globals.debug_images = True
-
-    # Init globals before everything else
-    globals.init_globals()
-
     """Play with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
@@ -86,6 +89,7 @@ def main():
     )
 
     # override maze_start_point
+    # TODO ROV would need to get the path for all the different mazes
     if args_cli.maze_start_point is not None:
         globals.maze_start_point = args_cli.maze_start_point
         path_length = globals.maze_path.shape[0]

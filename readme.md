@@ -76,6 +76,43 @@ Import your python package within `Isaac Sim` and `IsaacLab` using:
 ```python
 import orbit.<your_extension_name>
 ```
+### IMPORTANT: Stable Baselines 3 & Isaac Lab adaptation for MultiInputPolicies
+
+In order for stable baselines to function properly with isaac lab using MultiInputPolicies, the following library files need to be changed.
+
+
+Changed torch_layer.py in ${PYTHON_ENV}/lib/python3.10/site-packages/stable_baselines3/common/torch_layers.py
+- Line 89ff change padding to 1:
+``` python
+# padding was 0, needs to be 1 because of small input image
+n_input_channels = observation_space.shape[0]
+self.cnn = nn.Sequential(
+    nn.Conv2d(n_input_channels, 32, kernel_size=8, stride=4, padding=1),
+    nn.ReLU(),
+    nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=1),
+    nn.ReLU(),
+    nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),
+    nn.ReLU(),
+    nn.Flatten(),
+)
+```
+changed preprocessing.py in ${PYTHON_ENV}/lib/python3.10/site-packages/stable_baselines3/common/preprocessing.py
+- Line 48 add:
+``` python
+# we can not enable these checks because of how isaac lab creates the observation_space
+normalized_image = True	
+```
+changed sb3.py in ${ISAAC_LAB_REPO}/source/extensions/omni.isaac.lab_tasks/omni/isaac/lab_tasks/utils/wrappers/sb3.py
+- Line 169:
+``` python
+# was observation_space = self.unwrapped.single_observation_space["policy"], but we want all the policies in the dict
+observation_space = self.unwrapped.single_observation_space
+```
+- Line 321:
+```python
+# was obs = obs_dict["policy"], but we want all the policies in the dict
+obs = obs_dict
+```
 
 ### Project Template
 
@@ -101,7 +138,7 @@ conda activate issaclab
 ### Remote Livestreaming
 
 In order to be able to livestream the simulator to another machine one needs to change the default version of the extensions in the ``AppLauncher``
-`` /home/sck/git/IsaacLab/source/extensions/omni.isaac.lab/omni/isaac/lab/app/app_launcher.py ``
+`` ${ISAAC_LAB_REPO}/source/extensions/omni.isaac.lab/omni/isaac/lab/app/app_launcher.py ``
 
 Exchange lines 567 to 569 with 
 ``` python

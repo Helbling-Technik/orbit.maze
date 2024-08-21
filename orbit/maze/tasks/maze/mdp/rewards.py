@@ -25,7 +25,6 @@ def path_point_target(
     target2_cfg: SceneEntityCfg,
     target3_cfg: SceneEntityCfg,
     sphere_cfg: SceneEntityCfg,
-    distance_from_target: float = 0.005,
 ) -> torch.Tensor:
     """Asset root position in the environment frame."""
     # extract the used quantities (to enable type-hinting)
@@ -36,9 +35,17 @@ def path_point_target(
     sphere_pos = sphere.data.root_pos_w - env.scene.env_origins
     target1_pos = target1.data.root_pos_w - env.scene.env_origins
 
-    path_length = globals.maze_path.shape[0]
+    # TODO ROV not tested yet, change distance to target based on used maze
+    if globals.use_multi_maze:
+        distance_tensor = 0.03 * torch.ones((sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0")
+        for env_idx in sphere_pos.shape[0]:
+            if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
+                distance_tensor[env_idx] = 0.02
+        xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_tensor
+    else:
+        distance_from_target = 0.02 if globals.real_maze else 0.03
+        xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
 
-    xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
     target_reached_ids = torch.nonzero(xy_sparse_reward).view(-1)
     if target_reached_ids.numel() == 0:
         return xy_sparse_reward
@@ -55,10 +62,25 @@ def path_point_target(
 
     # check out of bounds and set last target point to beginning/end of path, will propagate to the others in next target reached
     globals.path_idx[globals.path_idx < 0] = 0
-    globals.path_idx[globals.path_idx >= path_length] = path_length - 1
 
-    updated_path_idx = torch.tensor(globals.path_idx[target_reached_ids], device=sphere.device, dtype=int)
-    targetNext = globals.maze_path[updated_path_idx, :]
+    # TODO ROV not entirely sure if this is correct, not tested yet
+    if globals.use_multi_maze:
+        targetNextList = []
+        for reached_idx in target_reached_ids:
+            path_maze = globals.get_list_entry_from_env(globals.maze_path_list, reached_idx)
+            path_length = path_maze.shape[0]
+            if globals.path_idx[reached_idx] >= path_length:
+                globals.path_idx[reached_idx] = path_length - 1
+            updated_path_idx = globals.path_idx[reached_idx]
+            targetNextList.append(path_maze[updated_path_idx, :])
+        targetNext = torch.Tensor(targetNextList, device=sphere.device)
+    else:
+        path_length = globals.maze_path.shape[0]
+        globals.path_idx[globals.path_idx >= path_length] = path_length - 1
+
+        updated_path_idx = globals.path_idx[target_reached_ids].clone().detach().to(device=sphere.device, dtype=int)
+        targetNext = globals.maze_path[updated_path_idx, :]
+
     targetNextto3[:, :2] = targetNext + env.scene.env_origins[target_reached_ids, :2]
 
     target1.write_root_pose_to_sim(target2to1, env_ids=target_reached_ids)
@@ -72,13 +94,13 @@ def reset_maze_path_idx(env: ManagerBasedEnv, env_ids: torch.Tensor, sphere_cfg:
 
     if globals.path_idx is None:
         globals.path_idx = 2 * torch.ones(env.num_envs, device=sphere.device, dtype=int)
-        globals.maze_path = globals.maze_path.to(sphere.device)
         globals.path_idx = globals.path_idx.to(sphere.device)
 
     globals.path_idx[env_ids] = 2 * torch.ones(len(env_ids), device=sphere.device, dtype=int)
     globals.path_idx = globals.path_idx.clone().to(sphere.device)
 
 
+# TODO ROV would need to get the path for all the different mazes, not implemented yet
 def reset_maze_state(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
@@ -104,7 +126,7 @@ def reset_maze_state(
             globals.path_idx = globals.maze_start_point * torch.ones(
                 len(env_ids), device=sphere.device, dtype=torch.int
             )
-        globals.maze_path = globals.maze_path.to(sphere.device)
+
         globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
         globals.path_direction[globals.path_idx >= int(path_length / 2)] = -1
         globals.path_idx = globals.path_idx.to(sphere.device)

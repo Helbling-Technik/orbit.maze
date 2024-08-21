@@ -95,59 +95,109 @@ def simulated_camera_image(
     maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
 
-    # change maze size here to required size for usds
-    if globals.real_maze:
-        maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
-    else:
-        maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
-
-    pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
-    padded_image_size = torch.tensor(
-        [globals.simulated_image_tensor.shape[0], globals.simulated_image_tensor.shape[1]], device="cuda:0"
-    )
-    image_size = torch.tensor(padded_image_size - pad_size * 2, device="cuda:0")
-
     sphere = env.scene[sphere_cfg.name]
     sphere_pos_env = sphere.data.root_pos_w - env.scene.env_origins
     maze = env.scene[maze_cfg.name]
     maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
 
     sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
-    sphere_pos_image = (image_size / maze_size * sphere_pos_env + image_size / 2 + pad_size).to(torch.int16)
-    sphere_pos_image = torch.clamp(sphere_pos_image, pad_size, image_size + pad_size)
 
-    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float16, device="cuda:0")
+    pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
+    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.uint8, device="cuda:0")
 
-    for i in range(sphere_pos_env.shape[0]):
-        # extract 16x16 patch around sphere
-        x_lo = sphere_pos_image[i, 0].item() - pad_size[1].item()  # padding size pad_size[1].item()
-        x_hi = sphere_pos_image[i, 0].item() + pad_size[1].item()
-        y_lo = sphere_pos_image[i, 1].item() - pad_size[0].item()
-        y_hi = sphere_pos_image[i, 1].item() + pad_size[0].item()
-        # TODO ROV was [y_lo:y_hi, x_lo:x_hi]
-        cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
-        # color center pixels grey to visualize the sphere
-        cropped_images[i, 7:9, 7:9] = 128
+    # TODO ROV not tested yet
+    if globals.use_multi_maze:
+        for env_idx in range(sphere_pos_env.shape[0]):
+            # change maze size here to required size for usds
+            if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
+                # TODO ROV these dimensions are wrong
+                maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
+            else:
+                maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
+            sim_image = globals.get_list_entry_from_env(globals.image_list, env_idx)
 
-        if globals.debug_images:
-            if i == 0:
-                now = datetime.now()
-                date_string = now.strftime("%Y%m%d-%H%M%S")
-                numpy_image = globals.simulated_image_tensor.cpu().numpy().copy()
-                # repeat the image 3 times to get RGB image using tile
-                numpy_image = np.stack((numpy_image, numpy_image, numpy_image), axis=-1)
-                image = Image.fromarray(numpy_image.astype(np.uint8))
-                draw = ImageDraw.Draw(image)
-                draw.rectangle((y_lo, x_lo, y_hi, x_hi), outline=(255, 0, 0), width=1)
-                image.save("logs/sb3/Isaac-Maze-v0/test-images/output_image_" + str(i) + "_" + date_string + ".png")
+            padded_image_size = torch.tensor([sim_image.shape[0], sim_image.shape[1]], device="cuda:0")
+            image_size = (padded_image_size - pad_size * 2).clone().detach().to(device="cuda:0")
 
-                numpy_cropped_image = cropped_images[i].cpu().numpy().copy()
-                cropped_image_PIL = Image.fromarray(numpy_cropped_image.astype(np.uint8), "L")
-                cropped_image_PIL.save(
-                    "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
-                )
+            sphere_pos_image = (image_size / maze_size * sphere_pos_env + image_size / 2 + pad_size).to(torch.int16)
+            sphere_pos_image = torch.clamp(sphere_pos_image, pad_size, image_size + pad_size)
 
-    return cropped_images.view(sphere_pos_env.shape[0], -1)
+            # extract 16x16 patch around sphere
+            x_lo = sphere_pos_image[env_idx, 0].item() - pad_size[1].item()  # padding size pad_size[1].item()
+            x_hi = sphere_pos_image[env_idx, 0].item() + pad_size[1].item()
+            y_lo = sphere_pos_image[env_idx, 1].item() - pad_size[0].item()
+            y_hi = sphere_pos_image[env_idx, 1].item() + pad_size[0].item()
+
+            cropped_images[env_idx, :, :] = sim_image[x_lo:x_hi, y_lo:y_hi]
+            # color center pixels grey to visualize the sphere
+            cropped_images[env_idx, 7:9, 7:9] = 128
+
+            if globals.debug_images:
+                if env_idx == 0 or env_idx == 1:
+                    now = datetime.now()
+                    date_string = now.strftime("%Y%m%d-%H%M%S")
+                    numpy_image = sim_image.cpu().numpy().copy()
+                    # repeat the image 3 times to get RGB image using tile
+                    numpy_image = np.stack((numpy_image, numpy_image, numpy_image), axis=-1)
+                    image = Image.fromarray(numpy_image.astype(np.uint8))
+                    draw = ImageDraw.Draw(image)
+                    draw.rectangle((y_lo, x_lo, y_hi, x_hi), outline=(255, 0, 0), width=1)
+                    image.save(
+                        "logs/sb3/Isaac-Maze-v0/test-images/output_image_" + str(env_idx) + "_" + date_string + ".png"
+                    )
+
+                    numpy_cropped_image = cropped_images[env_idx].cpu().numpy().copy()
+                    cropped_image_PIL = Image.fromarray(numpy_cropped_image.astype(np.uint8), "L")
+                    cropped_image_PIL.save(
+                        "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(env_idx) + "_" + date_string + ".png"
+                    )
+    else:
+        # single maze env
+        # change maze size here to required size for usds
+        if globals.real_maze:
+            # TODO ROV these dimensions are wrong
+            maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
+        else:
+            maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
+
+        padded_image_size = torch.tensor(
+            [globals.simulated_image_tensor.shape[0], globals.simulated_image_tensor.shape[1]], device="cuda:0"
+        )
+        image_size = (padded_image_size - pad_size * 2).clone().detach().to(device="cuda:0")
+
+        sphere_pos_image = (image_size / maze_size * sphere_pos_env + image_size / 2 + pad_size).to(torch.int16)
+        sphere_pos_image = torch.clamp(sphere_pos_image, pad_size, image_size + pad_size)
+
+        for i in range(sphere_pos_env.shape[0]):
+            # extract 16x16 patch around sphere
+            x_lo = sphere_pos_image[i, 0].item() - pad_size[1].item()  # padding size pad_size[1].item()
+            x_hi = sphere_pos_image[i, 0].item() + pad_size[1].item()
+            y_lo = sphere_pos_image[i, 1].item() - pad_size[0].item()
+            y_hi = sphere_pos_image[i, 1].item() + pad_size[0].item()
+
+            cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
+            # color center pixels grey to visualize the sphere
+            cropped_images[i, 7:9, 7:9] = 128
+
+            if globals.debug_images:
+                if i == 0:
+                    now = datetime.now()
+                    date_string = now.strftime("%Y%m%d-%H%M%S")
+                    numpy_image = globals.simulated_image_tensor.cpu().numpy().copy()
+                    # repeat the image 3 times to get RGB image using tile
+                    numpy_image = np.stack((numpy_image, numpy_image, numpy_image), axis=-1)
+                    image = Image.fromarray(numpy_image.astype(np.uint8))
+                    draw = ImageDraw.Draw(image)
+                    draw.rectangle((y_lo, x_lo, y_hi, x_hi), outline=(255, 0, 0), width=1)
+                    image.save("logs/sb3/Isaac-Maze-v0/test-images/output_image_" + str(i) + "_" + date_string + ".png")
+
+                    numpy_cropped_image = cropped_images[i].cpu().numpy().copy()
+                    cropped_image_PIL = Image.fromarray(numpy_cropped_image.astype(np.uint8), "L")
+                    cropped_image_PIL.save(
+                        "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
+                    )
+    # channel first image
+    return cropped_images.unsqueeze(1)
 
 
 def cropped_camera_image(
@@ -214,25 +264,11 @@ def root_pos_w_xy(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntit
     return position[:, :2]
 
 
-# def lidar_scan_w(env: ManagerBasedRLEnv, sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere")) -> torch.Tensor:
-#     """Lidar scan in the environment frame."""
-#     # extract the used quantities (to enable type-hinting)
-#     sphere: RigidObject = env.scene[sphere_cfg.name]
-
-#     raycaster = RayCaster = env.scene["raycast"]
-#     print(raycaster.data.ray_hits_w)
-
-#     # pos = sphere.data.root_pos_w
-#     # dir = torch.tensor([1.0, 1.0, -0.1], device=sphere.data.root_pos_w.device)
-
-#     # maze: Articulation = env.scene["robot"]
-#     # print("Labyrinth.cfg: ", maze.cfg)
-#     # print("Labyrinth.cfg.prim_path: ", maze.cfg.prim_path)
-
-#     # ray_hits_w = raycast_mesh(
-#     #         pos,
-#     #         dir,
-#     #         max_dist=0.2,
-#     #         mesh=RayCaster.meshes["/World/envs/env_0/Labyrinth"])
-
-#     return env.scene.env_origins
+# TODO CLEANUP calculate direction DELETE
+def root_dir_w_xy(env: ManagerBasedRLEnv, target_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
+    """Asset root position in the environment frame."""
+    # extract the used quantities (to enable type-hinting)
+    target: RigidObject = env.scene[target_cfg.name]
+    sphere: RigidObject = env.scene[sphere_cfg.name]
+    position = target.data.root_pos_w - sphere.data.root_pos_w
+    return position[:, :2]

@@ -41,6 +41,7 @@ def get_maze_cfg():
         usd_file_path = "usds/generated_mazes/real_maze_01.usd"
     else:
         usd_file_path = "usds/generated_mazes/generated_maze_02.usd"
+        # usd_file_path = "usds/generated_mazes/generated_simple_maze_01.usd"
 
     maze_cfg = ArticulationCfg(
         spawn=sim_utils.UsdFileCfg(
@@ -66,7 +67,6 @@ def get_maze_cfg():
         init_state=ArticulationCfg.InitialStateCfg(
             pos=(0.0, 0.0, 0.0), joint_pos={"OuterDOF_RevoluteJoint": 0.0, "InnerDOF_RevoluteJoint": 0.0}
         ),
-        # TODO ROV double check those values pos: stiffness=1000, damping 0.0 or 1?
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
@@ -118,7 +118,6 @@ class MazeSceneCfg(InteractiveSceneCfg):
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
             physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[0, 0], globals.maze_path[0, 1], 0.12)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
@@ -130,7 +129,6 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 0.0, 0.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[0, 0], globals.maze_path[0, 1], 0.105)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target2 = RigidObjectCfg(
@@ -141,7 +139,6 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[1, 0], globals.maze_path[1, 1], 0.105)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
     target3 = RigidObjectCfg(
@@ -152,7 +149,6 @@ class MazeSceneCfg(InteractiveSceneCfg):
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
         ),
-        # init_state=RigidObjectCfg.InitialStateCfg(pos=(globals.maze_path[2, 0], globals.maze_path[2, 1], 0.105)),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
@@ -203,7 +199,7 @@ class ObservationsCfg:
     """Observation specifications for the MDP."""
 
     @configclass
-    class PolicyCfg(ObsGroup):
+    class MlpPolicyCfg(ObsGroup):
         """Observations for policy group."""
 
         # observation terms (order preserved)
@@ -211,7 +207,6 @@ class ObservationsCfg:
             func=mdp.joint_pos_with_noise,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.001},
         )
-        # joint_vel = ObsTerm(func=mdp.joint_vel)
         joint_est_vel = ObsTerm(
             func=velocity_extractor.extract_joint_velocity,
             params={"asset_cfg": SceneEntityCfg("robot")},
@@ -224,6 +219,29 @@ class ObservationsCfg:
             func=velocity_extractor.extract_root_velocity,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
+        # TODO CLEANUP maybe give relative position for targets DELETE
+        # target1_dir = ObsTerm(
+        #     func=mdp.root_dir_w_xy,
+        #     params={
+        #         "target_cfg": SceneEntityCfg("target1"),
+        #         "sphere_cfg": SceneEntityCfg("sphere"),
+        #     },
+        # )
+        # target2_dir = ObsTerm(
+        #     func=mdp.root_dir_w_xy,
+        #     params={
+        #         "target_cfg": SceneEntityCfg("target2"),
+        #         "sphere_cfg": SceneEntityCfg("sphere"),
+        #     },
+        # )
+        # target3_dir = ObsTerm(
+        #     func=mdp.root_dir_w_xy,
+        #     params={
+        #         "target_cfg": SceneEntityCfg("target3"),
+        #         "sphere_cfg": SceneEntityCfg("sphere"),
+        #     },
+        # )
+
         target1_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
@@ -243,6 +261,14 @@ class ObservationsCfg:
             },
         )
 
+        def __post_init__(self) -> None:
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    @configclass
+    class CnnPolicyCfg(ObsGroup):
+        """Observations for policy group."""
+
         image = ObsTerm(
             func=mdp.simulated_camera_image,
             params={
@@ -256,13 +282,15 @@ class ObservationsCfg:
             self.concatenate_terms = True
 
     # observation groups
-    policy: PolicyCfg = PolicyCfg()
+    mlp_policy: MlpPolicyCfg = MlpPolicyCfg()
+    cnn_policy: CnnPolicyCfg = CnnPolicyCfg()
 
 
 @configclass
 class EventCfg:
     """Configuration for events."""
 
+    # TODO CLEANUP
     # reset
     # reset_maze_path_idx = EventTerm(
     #     func=mdp.reset_maze_path_idx,
@@ -281,7 +309,6 @@ class EventCfg:
         },
     )
 
-    # TODO ROV maybe make the reset flat?
     reset_joints = EventTerm(
         func=mdp.reset_joints_by_offset,
         mode="reset",
@@ -292,6 +319,7 @@ class EventCfg:
         },
     )
 
+    # TODO CLEANUP
     # reset_sphere_pos = EventTerm(
     #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
@@ -301,7 +329,6 @@ class EventCfg:
     #         "velocity_range": {},
     #     },
     # )
-
     # reset_target1_pos = EventTerm(
     #     func=mdp.reset_root_state_uniform,
     #     mode="reset",
@@ -330,15 +357,14 @@ class EventCfg:
     #     },
     # )
 
-    # TODO ROV check values produced by this? not sure if scaled log_uniform is correct distribution method
-    # I would rather sample uniform around 0 in given interval and use operation add
+    # TODO ROV reenable this
     # randomize_outer_actuator = EventTerm(
     #     func=mdp.randomize_actuator_gains,
     #     mode="startup",
     #     params={
     #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-    #         "stiffness_distribution_params": (0.1, 10) if globals.position_control else (0.5, 2.0),
-    #         "damping_distribution_params": (0.5, 2.0) if globals.position_control else (0.1, 10.0),
+    #         "stiffness_distribution_params": (0.5, 2.0),
+    #         "damping_distribution_params": (0.5, 2.0),
     #         "operation": "scale",
     #         "distribution": "log_uniform",
     #     },
@@ -349,8 +375,8 @@ class EventCfg:
     #     mode="startup",
     #     params={
     #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-    #         "stiffness_distribution_params": (0.1, 10) if globals.position_control else (0.5, 2.0),
-    #         "damping_distribution_params": (0.5, 2.0) if globals.position_control else (0.1, 10.0),
+    #         "stiffness_distribution_params": (0.5, 2.0),
+    #         "damping_distribution_params": (0.5, 2.0),
     #         "operation": "scale",
     #         "distribution": "log_uniform",
     #     },
@@ -385,9 +411,8 @@ class RewardsCfg:
 
     # (1) Constant running reward
     alive = RewTerm(func=mdp.is_alive, weight=0.1)
+
     # (2) Failure penalty
-    # TODO ROV only penalize sphere on ground
-    # terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
     terminating = RewTerm(
         func=mdp.root_height_below_minimum,
         params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
@@ -403,7 +428,6 @@ class RewardsCfg:
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
             "sphere_cfg": SceneEntityCfg("sphere"),
-            "distance_from_target": 0.02 if globals.real_maze else 0.03,  # Change based on maze
         },
     )
 
@@ -412,7 +436,6 @@ class RewardsCfg:
         weight=-0.1,
     )
 
-    # TODO ROV was -1 from me before
     joint_action_rate = RewTerm(
         func=mdp.action_rate_l2,
         weight=-0.1,
@@ -466,13 +489,12 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        # TODO ROV I trained with 15
-        self.episode_length_s = 10  # 20s enough to solve maze01
+        self.episode_length_s = 7  # 20s enough to solve maze01
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
         self.sim.dt = 1 / 100
         self.sim.render_interval = 10
 
-        # TODO ROV set physics properties if warning, not high enough for 16384 envs
+        # TODO CLEANUP set physics properties if warning, not high enough for 16384 envs
         # self.sim.physx.gpu_collision_stack_size = 2**29

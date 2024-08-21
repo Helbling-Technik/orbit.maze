@@ -34,11 +34,12 @@ parser.add_argument(
 )
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
+parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment")
 # TODO ROV here I can specify a starting model
 parser.add_argument(
     "--model_path",
     type=str,
-    default=None,
+    default="logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_294912000_steps.zip",  # None,
 )
 
 # append AppLauncher cli args
@@ -46,13 +47,21 @@ AppLauncher.add_app_launcher_args(parser)
 # parse the arguments
 args_cli = parser.parse_args()
 
-# Running real maze or simple maze
 import globals
 
+# Need to initialize these for proper env config
 if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:
     globals.position_control = True
+
+# Init globals before everything else
+if args_cli.multi_maze:
+    globals.use_multi_maze = True
+    globals.init_multi_usd()
+else:
+    globals.init_single_usd()
+
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)
@@ -79,9 +88,6 @@ import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
 
 
 def main():
-    # Init globals before everything else
-    globals.init_globals()
-
     """Train with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
@@ -95,6 +101,7 @@ def main():
         agent_cfg["seed"] = args_cli.seed
 
     # override maze_start_point
+    # TODO ROV would need to get the path for all the different mazes
     if args_cli.maze_start_point is not None:
         globals.maze_start_point = args_cli.maze_start_point
         path_length = globals.maze_path.shape[0]
@@ -158,6 +165,8 @@ def main():
     # configure the logger
     new_logger = configure(log_dir, ["stdout", "tensorboard"])
     agent.set_logger(new_logger)
+    # TODO ROV create plots once
+    # print(agent.policy)
 
     # callbacks for agent
     checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)
