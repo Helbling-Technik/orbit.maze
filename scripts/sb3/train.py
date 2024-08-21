@@ -101,12 +101,8 @@ def main():
         agent_cfg["seed"] = args_cli.seed
 
     # override maze_start_point
-    # TODO ROV would need to get the path for all the different mazes
     if args_cli.maze_start_point is not None:
-        globals.maze_start_point = args_cli.maze_start_point
-        path_length = globals.maze_path.shape[0]
-        if globals.maze_start_point >= path_length:
-            globals.maze_start_point = path_length - 1
+        globals.init_maze_start_point(args_cli.maze_start_point)
 
     # directory for logging into
     log_dir = os.path.join("logs", "sb3", args_cli.task, datetime.now().strftime("%Y-%m-%d_%H-%M-%S"))
@@ -165,8 +161,6 @@ def main():
     # configure the logger
     new_logger = configure(log_dir, ["stdout", "tensorboard"])
     agent.set_logger(new_logger)
-    # TODO ROV create plots once
-    # print(agent.policy)
 
     # callbacks for agent
     checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)

@@ -23,7 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-21_07-54-02/model_131072000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_294912000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -89,12 +89,8 @@ def main():
     )
 
     # override maze_start_point
-    # TODO ROV would need to get the path for all the different mazes
     if args_cli.maze_start_point is not None:
-        globals.maze_start_point = args_cli.maze_start_point
-        path_length = globals.maze_path.shape[0]
-        if globals.maze_start_point >= path_length:
-            globals.maze_start_point = path_length - 1
+        globals.init_maze_start_point(args_cli.maze_start_point)
 
     agent_cfg = load_cfg_from_registry(args_cli.task, "sb3_cfg_entry_point")
     # post-process agent configuration
@@ -132,6 +128,9 @@ def main():
     # create agent from stable baselines
     print(f"Loading checkpoint from: {checkpoint_path}")
     agent = PPO.load(checkpoint_path, env, print_system_info=True)
+
+    # TODO ROV create plots once
+    # print(agent.policy)
 
     # reset environment
     obs = env.reset()

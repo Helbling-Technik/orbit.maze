@@ -12,6 +12,7 @@ from omni.isaac.lab.assets import RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.envs import ManagerBasedEnv
 import omni.isaac.lab.utils.math as math_utils
+import random
 
 import globals
 
@@ -35,10 +36,10 @@ def path_point_target(
     sphere_pos = sphere.data.root_pos_w - env.scene.env_origins
     target1_pos = target1.data.root_pos_w - env.scene.env_origins
 
-    # TODO ROV not tested yet, change distance to target based on used maze
+    # change distance to target based on used maze
     if globals.use_multi_maze:
         distance_tensor = 0.03 * torch.ones((sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0")
-        for env_idx in sphere_pos.shape[0]:
+        for env_idx in range(sphere_pos.shape[0]):
             if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
                 distance_tensor[env_idx] = 0.02
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_tensor
@@ -63,7 +64,7 @@ def path_point_target(
     # check out of bounds and set last target point to beginning/end of path, will propagate to the others in next target reached
     globals.path_idx[globals.path_idx < 0] = 0
 
-    # TODO ROV not entirely sure if this is correct, not tested yet
+    # get next target points
     if globals.use_multi_maze:
         targetNextList = []
         for reached_idx in target_reached_ids:
@@ -73,7 +74,7 @@ def path_point_target(
                 globals.path_idx[reached_idx] = path_length - 1
             updated_path_idx = globals.path_idx[reached_idx]
             targetNextList.append(path_maze[updated_path_idx, :])
-        targetNext = torch.Tensor(targetNextList, device=sphere.device)
+        targetNext = torch.stack(targetNextList, dim=0).to(sphere.device)
     else:
         path_length = globals.maze_path.shape[0]
         globals.path_idx[globals.path_idx >= path_length] = path_length - 1
@@ -100,7 +101,6 @@ def reset_maze_path_idx(env: ManagerBasedEnv, env_ids: torch.Tensor, sphere_cfg:
     globals.path_idx = globals.path_idx.clone().to(sphere.device)
 
 
-# TODO ROV would need to get the path for all the different mazes, not implemented yet
 def reset_maze_state(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
@@ -115,34 +115,65 @@ def reset_maze_state(
     target2: RigidObject = env.scene[target2_cfg.name]
     target3: RigidObject = env.scene[target3_cfg.name]
 
-    path_length = globals.maze_path.shape[0]
+    if globals.use_multi_maze:
+        # Need to create globals.path_idx
+        if globals.path_idx is None:
+            path_idx_list = []
+            for e_idx in env_ids:
+                start_point = globals.get_list_entry_from_env(globals.maze_start_list, e_idx)
+                if start_point < 0:
+                    path_length = globals.get_list_entry_from_env(globals.maze_path_list, e_idx).shape[0]
+                    path_idx_list.append(random.randint(0, path_length - 1))
+                else:
+                    path_idx_list.append(start_point)
 
-    if globals.path_idx is None:
+            globals.path_idx = torch.tensor(path_idx_list, device=sphere.device, dtype=torch.int)
+            globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
+            for e_idx in env_ids:
+                path_length = globals.get_list_entry_from_env(globals.maze_path_list, e_idx).shape[0]
+                if globals.path_idx[e_idx] >= int(path_length / 2):
+                    globals.path_direction[e_idx] = -1
+        # Need to reset globals.path_idx in env_ids
+        for e_idx in env_ids:
+            start_point = globals.get_list_entry_from_env(globals.maze_start_list, e_idx)
+            if start_point < 0:
+                path_length = globals.get_list_entry_from_env(globals.maze_path_list, e_idx).shape[0]
+                globals.path_idx[e_idx] = random.randint(0, path_length - 1)
+            else:
+                globals.path_idx[e_idx] = start_point
+
+        path_direction_temp = torch.zeros_like(globals.path_direction, dtype=torch.int)
+        for e_idx in env_ids:
+            path_length = globals.get_list_entry_from_env(globals.maze_path_list, e_idx).shape[0]
+            path_direction_temp[e_idx] = 2 * (globals.path_idx[e_idx] < int(path_length / 2)) - 1
+        path_direction_temp = path_direction_temp.to(torch.int)
+    else:
+        path_length = globals.maze_path.shape[0]
+        if globals.path_idx is None:
+            if globals.maze_start_point < 0:
+                globals.path_idx = math_utils.sample_uniform(0, path_length, len(env_ids), device=sphere.device).to(
+                    torch.int
+                )
+            else:
+                globals.path_idx = globals.maze_start_point * torch.ones(
+                    len(env_ids), device=sphere.device, dtype=torch.int
+                )
+
+            globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
+            globals.path_direction[globals.path_idx >= int(path_length / 2)] = -1
+
         if globals.maze_start_point < 0:
-            globals.path_idx = math_utils.sample_uniform(0, path_length, len(env_ids), device=sphere.device).to(
-                torch.int
-            )
+            globals.path_idx[env_ids] = math_utils.sample_uniform(
+                0, path_length, len(env_ids), device=sphere.device
+            ).to(torch.int)
         else:
-            globals.path_idx = globals.maze_start_point * torch.ones(
+            globals.path_idx[env_ids] = globals.maze_start_point * torch.ones(
                 len(env_ids), device=sphere.device, dtype=torch.int
             )
+        path_direction_temp = torch.zeros_like(globals.path_direction, dtype=torch.int)
+        path_direction_temp = 2 * (globals.path_idx < int(path_length / 2)) - 1
+        path_direction_temp = path_direction_temp.to(torch.int)
 
-        globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
-        globals.path_direction[globals.path_idx >= int(path_length / 2)] = -1
-        globals.path_idx = globals.path_idx.to(sphere.device)
-        globals.path_direction = globals.path_direction.to(sphere.device)
-
-    if globals.maze_start_point < 0:
-        globals.path_idx[env_ids] = math_utils.sample_uniform(0, path_length, len(env_ids), device=sphere.device).to(
-            torch.int
-        )
-    else:
-        globals.path_idx[env_ids] = globals.maze_start_point * torch.ones(
-            len(env_ids), device=sphere.device, dtype=torch.int
-        )
-    path_direction_temp = torch.zeros_like(globals.path_direction)
-    path_direction_temp = 2 * (globals.path_idx < int(path_length / 2)) - 1
-    path_direction_temp = path_direction_temp.to(torch.int)
     globals.path_direction[env_ids] = path_direction_temp[env_ids]
 
     # frmt = "{:>3}" * len(globals.path_direction)
@@ -154,13 +185,25 @@ def reset_maze_state(
     target2_pos = target1_pos.clone()
     target3_pos = target1_pos.clone()
 
-    sphere_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
-    globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
-    target1_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
-    globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
-    target2_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
-    globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
-    target3_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
+    if globals.use_multi_maze:
+        # the asset configs come in a list of reseted envs, not all of them
+        for idx, e_idx in enumerate(env_ids):
+            maze_path = globals.get_list_entry_from_env(globals.maze_path_list, e_idx)
+            sphere_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
+            globals.path_idx[e_idx] = globals.path_idx[e_idx] + globals.path_direction[e_idx]
+            target1_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
+            globals.path_idx[e_idx] = globals.path_idx[e_idx] + globals.path_direction[e_idx]
+            target2_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
+            globals.path_idx[e_idx] = globals.path_idx[e_idx] + globals.path_direction[e_idx]
+            target3_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
+    else:
+        sphere_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
+        globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
+        target1_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
+        globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
+        target2_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
+        globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
+        target3_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
 
     sphere.write_root_pose_to_sim(sphere_pos, env_ids=env_ids)
     sphere.write_root_velocity_to_sim(torch.zeros(len(env_ids), 6, device=sphere.device), env_ids=env_ids)

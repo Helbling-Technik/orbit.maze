@@ -105,12 +105,10 @@ def simulated_camera_image(
     pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
     cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.uint8, device="cuda:0")
 
-    # TODO ROV not tested yet
     if globals.use_multi_maze:
         for env_idx in range(sphere_pos_env.shape[0]):
             # change maze size here to required size for usds
             if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
-                # TODO ROV these dimensions are wrong
                 maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
             else:
                 maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
@@ -155,7 +153,6 @@ def simulated_camera_image(
         # single maze env
         # change maze size here to required size for usds
         if globals.real_maze:
-            # TODO ROV these dimensions are wrong
             maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
         else:
             maze_size = torch.tensor([0.3, 0.3], device="cuda:0")

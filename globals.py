@@ -4,7 +4,8 @@ import yaml
 import os
 from PIL import Image
 
-global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, debug_images, real_maze, position_control
+global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
+global debug_images, real_maze, position_control
 path_idx = None
 maze_path = None
 path_direction = None
@@ -13,14 +14,39 @@ simulated_image_tensor = None
 debug_images = None
 real_maze = None
 position_control = None
+usd_file_path = None
 
 
-global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array
+global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array, maze_start_list
 use_multi_maze = None
 usd_list = None
-image_list = None
-maze_path_list = None
+image_list = []
+maze_path_list = []
 maze_type_array = None
+maze_start_list = []
+
+
+# get the path for all the different mazes
+def init_maze_start_point(start_point: int):
+    global use_multi_maze
+
+    global maze_start_list
+    global maze_path_list
+
+    global maze_start_point
+    global maze_path
+
+    if use_multi_maze:
+        for path in maze_path_list:
+            path_length = path.shape[0]
+            if start_point >= path_length:
+                start_point = path_length - 1
+            maze_start_list.append(start_point)
+    else:
+        maze_start_point = start_point
+        path_length = maze_path.shape[0]
+        if maze_start_point >= path_length:
+            maze_start_point = path_length - 1
 
 
 def load_image(image_path: str) -> torch.Tensor:
@@ -30,7 +56,7 @@ def load_image(image_path: str) -> torch.Tensor:
     image = image.convert("L")  # Convert to grayscale
 
     # Apply a binary threshold to convert the image to black and white
-    # # TODO ROV maybe consider this again. Could also load it as a colored image and then threshold?
+    # TODO ROV maybe consider this again. Could also load it as a colored image and then threshold?
     # threshold = 30  # This is the threshold value, can be adjusted as needed
     # image = image.point(lambda x: 255 if x > threshold else 0, mode="1")
     # # image = image * 255
@@ -60,8 +86,7 @@ def load_image(image_path: str) -> torch.Tensor:
     return image_tensor
 
 
-# TODO ROV this needs to be called before anything else and should also save if real maze
-# TODO ROV I can not stack images of different sizes in one torch tensor
+# Creating different lists from which to take the corresponding env properties
 def init_multi_usd():
     global usd_list
     global image_list
@@ -90,7 +115,7 @@ def init_multi_usd():
             maze_path_list.append(torch.tensor([data["x"], data["y"]], device="cuda:0").T)
 
 
-# TODO ROV get the associated list entry from the environment
+# get the associated list entry from the environment
 def get_list_entry_from_env(list_data, env_idx):
     list_idx = env_idx % len(list_data)
     return list_data[list_idx]
@@ -99,15 +124,19 @@ def get_list_entry_from_env(list_data, env_idx):
 def init_single_usd():
     # Take correct paths to real maze or simple maze
     global real_maze
-    # TODO ROV change yaml and image file here, would not work like that for multiple different usds
+    global usd_file_path
+    # TODO ROV change yaml, usd and image file here
     if real_maze:
         yaml_path = "usds/generated_mazes/real_maze_01.yaml"
         image_path = "usds/generated_mazes/real_maze_01.png"
+        usd_file_path = "usds/generated_mazes/real_maze_01.usd"
     else:
         yaml_path = "usds/generated_mazes/generated_maze_02.yaml"
         image_path = "usds/generated_mazes/generated_maze_02.png"
+        usd_file_path = "usds/generated_mazes/generated_maze_02.usd"
         # yaml_path = "usds/generated_mazes/generated_simple_maze_01.yaml"
         # image_path = "usds/generated_mazes/generated_simple_maze_01.png"
+        # usd_file_path = "usds/generated_mazes/generated_simple_maze_01.usd"
     # load maze path from yaml file
     with open(os.path.join(yaml_path), "r") as file:
         global maze_path
