@@ -199,7 +199,6 @@ def get_multi_maze_cfg():
                 enable_gyroscopic_forces=True,
             ),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
-            # physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                 enabled_self_collisions=False,
                 fix_root_link=True,
@@ -257,7 +256,6 @@ def get_maze_cfg():
                 enable_gyroscopic_forces=True,
             ),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
-            # physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
             articulation_props=sim_utils.ArticulationRootPropertiesCfg(
                 enabled_self_collisions=False,
                 fix_root_link=True,
@@ -381,7 +379,14 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
+    # TODO ROV set scaling to proper angle, not trained yet
     if globals.position_control:
+        # outer_joint_effort = mdp.JointPositionActionCfg(
+        #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10
+        # )
+        # inner_joint_effort = mdp.JointPositionActionCfg(
+        #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=10 * math.pi / 180 / 10
+        # )
         outer_joint_effort = mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
         )
@@ -540,7 +545,30 @@ class EventCfg:
     #     },
     # )
 
-    # TODO ROV was disabled until 22.08.24 08:00, maybe use uniform. Log_uniform only makes sense if the value is also distributed over severl magnitudes, stiffness maybe but not damping
+    # TODO ROV add friction randomization to material, not trained yet.
+    # should only be done on startup and not on reset, very CPU intense
+    # robot_physics_material = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
+    #         "static_friction_range": (0.0, 1.0),
+    #         "dynamic_friction_range": (0.0, 1.0),
+    #         "restitution_range": (0.0, 1.0),
+    #         "num_buckets": 16384,
+    #     },
+    # )
+    # sphere_physics_material = EventTerm(
+    #     func=mdp.randomize_rigid_body_material,
+    #     mode="startup",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("sphere"),
+    #         "static_friction_range": (0.0, 1.0),
+    #         "dynamic_friction_range": (0.0, 1.0),
+    #         "restitution_range": (0.0, 1.0),
+    #         "num_buckets": 16384,
+    #     },
+    # )
     randomize_outer_actuator = EventTerm(
         func=mdp.randomize_actuator_gains,
         mode="startup",
@@ -552,7 +580,6 @@ class EventCfg:
             "distribution": "uniform",
         },
     )
-
     randomize_inner_actuator = EventTerm(
         func=mdp.randomize_actuator_gains,
         mode="startup",
@@ -564,7 +591,6 @@ class EventCfg:
             "distribution": "uniform",
         },
     )
-
     randomize_outer_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
         mode="startup",
@@ -575,7 +601,6 @@ class EventCfg:
             "distribution": "log_uniform",
         },
     )
-
     randomize_inner_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
         mode="startup",
@@ -602,7 +627,6 @@ class RewardsCfg:
         weight=-10000.0,
     )
     # (3) Primary task: control maze path
-
     sphere_maze_path_target = RewTerm(
         func=mdp.path_point_target,
         weight=1000.0,
@@ -613,17 +637,15 @@ class RewardsCfg:
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
-
-    # TODO ROV maybe increase penalty here
+    # TODO ROV maybe increase penalty here - currently training
     joint_action = RewTerm(
         func=mdp.action_l2,
-        weight=-0.1,
+        weight=-1,
     )
-
-    # TODO ROV maybe increase penalty here
+    # TODO ROV maybe increase penalty here - currently training
     joint_action_rate = RewTerm(
         func=mdp.action_rate_l2,
-        weight=-0.1,
+        weight=-1,
     )
 
 
@@ -654,7 +676,7 @@ class CurriculumCfg:
 
 @configclass
 class MazeEnvCfg(ManagerBasedRLEnvCfg):
-    """Configuration for the locomotion velocity-tracking environment."""
+    """Configuration for the maze learning environment."""
 
     # Scene settings
     if globals.use_multi_maze:

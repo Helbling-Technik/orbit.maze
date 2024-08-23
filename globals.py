@@ -125,11 +125,13 @@ def init_single_usd():
     # Take correct paths to real maze or simple maze
     global real_maze
     global usd_file_path
-    # TODO ROV change yaml, usd and image file here
+    # change yaml, usd and image file here
     if real_maze:
         yaml_path = "usds/generated_mazes/real_maze_01.yaml"
         image_path = "usds/generated_mazes/real_maze_01.png"
         usd_file_path = "usds/generated_mazes/real_maze_01.usd"
+        # TODO ROV train with proper joint limits
+        # usd_file_path = "usds/generated_mazes/real_maze_01_jointLimit.usd"
     else:
         yaml_path = "usds/generated_mazes/generated_maze_02.yaml"
         image_path = "usds/generated_mazes/generated_maze_02.png"
