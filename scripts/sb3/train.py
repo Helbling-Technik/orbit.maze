@@ -34,12 +34,17 @@ parser.add_argument(
 )
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
-parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment")
-# TODO ROV here I can specify a starting model
+parser.add_argument(
+    "--multi_maze",
+    action="store_true",
+    default=False,
+    help="Multi maze environment, has --real_maze inherently",
+)
+# specify a starting model here, it is advised to use one which has not overfitted
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_294912000_steps.zip",  # None,
+    default="logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip",
 )
 
 # append AppLauncher cli args
@@ -163,7 +168,7 @@ def main():
     agent.set_logger(new_logger)
 
     # callbacks for agent
-    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)
+    checkpoint_callback = CheckpointCallback(save_freq=500, save_path=log_dir, name_prefix="model", verbose=2)
     # train the agent
     agent.learn(total_timesteps=n_timesteps, callback=checkpoint_callback)
     # save the final model

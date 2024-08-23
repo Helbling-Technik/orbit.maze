@@ -19,11 +19,11 @@ parser.add_argument(
 )
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
-# TODO ROV change model here if needed
+# specify model to use here, it is advised to use one which has not overfitted
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_294912000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-08-22_16-07-50_pos_Real_MultiInput_Normalized/model_163840000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -37,7 +37,12 @@ parser.add_argument(
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
-parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment")
+parser.add_argument(
+    "--multi_maze",
+    action="store_true",
+    default=False,
+    help="Multi maze environment, has --real_maze inherently",
+)
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
 # parse the arguments

@@ -179,8 +179,6 @@ def spawn_multi_mazes(
         usd_path = os.path.join(cfg.project_root, cfg.maze_usd_cfgs[usd_idx].usd_path)
         usd_cfg = cfg.maze_usd_cfgs[usd_idx]
 
-        print(f"Prim path {prim_path}")
-        print(f"USD path {usd_path}")
         # load the asset
         prim = _spawn_from_usd_file(prim_path, usd_path, usd_cfg, translation, orientation)
 
@@ -427,29 +425,6 @@ class ObservationsCfg:
             func=velocity_extractor.extract_root_velocity,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
-        # TODO CLEANUP maybe give relative position for targets DELETE
-        # target1_dir = ObsTerm(
-        #     func=mdp.root_dir_w_xy,
-        #     params={
-        #         "target_cfg": SceneEntityCfg("target1"),
-        #         "sphere_cfg": SceneEntityCfg("sphere"),
-        #     },
-        # )
-        # target2_dir = ObsTerm(
-        #     func=mdp.root_dir_w_xy,
-        #     params={
-        #         "target_cfg": SceneEntityCfg("target2"),
-        #         "sphere_cfg": SceneEntityCfg("sphere"),
-        #     },
-        # )
-        # target3_dir = ObsTerm(
-        #     func=mdp.root_dir_w_xy,
-        #     params={
-        #         "target_cfg": SceneEntityCfg("target3"),
-        #         "sphere_cfg": SceneEntityCfg("sphere"),
-        #     },
-        # )
-
         target1_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
@@ -565,30 +540,30 @@ class EventCfg:
     #     },
     # )
 
-    # TODO ROV reenable this
-    # randomize_outer_actuator = EventTerm(
-    #     func=mdp.randomize_actuator_gains,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-    #         "stiffness_distribution_params": (0.5, 2.0),
-    #         "damping_distribution_params": (0.5, 2.0),
-    #         "operation": "scale",
-    #         "distribution": "log_uniform",
-    #     },
-    # )
+    # TODO ROV was disabled until 22.08.24 08:00, maybe use uniform. Log_uniform only makes sense if the value is also distributed over severl magnitudes, stiffness maybe but not damping
+    randomize_outer_actuator = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "damping_distribution_params": (0.5, 2.0),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
 
-    # randomize_inner_actuator = EventTerm(
-    #     func=mdp.randomize_actuator_gains,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-    #         "stiffness_distribution_params": (0.5, 2.0),
-    #         "damping_distribution_params": (0.5, 2.0),
-    #         "operation": "scale",
-    #         "distribution": "log_uniform",
-    #     },
-    # )
+    randomize_inner_actuator = EventTerm(
+        func=mdp.randomize_actuator_gains,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "damping_distribution_params": (0.5, 2.0),
+            "operation": "scale",
+            "distribution": "uniform",
+        },
+    )
 
     randomize_outer_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
@@ -639,11 +614,13 @@ class RewardsCfg:
         },
     )
 
+    # TODO ROV maybe increase penalty here
     joint_action = RewTerm(
         func=mdp.action_l2,
         weight=-0.1,
     )
 
+    # TODO ROV maybe increase penalty here
     joint_action_rate = RewTerm(
         func=mdp.action_rate_l2,
         weight=-0.1,

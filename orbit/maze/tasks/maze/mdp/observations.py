@@ -103,7 +103,7 @@ def simulated_camera_image(
     sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
 
     pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
-    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.uint8, device="cuda:0")
+    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float, device="cuda:0")
 
     if globals.use_multi_maze:
         for env_idx in range(sphere_pos_env.shape[0]):
@@ -193,8 +193,8 @@ def simulated_camera_image(
                     cropped_image_PIL.save(
                         "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
                     )
-    # channel first image
-    return cropped_images.unsqueeze(1)
+    # channel first, normalized image
+    return cropped_images.unsqueeze(1) / 255.0
 
 
 def cropped_camera_image(
@@ -258,14 +258,4 @@ def root_pos_w_xy(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntit
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
     position = asset.data.root_pos_w - env.scene.env_origins
-    return position[:, :2]
-
-
-# TODO CLEANUP calculate direction DELETE
-def root_dir_w_xy(env: ManagerBasedRLEnv, target_cfg: SceneEntityCfg, sphere_cfg: SceneEntityCfg) -> torch.Tensor:
-    """Asset root position in the environment frame."""
-    # extract the used quantities (to enable type-hinting)
-    target: RigidObject = env.scene[target_cfg.name]
-    sphere: RigidObject = env.scene[sphere_cfg.name]
-    position = target.data.root_pos_w - sphere.data.root_pos_w
     return position[:, :2]
