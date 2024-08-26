@@ -379,20 +379,20 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    # TODO ROV set scaling to proper angle, not trained yet
+    # TODO ROV set scaling to proper angle, trained okay
     if globals.position_control:
-        # outer_joint_effort = mdp.JointPositionActionCfg(
-        #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10
-        # )
-        # inner_joint_effort = mdp.JointPositionActionCfg(
-        #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=10 * math.pi / 180 / 10
-        # )
         outer_joint_effort = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+            asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10
         )
         inner_joint_effort = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+            asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=10 * math.pi / 180 / 10
         )
+        # outer_joint_effort = mdp.JointPositionActionCfg(
+        #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+        # )
+        # inner_joint_effort = mdp.JointPositionActionCfg(
+        #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=15 * math.pi / 180 / 10
+        # )
     else:
         outer_joint_effort = mdp.JointEffortActionCfg(
             asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1.0
@@ -414,17 +414,19 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
+        # TODO ROV increase observation noise, was 0.001, weaker training: in radians
         joint_pos = ObsTerm(
             func=mdp.joint_pos_with_noise,
-            params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.001},
+            params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
         )
         joint_est_vel = ObsTerm(
             func=velocity_extractor.extract_joint_velocity,
             params={"asset_cfg": SceneEntityCfg("robot")},
         )
+        # TODO ROV increase observation noise, was 0.002, weaker training: in radians
         sphere_pos = ObsTerm(
             func=mdp.root_pos_w_with_noise,
-            params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.002},
+            params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
         )
         sphere_est_vel = ObsTerm(
             func=velocity_extractor.extract_root_velocity,
@@ -545,30 +547,30 @@ class EventCfg:
     #     },
     # )
 
-    # TODO ROV add friction randomization to material, not trained yet.
+    # TODO ROV add friction randomization to material, trained ok.
     # should only be done on startup and not on reset, very CPU intense
-    # robot_physics_material = EventTerm(
-    #     func=mdp.randomize_rigid_body_material,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
-    #         "static_friction_range": (0.0, 1.0),
-    #         "dynamic_friction_range": (0.0, 1.0),
-    #         "restitution_range": (0.0, 1.0),
-    #         "num_buckets": 16384,
-    #     },
-    # )
-    # sphere_physics_material = EventTerm(
-    #     func=mdp.randomize_rigid_body_material,
-    #     mode="startup",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("sphere"),
-    #         "static_friction_range": (0.0, 1.0),
-    #         "dynamic_friction_range": (0.0, 1.0),
-    #         "restitution_range": (0.0, 1.0),
-    #         "num_buckets": 16384,
-    #     },
-    # )
+    robot_physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
+            "static_friction_range": (0.0, 1.0),
+            "dynamic_friction_range": (0.0, 1.0),
+            "restitution_range": (0.0, 1.0),
+            "num_buckets": 500,
+        },
+    )
+    sphere_physics_material = EventTerm(
+        func=mdp.randomize_rigid_body_material,
+        mode="startup",
+        params={
+            "asset_cfg": SceneEntityCfg("sphere"),
+            "static_friction_range": (0.0, 1.0),
+            "dynamic_friction_range": (0.0, 1.0),
+            "restitution_range": (0.0, 1.0),
+            "num_buckets": 500,
+        },
+    )
     randomize_outer_actuator = EventTerm(
         func=mdp.randomize_actuator_gains,
         mode="startup",
@@ -637,12 +639,12 @@ class RewardsCfg:
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
-    # TODO ROV maybe increase penalty here - currently training
+    # smoother with increased penalty here
     joint_action = RewTerm(
         func=mdp.action_l2,
         weight=-1,
     )
-    # TODO ROV maybe increase penalty here - currently training
+    # smoother with increased penalty here
     joint_action_rate = RewTerm(
         func=mdp.action_rate_l2,
         weight=-1,
@@ -699,7 +701,7 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 2
-        self.episode_length_s = 7  # 20s enough to solve maze01
+        self.episode_length_s = 10  # 20s enough to solve maze
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

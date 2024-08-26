@@ -44,7 +44,7 @@ def path_point_target(
                 distance_tensor[env_idx] = 0.02
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_tensor
     else:
-        distance_from_target = 0.02 if globals.real_maze else 0.03
+        distance_from_target = 0.01 if globals.real_maze else 0.03  # TODO ROV was 0.02
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
 
     target_reached_ids = torch.nonzero(xy_sparse_reward).view(-1)

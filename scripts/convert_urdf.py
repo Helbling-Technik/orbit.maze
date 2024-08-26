@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+from __future__ import annotations
+
 """
 Utility to convert a URDF into USD format.
 
@@ -39,13 +41,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/converter_input/real_maze/real_maze_01.urdf",
+    default="urdfs/converter_input/generated/generated_maze_rov.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/converter_output/real_maze_01",
+    default="urdfs/converter_output/generated_maze_rov_02_jointLimit",
     help="The path to store the USD file.",
 )
 parser.add_argument(
@@ -211,11 +213,16 @@ def main():
     else:
         print(f"Mesh at path {innerDOFWallsvisual} does not exist.")
 
-    # In revolutejoint set limits +-15 and in drive change stiffness 10000000 and damping 100000 and max force 1000
+    # change to proper limits: lr = +-10 InnerJoint; vh = +-7 OuterJoint
+    # In revolutejoint set limits and in drive change stiffness 10000000 and damping 100000 and max force 1000
     for prim in stage.Traverse():
         if prim.GetPath().HasPrefix(robot.GetPath()):
             # Ensure the prim is a revolute joint
             if "revolute" in str(prim.GetPath()).lower():
+                if "outerdof_revolutejoint" in str(prim.GetPath()).lower():
+                    joint_limit = 7.0
+                else:
+                    joint_limit = 10.0
                 # Set revolute joint properties
                 if UsdPhysics.RevoluteJoint(prim):
                     # Access the RevoluteJointAPI
@@ -223,15 +230,15 @@ def main():
 
                     lower_attr = joint_api.GetLowerLimitAttr()
                     if lower_attr:
-                        lower_attr.Set(-15.0)
-                        print(f"Lower Limit for {prim.GetPath()} set to -15.0.")
+                        lower_attr.Set(-joint_limit)
+                        print(f"Lower Limit for {prim.GetPath()} set to -{joint_limit}")
                     else:
                         print(f"No Lower Limit attribute found for {prim.GetPath()}.")
 
                     upper_attr = joint_api.GetUpperLimitAttr()
                     if upper_attr:
-                        upper_attr.Set(15.0)
-                        print(f"Upper Limit for {prim.GetPath()} set to 15.0.")
+                        upper_attr.Set(joint_limit)
+                        print(f"Upper Limit for {prim.GetPath()} set to {joint_limit}")
                     else:
                         print(f"No Upper Limit attribute found for {prim.GetPath()}.")
                 else:
