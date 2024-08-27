@@ -1,42 +1,52 @@
 Checkpoint models:
 
-Pos ctrl old architecture empty maze MLP
-Success		1h		checkpoint_models/old_architecture/2024-07-11_MLP_emptymaze_adaptedActionSpace_success.zip
+Old architecture
 
-old architecture simple maze with image and MLP
-Overfitted	8h		checkpoint_models/old_architecture_with_image/2024-07-31_MLP_simplemaze_overfitted.zip
 
-old architecture direct training on real-maze with image and MLP
-Failed		58h		checkpoint_models/old_architecture_with_image/2024-08-11_MLP_realmaze_failed.zip
+Pos ctrl empty maze MLP
+Success		1h		model_checkpoints/old_architecture/2024-07-11_MLP_emptymaze_adaptedActionSpace_success.zip
 
-new architecture empty maze multiinput
-Success		1.5h	checkpoint_models/new_architecture/2024-08-20_0_MultiInput_pos_emptymaze.zip
 
-new architecture simple maze multiinput (based on 2024-08-20_MultiInput_pos_emptymaze.zip)
-Success	2.2h+1.5h	checkpoint_models/new_architecture/2024-08-20_1_MultiInput_pos_simplemaze.zip
+Old architecture with image
+
+
+Simple maze and MLP
+Overfitted	8h		model_checkpoints/old_architecture_with_image/2024-07-31_MLP_simplemaze_overfitted.zip
+
+Direct training on real-maze and MLP
+Failed		58h		model_checkpoints/old_architecture_with_image/2024-08-11_MLP_realmaze_failed.zip
+
+
+New architecture
+
+
+Empty maze multiinput
+Success		1.5h	model_checkpoints/new_architecture/2024-08-20_0_MultiInput_pos_emptymaze.zip
+
+Simple maze multiinput (based on 2024-08-20_MultiInput_pos_emptymaze.zip)
+Success	2.2h+1.5h	model_checkpoints/new_architecture/2024-08-20_1_MultiInput_pos_simplemaze.zip
 
 The following are all base on 2024-08-20_MultiInput_pos_simplemaze.zip
-new architecture real maze multiinput small noise and no randomization, no normalization
-Success	2.7h+3.7h	checkpoint_models/new_architecture/2024-08-21_MultiInput_pos_realmaze.zip
+Real maze multiinput small noise and no randomization, no normalization
+Success	2.7h+3.7h	model_checkpoints/new_architecture/2024-08-21_MultiInput_pos_realmaze.zip
 
-new architecture real maze multiinput normalized images small noise and no randomization, double reward to previous
-Success	2.8h+3.7h	checkpoint_models/new_architecture/2024-08-22_MultiInput_pos_realmaze_normalized.zip
+Real maze multiinput normalized images small noise and no randomization, double reward to previous
+Success	2.8h+3.7h	model_checkpoints/new_architecture/2024-08-22_MultiInput_pos_realmaze_normalized.zip
 
-new architecture real maze multiinput normalized images unifrom joint gain sampling small noise and no friction
-Success	3.8h+3.7h	checkpoint_models/new_architecture_success/2024-08-23_0_MultiInput_pos_realmaze_normalized_uniformgain.zip
+Real maze multiinput normalized images unifrom joint gain sampling small noise and no friction
+Success	3.8h+3.7h	model_checkpoints/new_architecture_success/2024-08-23_0_MultiInput_pos_realmaze_normalized_uniformgain.zip
 
-new architecture real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, small noise and no friction
-Success	1.8h+3.7h	checkpoint_models/new_architecture_success/2024-08-23_1_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty.zip
+Real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, small noise and no friction
+Success	1.8h+3.7h	model_checkpoints/new_architecture_success/2024-08-23_1_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty.zip
 
-2024-08-23_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits
-new architecture real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, small noise and no friction
-Success	3.4h+3.7h	checkpoint_models/new_architecture_success/2024-08-23_2_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits.zip
+Real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, small noise and no friction
+Success	3.4h+3.7h	model_checkpoints/new_architecture_success/2024-08-23_2_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits.zip
 
-new architecture real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, friction randomization and small noise
-Success	5.2h+3.7h	checkpoint_models/new_architecture_success/2024-08-23_3_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction.zip
+Real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, friction randomization and small noise
+Success	5.2h+3.7h	model_checkpoints/new_architecture_success/2024-08-23_3_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction.zip
 
-new architecture real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, friction randomization and large noise; smaller success than before
-Success	5.2h+3.7h	checkpoint_models/new_architecture_success/2024-08-24_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction_obsnoise.zip
+Real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, friction randomization and large noise; smaller success than before
+Success	5.2h+3.7h	model_checkpoints/new_architecture_success/2024-08-24_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction_obsnoise.zip
 
-new architecture real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, friction randomization, large noise and smaller distance to target, similar success as before but visually better, maybe take less overfitter one
-Success	5.2h+3.7h	checkpoint_models/new_architecture_success/2024-08-26_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction_obsnoise_smalldistance.zip
+Real maze multiinput normalized images unifrom joint gain sampling, increased action penalty, proper joint limits, friction randomization, large noise and smaller distance to target, similar success as before but visually better, maybe take less overfitter one
+Success	5.2h+3.7h	model_checkpoints/new_architecture_success/2024-08-26_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction_obsnoise_smalldistance.zip
