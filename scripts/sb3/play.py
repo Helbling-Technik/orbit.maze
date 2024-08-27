@@ -23,7 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-26_08-44-35/model_147456000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-08-26_08-44-35_pos_Real_MultiInput_Normalized_Uniform_Penalty_JointLimits_Friction_Noise_DistanceToTarget/model.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -144,7 +144,6 @@ def main():
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
-            # TODO ROV not sure if we should test in deterministic mode
             actions, _ = agent.predict(obs, deterministic=True)
             # env stepping
             obs, _, _, _ = env.step(actions)
