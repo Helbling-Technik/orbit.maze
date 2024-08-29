@@ -23,7 +23,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-26_08-44-35_pos_Real_MultiInput_Normalized_Uniform_Penalty_JointLimits_Friction_Noise_DistanceToTarget/model.zip",
+    default="checkpoint_models/new_architecture_success/2024-08-26_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction_obsnoise_smalldistance.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -134,9 +134,6 @@ def main():
     print(f"Loading checkpoint from: {checkpoint_path}")
     agent = PPO.load(checkpoint_path, env, print_system_info=True)
 
-    # TODO ROV create plots once
-    # print(agent.policy)
-
     # reset environment
     obs = env.reset()
     # simulate environment
@@ -147,9 +144,6 @@ def main():
             actions, _ = agent.predict(obs, deterministic=True)
             # env stepping
             obs, _, _, _ = env.step(actions)
-
-            # print("observations: ", obs)
-            # print("actions: ", actions)
 
     # close the simulator
     env.close()

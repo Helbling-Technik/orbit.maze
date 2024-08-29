@@ -1,11 +1,12 @@
 usd_paths:
-- location: "usds/generated_mazes/generated_maze_02.usd"
+- location: "usds/generated_mazes/correct_joint_limit/generated_maze_rov_01_jointLimit.usd"
   type: generated
-- location: "usds/generated_mazes/generated_maze_rov_01.usd"
+- location: "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.usd"
   type: generated
-- location: "usds/generated_mazes/generated_maze_rov_02.usd"
+- location: "usds/generated_mazes/correct_joint_limit/generated_simple_maze_01_jointLimit.usd"
   type: generated
-- location: "usds/generated_mazes/generated_simple_maze_01.usd"
-  type: generated
-- location: "usds/generated_mazes/real_maze_01.usd"
+- location: "usds/generated_mazes/correct_joint_limit/real_maze_01_jointLimit.usd"
   type: real
+- location: "usds/generated_mazes/correct_joint_limit/real_maze_01_jointLimit.usd"
+  type: real
+  

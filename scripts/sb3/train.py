@@ -41,11 +41,12 @@ parser.add_argument(
     help="Multi maze environment, has --real_maze inherently",
 )
 # specify a starting model here, it is advised to use one which has not overfitted
+# TODO ROV trained multi maze from scratch, was okay for generated maze but not the rest
 # good starting model from simple maze (pretrained on waypoint following): "logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip"
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip",
+    default=None,  # "logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip",
 )
 
 # append AppLauncher cli args

@@ -9,7 +9,7 @@ from datetime import datetime
 class Image_Observation:
     def __init__(self, image_path, maze_path):
         # image related variables
-        self.debug_images = False
+        self.debug_images = True
         self.image_path = image_path
         self.image_tensor = None
 
@@ -17,7 +17,6 @@ class Image_Observation:
         self.maze_path = maze_path
         self.path_tensor = None
         self.current_path_index = None
-        # TODO ROV do I need direction?
         self.path_direction = None
         self.target_1 = None
         self.target_2 = None
@@ -47,7 +46,6 @@ class Image_Observation:
         image = image.point(lambda x: 255 if x > threshold else 0, mode="1")
 
         # Save the image
-        # TODO ROV remove
         if self.debug_images:
             image.save("logs/sb3/Isaac-Maze-v0/test-images/padded_image.png")
 
@@ -85,8 +83,8 @@ class Image_Observation:
     def set_observation(self, state_obs, waypoint_obs, image_obs):
         # TODO ROV publish observation with ros
         print(f"State: {state_obs}    shape: {state_obs.shape}")
-        print(f"State: {waypoint_obs}    shape: {waypoint_obs.shape}")
-        print(f"State: {image_obs}    shape: {image_obs.shape}")
+        print(f"Waypoint: {waypoint_obs}    shape: {waypoint_obs.shape}")
+        print(f"Image: {image_obs}    shape: {image_obs.shape}")
 
     def get_image_observation(self):
         # TODO ROV needs to happen with openCV
@@ -148,11 +146,9 @@ class Image_Observation:
         # TODO ROV needs to happen with openCV
         sphere_pos = torch.tensor([0.015, 0.015])  # Only need 2D position
 
-        distance_from_target = 0.01  # TODO ROV was 0.02
+        distance_from_target = 0.01  # TODO ROV was 0.02 in older models
         waypoint_reached = torch.norm(sphere_pos - self.target_1) < distance_from_target
         if waypoint_reached:
-            # TODO ROV remove print
-            print("Target reached")
             # swap the points
             self.target_1 = self.target_2
             self.target_2 = self.target_3
