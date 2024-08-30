@@ -134,6 +134,10 @@ def main():
     print(f"Loading checkpoint from: {checkpoint_path}")
     agent = PPO.load(checkpoint_path, env, print_system_info=True)
 
+    total_params = sum(p.numel() for p in agent.policy.parameters())
+    print(agent.policy)
+    print(f"Total number of parameters in the model: {total_params}")
+
     # reset environment
     obs = env.reset()
     # simulate environment
