@@ -625,7 +625,7 @@ class EventCfg:
     if globals.use_force:
         randomize_sphere_force = EventTerm(
             func=mdp.apply_global_external_force_torque,
-            mode="reset",
+            mode="startup",
             params={
                 "asset_cfg": SceneEntityCfg("sphere"),
                 "force_range": [-0.001, 0.001],

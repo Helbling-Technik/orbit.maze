@@ -47,7 +47,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_path",
     type=str,
-    default=None,  # "logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-09-18_14-08-21_force_delay_fullset_emptymaze/model_90112000_steps.zip",  # "logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",
 )
 
 # append AppLauncher cli args
