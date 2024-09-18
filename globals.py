@@ -5,7 +5,7 @@ import os
 from PIL import Image
 
 global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
-global debug_images, real_maze, position_control
+global debug_images, real_maze, position_control, use_delay
 path_idx = None
 maze_path = None
 path_direction = None
@@ -15,6 +15,7 @@ debug_images = None
 real_maze = None
 position_control = None
 usd_file_path = None
+use_delay = None
 
 
 global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array, maze_start_list
@@ -129,16 +130,15 @@ def init_single_usd():
     if real_maze:
         yaml_path = "usds/generated_mazes/real_maze_01.yaml"
         image_path = "usds/generated_mazes/real_maze_01.png"
-        # usd_file_path = "usds/generated_mazes/real_maze_01.usd"
-        # TODO ROV file with proper joint limits trained ok
+        # file with proper joint limits
         usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointLimit.usd"
     else:
-        yaml_path = "usds/generated_mazes/generated_maze_02.yaml"
-        image_path = "usds/generated_mazes/generated_maze_02.png"
-        usd_file_path = "usds/generated_mazes/generated_maze_02.usd"
-        # yaml_path = "usds/generated_mazes/generated_simple_maze_01.yaml"
-        # image_path = "usds/generated_mazes/generated_simple_maze_01.png"
-        # usd_file_path = "usds/generated_mazes/generated_simple_maze_01.usd"
+        # yaml_path = "usds/generated_mazes/generated_maze_02.yaml"
+        # image_path = "usds/generated_mazes/generated_maze_02.png"
+        # usd_file_path = "usds/generated_mazes/generated_maze_02.usd"
+        yaml_path = "usds/generated_mazes/generated_simple_maze_01.yaml"
+        image_path = "usds/generated_mazes/generated_simple_maze_01.png"
+        usd_file_path = "usds/generated_mazes/generated_simple_maze_01.usd"
     # load maze path from yaml file
     with open(os.path.join(yaml_path), "r") as file:
         global maze_path

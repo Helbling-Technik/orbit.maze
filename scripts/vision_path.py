@@ -6,6 +6,7 @@ from PIL import Image, ImageDraw
 from datetime import datetime
 
 
+# TODO ROV sample script for vision pipeline on hardware
 class Image_Observation:
     def __init__(self, image_path, maze_path):
         # image related variables
@@ -58,7 +59,7 @@ class Image_Observation:
         self.image_tensor = torch.nn.functional.pad(image_tensor, (8, 8, 8, 8), value=0)
 
     def init_path_position(self):
-        # TODO ROV needs to happen with openCV
+        # needs to happen with openCV
         sphere_pos = torch.tensor([0.015, 0.015])  # Only need 2D position
 
         # compute the squared Euclidean distances between the sphere pos and all points in the path tensor
@@ -77,17 +78,17 @@ class Image_Observation:
         self.target_3 = self.path_tensor[self.current_path_index]
 
     def update_status(self, message):
-        # TODO ROV publish status and delete print
+        # publish status and delete print
         print(f"Status: {message}")
 
     def set_observation(self, state_obs, waypoint_obs, image_obs):
-        # TODO ROV publish observation with ros
+        # publish observation with ros
         print(f"State: {state_obs}    shape: {state_obs.shape}")
         print(f"Waypoint: {waypoint_obs}    shape: {waypoint_obs.shape}")
         print(f"Image: {image_obs}    shape: {image_obs.shape}")
 
     def get_image_observation(self):
-        # TODO ROV needs to happen with openCV
+        # needs to happen with openCV
         joint_pos = torch.tensor([0.0, 0.0])
         sphere_pos = torch.tensor([0.015, 0.015])  # Only need 2D position
 
@@ -143,10 +144,10 @@ class Image_Observation:
         return windowed_image.unsqueeze(1) / 255
 
     def get_path_observation(self):
-        # TODO ROV needs to happen with openCV
+        # needs to happen with openCV
         sphere_pos = torch.tensor([0.015, 0.015])  # Only need 2D position
 
-        distance_from_target = 0.01  # TODO ROV was 0.02 in older models
+        distance_from_target = 0.01  # was 0.02 in older models
         waypoint_reached = torch.norm(sphere_pos - self.target_1) < distance_from_target
         if waypoint_reached:
             # swap the points
@@ -167,7 +168,7 @@ class Image_Observation:
 
     def get_state_observation(self):
         # State space observations
-        # TODO ROV needs to happen with openCV
+        # needs to happen with openCV
         joint_pos = np.array([0.0, 0.0])
         joint_est_vel = np.array([0.0, 0.0])
         sphere_pos = np.array([0.0, 0.0, 0.0])
@@ -182,7 +183,7 @@ def main():
     image_path = "usds/generated_mazes/real_maze_01.png"
 
     image_observer = Image_Observation(image_path, yaml_path)
-    # TODO ROV if we have sphere observation, then initialize path, needs to happen everytime we loose sphere pos
+    # if we have sphere observation, then initialize path, needs to happen everytime we loose sphere pos
     image_observer.update_status("No valid sphere pos yet")
     valid_sphere_pos = True
     if valid_sphere_pos:

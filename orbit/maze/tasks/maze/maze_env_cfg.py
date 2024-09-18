@@ -379,7 +379,7 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    # TODO ROV set scaling to proper angle, trained okay
+    # set scaling to proper angle
     if globals.position_control:
         outer_joint_effort = mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10
@@ -414,22 +414,26 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        # TODO ROV increase observation noise, was 0.001, weaker training: in radians
+        # increase observation noise, was 0.001, weaker training: in radians
         joint_pos = ObsTerm(
             func=mdp.joint_pos_with_noise,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
         )
         joint_est_vel = ObsTerm(
             func=velocity_extractor.extract_joint_velocity,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("robot")},
         )
-        # TODO ROV increase observation noise, was 0.002, weaker training: in radians
+        # increase observation noise, was 0.002, weaker training: in radians
         sphere_pos = ObsTerm(
             func=mdp.root_pos_w_with_noise,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
         )
         sphere_est_vel = ObsTerm(
             func=velocity_extractor.extract_root_velocity,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
         target1_pos = ObsTerm(
@@ -461,6 +465,7 @@ class ObservationsCfg:
 
         image = ObsTerm(
             func=mdp.simulated_camera_image,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={
                 "sphere_cfg": SceneEntityCfg("sphere"),
                 "maze_cfg": SceneEntityCfg("robot"),
@@ -547,8 +552,8 @@ class EventCfg:
     #     },
     # )
 
-    # TODO ROV add friction randomization to material, trained ok.
-    # should only be done on startup and not on reset, very CPU intense
+    # add friction randomization to material, trained ok.
+    # should only be done on startup and not on reset, very CPU intense and has a limit of num_buckets
     robot_physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
         mode="startup",
@@ -613,6 +618,19 @@ class EventCfg:
             "distribution": "log_uniform",
         },
     )
+
+    # TODO ROV this seems like the wrong approach, needs something like an additional gravity vector
+    # radius of sphere 0.00625m, density 7850kg/m3 -> mass 0.008028kg
+    # With force of 0.001N -> 0.12m/s2
+    # randomize_sphere_force = EventTerm(
+    #     func=mdp.apply_external_force_torque,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("sphere"),
+    #         "force_range": [0, 0],  # Force will make it go in circles since it is a ball
+    #         "torque_range": [-0.1, 0.1],  # needs more investigation
+    #     },
+    # )
 
 
 @configclass
@@ -700,8 +718,8 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 2
-        self.episode_length_s = 10  # 20s enough to solve maze
+        self.decimation = 4  # TODO ROV we simulate observations at 25Hz, trained ok
+        self.episode_length_s = 15  # TODO ROV maybe increase, 20s enough to solve maze
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

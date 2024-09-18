@@ -13,7 +13,6 @@ from omni.isaac.lab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a checkpoint of an RL agent from Stable-Baselines3.")
-parser.add_argument("--cpu", action="store_true", default=False, help="Use CPU pipeline.")
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
@@ -23,7 +22,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="checkpoint_models/new_architecture_success/2024-08-26_MultiInput_pos_realmaze_normalized_uniformgain_actionpenalty_jointlimits_friction_obsnoise_smalldistance.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -37,6 +36,9 @@ parser.add_argument(
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
+parser.add_argument(
+    "--delay", action="store_true", default=False, help="Add delay to observation & randomized longer delay"
+)
 parser.add_argument(
     "--multi_maze",
     action="store_true",
@@ -57,6 +59,8 @@ if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:
     globals.position_control = True
+if args_cli.delay:
+    globals.use_delay = True
 
 # Init globals before everything else
 if args_cli.multi_maze:
@@ -90,7 +94,11 @@ def main():
     """Play with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
-        args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
+        # TODO ROV device="cuda:0" instead of use_gpu
+        args_cli.task,
+        use_gpu=True,
+        num_envs=args_cli.num_envs,
+        use_fabric=not args_cli.disable_fabric,
     )
 
     # override maze_start_point
@@ -130,6 +138,7 @@ def main():
         checkpoint_path = get_checkpoint_path(log_root_path, ".*", checkpoint)
     else:
         checkpoint_path = args_cli.checkpoint
+
     # create agent from stable baselines
     print(f"Loading checkpoint from: {checkpoint_path}")
     agent = PPO.load(checkpoint_path, env, print_system_info=True)

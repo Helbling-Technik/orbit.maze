@@ -13,6 +13,12 @@ from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.envs import ManagerBasedEnv
 
+# TODO ROV for the modifiers to work we need Isaac Lab at commit: fecf239ce14a45225fb535ca102c88b4cc1f73bb
+# currently cherry picked since there are breaking chances with the newest main branch
+from omni.isaac.lab.utils import configclass
+from omni.isaac.lab.utils.modifiers import DigitalFilter, DigitalFilterCfg
+import random
+
 # from omni.isaac.lab.sensors import RayCaster
 from omni.isaac.lab.utils.warp import raycast_mesh  # noqa: F401
 
@@ -62,6 +68,46 @@ class VelocityExtractor:
         self.previous_joint_pos = current_joint_pos
 
         return current_joint_vel
+
+
+# TODO ROV
+# this will give a weighted change of 1/10 to have a double delay in the observation, normal is single delay
+class RandomDelay(DigitalFilter):
+    def __call__(self, data: torch.Tensor) -> torch.Tensor:
+        """Applies digital filter modification with a rolling history window inputs and outputs.
+
+        Args:
+            data: The data to apply filter to.
+
+        Returns:
+            Filtered data. Shape is the same as data.
+        """
+        # move history window for input
+        self.x_n = torch.roll(self.x_n, shifts=1, dims=-1)
+        self.x_n[..., 0] = data
+
+        # we want single and occasional double delay, for this we roll B=[0.0, 1.0, 0.0] -> B=[0.0, 0.0, 1.0]
+        B_rolled = torch.roll(self.B, shifts=1, dims=0)
+        single_delayed_obs = {"B": self.B}
+        double_delayed_obs = {"B": B_rolled}
+
+        choice = random.choices([single_delayed_obs, double_delayed_obs], weights=[0.9, 0.1])[0]
+
+        # calculate current filter value: y[i] = Y*A - X*B
+        y_i = torch.matmul(self.x_n, choice["B"]) - torch.matmul(self.y_n, self.A)
+        y_i.squeeze_(-1)
+
+        # move history window for output and add current filter value to history
+        self.y_n = torch.roll(self.y_n, shifts=1, dims=-1)
+        self.y_n[..., 0] = y_i
+
+        return y_i
+
+
+# configclass to specify which function to call for a random delay
+@configclass
+class RandomDelayCfg(DigitalFilterCfg):
+    func: type[RandomDelay] = RandomDelay
 
 
 def joint_pos_with_noise(

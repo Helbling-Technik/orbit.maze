@@ -3,17 +3,16 @@ from stable_baselines3 import PPO
 import time
 
 
+# TODO ROV left over for hardware module, only left here for debug purpose
 class RL_Agent:
     def __init__(self, model_path, new_model=False):
         self.new_model = new_model
         self.model = PPO.load(model_path)
 
     def update_status(self, message):
-        # TODO ROV publish status and delete print
         print(f"Status: {message}")
 
     def other_nodes_available(self):
-        # TODO ROV check other nodes status and if all are available set nodes_initialized to True
         other_nodes_ready = True
         return other_nodes_ready
 
@@ -22,7 +21,6 @@ class RL_Agent:
         return action
 
     def set_action(self, actions):
-        # TODO ROV publish action with ros
         # New model has shape (1,2)
         if self.new_model:
             print(f"Action: {actions}    shape: {actions.shape}")
@@ -31,7 +29,6 @@ class RL_Agent:
             print(f"Action: {actions}    shape: {actions.shape}")
 
     def get_observation(self):
-        # TODO ROV needs to happen with ROS
         # State space observations
         joint_pos = np.array([0.0, 0.0])
         joint_est_vel = np.array([0.0, 0.0])
@@ -60,7 +57,6 @@ class RL_Agent:
                 [joint_pos, joint_est_vel, sphere_pos, sphere_est_vel, target1_pos, target2_pos, target3_pos]
             )
 
-        # TODO ROV return None if data not available
         return observation
 
 

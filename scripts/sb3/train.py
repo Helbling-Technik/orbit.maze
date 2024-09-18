@@ -22,7 +22,6 @@ parser = argparse.ArgumentParser(description="Train an RL agent with Stable-Base
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
-parser.add_argument("--cpu", action="store_true", default=False, help="Use CPU pipeline.")
 parser.add_argument(
     "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
 )
@@ -35,6 +34,9 @@ parser.add_argument(
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 parser.add_argument(
+    "--delay", action="store_true", default=False, help="Add delay to observation & randomized longer delay"
+)
+parser.add_argument(
     "--multi_maze",
     action="store_true",
     default=False,
@@ -46,7 +48,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_path",
     type=str,
-    default=None,  # "logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",  # "logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip",
 )
 
 # append AppLauncher cli args
@@ -61,6 +63,8 @@ if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:
     globals.position_control = True
+if args_cli.delay:
+    globals.use_delay = True
 
 # Init globals before everything else
 if args_cli.multi_maze:
@@ -98,7 +102,11 @@ def main():
     """Train with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
-        args_cli.task, use_gpu=not args_cli.cpu, num_envs=args_cli.num_envs, use_fabric=not args_cli.disable_fabric
+        # TODO ROV device="cuda:0" instead of use_gpu
+        args_cli.task,
+        use_gpu=True,
+        num_envs=args_cli.num_envs,
+        use_fabric=not args_cli.disable_fabric,
     )
 
     agent_cfg = load_cfg_from_registry(args_cli.task, "sb3_cfg_entry_point")
@@ -140,6 +148,7 @@ def main():
         env = gym.wrappers.RecordVideo(env, **video_kwargs)
     # wrap around environment for stable baselines
     env = Sb3VecEnvWrapper(env)
+
     # set the seed
     env.seed(seed=agent_cfg["seed"])
 

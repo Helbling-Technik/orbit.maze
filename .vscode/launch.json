@@ -22,14 +22,14 @@
         },
 
         {
-            "name": "Python: Orbit",
+            "name": "Python: IsaacLab",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "args" : "--livestream 1",
             "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "/home/sck/miniconda3/envs/orbit/bin/python"
+                "PYTHONPATH": "/home/sck/miniconda3/envs/isaaclab/bin/python"
             }
         },
 
@@ -46,8 +46,8 @@
             "name": "Python: Train Environment",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Isaac-Velocity-Flat-Anymal-D-Template-v0", "--num_envs", "4096", "--headless"],
-            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "args" :  ["--task", "Isaac-Maze-v0", "--num_envs", "1", "--livestream", "1"],
+            "program": "${workspaceFolder}/scripts/sb3/train.py",
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.vscode/.python.env",
         },
@@ -55,8 +55,8 @@
             "name": "Python: Play Environment",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Isaac-Velocity-Flat-Anymal-D-Template-Play-v0", "--num_envs", "32"],
-            "program": "${workspaceFolder}/scripts/rsl_rl/play.py",
+            "args" : ["--task", "Isaac-Maze-v0", "--num_envs", "1", "--livestream", "1"],
+            "program": "${workspaceFolder}/scripts/sb3/play.py",
             "console": "integratedTerminal",
             "envFile": "${workspaceFolder}/.vscode/.python.env",
         },
