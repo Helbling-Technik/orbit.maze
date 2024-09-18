@@ -619,18 +619,20 @@ class EventCfg:
         },
     )
 
-    # TODO ROV this seems like the wrong approach, needs something like an additional gravity vector
+    # TODO ROV this adds a random force onto the sphere for all coordinates
     # radius of sphere 0.00625m, density 7850kg/m3 -> mass 0.008028kg
     # With force of 0.001N -> 0.12m/s2
-    # randomize_sphere_force = EventTerm(
-    #     func=mdp.apply_external_force_torque,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("sphere"),
-    #         "force_range": [0, 0],  # Force will make it go in circles since it is a ball
-    #         "torque_range": [-0.1, 0.1],  # needs more investigation
-    #     },
-    # )
+    if globals.use_force:
+        randomize_sphere_force = EventTerm(
+            func=mdp.apply_global_external_force_torque,
+            mode="reset",
+            params={
+                "asset_cfg": SceneEntityCfg("sphere"),
+                "force_range": [-0.001, 0.001],
+                "torque_range": [-0, 0],
+                "is_global_wrench": True,
+            },
+        )
 
 
 @configclass
@@ -719,7 +721,7 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 4  # TODO ROV we simulate observations at 25Hz, trained ok
-        self.episode_length_s = 15  # TODO ROV maybe increase, 20s enough to solve maze
+        self.episode_length_s = 20 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

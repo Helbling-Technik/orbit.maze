@@ -36,6 +36,7 @@ parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Posi
 parser.add_argument(
     "--delay", action="store_true", default=False, help="Add delay to observation & randomized longer delay"
 )
+parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
 parser.add_argument(
     "--multi_maze",
     action="store_true",
@@ -43,12 +44,10 @@ parser.add_argument(
     help="Multi maze environment, has --real_maze inherently",
 )
 # specify a starting model here, it is advised to use one which has not overfitted
-# TODO ROV trained multi maze from scratch, was okay for generated maze but not the rest
-# good starting model from simple maze (pretrained on waypoint following): "logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip"
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",  # "logs/sb3/Isaac-Maze-v0/2024-08-20_21-07-16_pos_Simple_MultiInput/model_65536000_steps.zip",
+    default=None,  # "logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",
 )
 
 # append AppLauncher cli args
@@ -65,6 +64,8 @@ if args_cli.pos_ctrl:
     globals.position_control = True
 if args_cli.delay:
     globals.use_delay = True
+if args_cli.ext_force:
+    globals.use_force = True
 
 # Init globals before everything else
 if args_cli.multi_maze:

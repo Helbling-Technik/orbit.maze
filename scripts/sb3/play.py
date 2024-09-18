@@ -22,7 +22,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-09-18_07-54-25/model_122880000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -39,6 +39,7 @@ parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Posi
 parser.add_argument(
     "--delay", action="store_true", default=False, help="Add delay to observation & randomized longer delay"
 )
+parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
 parser.add_argument(
     "--multi_maze",
     action="store_true",
@@ -61,6 +62,8 @@ if args_cli.pos_ctrl:
     globals.position_control = True
 if args_cli.delay:
     globals.use_delay = True
+if args_cli.ext_force:
+    globals.use_force = True
 
 # Init globals before everything else
 if args_cli.multi_maze:

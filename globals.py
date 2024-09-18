@@ -5,7 +5,7 @@ import os
 from PIL import Image
 
 global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
-global debug_images, real_maze, position_control, use_delay
+global debug_images, real_maze, position_control, use_delay, use_force
 path_idx = None
 maze_path = None
 path_direction = None
@@ -16,7 +16,7 @@ real_maze = None
 position_control = None
 usd_file_path = None
 use_delay = None
-
+use_force = None
 
 global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array, maze_start_list
 use_multi_maze = None

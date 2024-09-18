@@ -19,6 +19,8 @@ from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.modifiers import DigitalFilter, DigitalFilterCfg
 import random
 
+import omni.isaac.lab.utils.math as math_utils
+
 # from omni.isaac.lab.sensors import RayCaster
 from omni.isaac.lab.utils.warp import raycast_mesh  # noqa: F401
 
@@ -70,7 +72,7 @@ class VelocityExtractor:
         return current_joint_vel
 
 
-# TODO ROV
+# TODO ROV maybe need to change probability, although like this seems to work
 # this will give a weighted change of 1/10 to have a double delay in the observation, normal is single delay
 class RandomDelay(DigitalFilter):
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
@@ -108,6 +110,41 @@ class RandomDelay(DigitalFilter):
 @configclass
 class RandomDelayCfg(DigitalFilterCfg):
     func: type[RandomDelay] = RandomDelay
+
+
+# Can be used to apply a global external force and torque onto an object
+def apply_global_external_force_torque(
+    env: ManagerBasedEnv,
+    env_ids: torch.Tensor,
+    force_range: tuple[float, float],
+    torque_range: tuple[float, float],
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    is_global_wrench: bool = False,
+):
+    """Randomize the external forces and torques applied to the bodies.
+
+    This function creates a set of random forces and torques sampled from the given ranges. The number of forces
+    and torques is equal to the number of bodies times the number of environments. The forces and torques are
+    applied to the bodies by calling ``asset.set_external_force_and_torque``. The forces and torques are only
+    applied when ``asset.write_data_to_sim()`` is called in the environment.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject | Articulation = env.scene[asset_cfg.name]
+    # resolve environment ids
+    if env_ids is None:
+        env_ids = torch.arange(env.scene.num_envs, device=asset.device)
+    # resolve number of bodies
+    num_bodies = len(asset_cfg.body_ids) if isinstance(asset_cfg.body_ids, list) else asset.num_bodies
+
+    # sample random forces and torques
+    size = (len(env_ids), num_bodies, 3)
+    forces = math_utils.sample_uniform(*force_range, size, asset.device)
+    torques = math_utils.sample_uniform(*torque_range, size, asset.device)
+    # set the forces and torques into the buffers
+    # note: these are only applied when you call: `asset.write_data_to_sim()`
+    # TODO ROV I changed rigidobject implementation of isaac lab to allow for global wrenches
+    asset.is_external_wrench_global = is_global_wrench
+    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
 
 
 def joint_pos_with_noise(
