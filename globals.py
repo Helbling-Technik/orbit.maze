@@ -129,16 +129,17 @@ def init_single_usd():
     # change yaml, usd and image file here
     if real_maze:
         yaml_path = "usds/generated_mazes/real_maze_01.yaml"
-        image_path = "usds/generated_mazes/real_maze_01.png"
+        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.png"
         # file with proper joint limits
-        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointLimit.usd"
+        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.usd"
     else:
-        # yaml_path = "usds/generated_mazes/generated_maze_02.yaml"
-        # image_path = "usds/generated_mazes/generated_maze_02.png"
-        # usd_file_path = "usds/generated_mazes/generated_maze_02.usd"
-        yaml_path = "usds/generated_mazes/generated_simple_maze_01.yaml"
-        image_path = "usds/generated_mazes/generated_simple_maze_01.png"
-        usd_file_path = "usds/generated_mazes/generated_simple_maze_01.usd"
+        yaml_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.yaml"
+        image_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.png"
+        usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.usd"
+        # yaml_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.yaml"
+        # image_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.png"
+        # usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.usd"
+
     # load maze path from yaml file
     with open(os.path.join(yaml_path), "r") as file:
         global maze_path
