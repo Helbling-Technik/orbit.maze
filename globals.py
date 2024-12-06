@@ -7,6 +7,7 @@ from PIL import Image
 global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
 global debug_images, real_maze, position_control, use_delay, use_force
 path_idx = None
+path_start_idx = None
 maze_path = None
 path_direction = None
 maze_start_point = None

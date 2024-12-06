@@ -46,6 +46,7 @@ def path_point_target(
     else:
         distance_from_target = 0.01 if globals.real_maze else 0.03
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
+        xy_sparse_reward = xy_sparse_reward * (torch.abs(globals.path_idx - globals.path_start_idx) + 1)
 
     target_reached_ids = torch.nonzero(xy_sparse_reward).view(-1)
     if target_reached_ids.numel() == 0:
@@ -159,6 +160,7 @@ def reset_maze_state(
                     len(env_ids), device=sphere.device, dtype=torch.int
                 )
 
+            globals.path_start_idx = globals.path_idx
             globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
             globals.path_direction[globals.path_idx >= int(path_length / 2)] = -1
 
@@ -170,6 +172,7 @@ def reset_maze_state(
             globals.path_idx[env_ids] = globals.maze_start_point * torch.ones(
                 len(env_ids), device=sphere.device, dtype=torch.int
             )
+        globals.path_start_idx[env_ids] = globals.path_idx[env_ids]
         path_direction_temp = torch.zeros_like(globals.path_direction, dtype=torch.int)
         path_direction_temp = 2 * (globals.path_idx < int(path_length / 2)) - 1
         path_direction_temp = path_direction_temp.to(torch.int)
