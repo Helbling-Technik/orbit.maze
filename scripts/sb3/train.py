@@ -31,6 +31,7 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument(
     "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
 )
+parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 parser.add_argument(
@@ -44,10 +45,13 @@ parser.add_argument(
     help="Multi maze environment, has --real_maze inherently",
 )
 # specify a starting model here, it is advised to use one which has not overfitted
+# TODO ROV currently training with high delay, 20 Hz, no ext force on real maze. Might be good to use that one then for ext force
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-09-18_14-08-21_force_delay_fullset_emptymaze/model_90112000_steps.zip",  # "logs/sb3/Isaac-Maze-v0/2024-09-17_17-25-17_delay_fullset_emptymaze/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-11-21_11-11-23_25Hz_2x_img_length_4x_crop_length/model_40960000_steps.zip",
+    # "logs/sb3/Isaac-Maze-v0/2024-10-25_14-46-22_25_Hz_increased_actuator_rand_longerTraining/model.zip",
+    # logs/sb3/Isaac-Maze-v0/2024-10-11_08-45-31_friction_force_on_reset_delay_realmaze/model_98304000_steps.zip
 )
 
 # append AppLauncher cli args
@@ -58,6 +62,8 @@ args_cli = parser.parse_args()
 import globals
 
 # Need to initialize these for proper env config
+if args_cli.debug_images:
+    globals.debug_images = True
 if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:

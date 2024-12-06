@@ -1,6 +1,13 @@
 import numpy as np
 from stable_baselines3 import PPO
 import time
+import stable_baselines3
+
+print(stable_baselines3.__version__)
+print(np.__version__)
+import torch
+
+print(torch.__version__)
 
 
 # TODO ROV left over for hardware module, only left here for debug purpose
@@ -8,6 +15,7 @@ class RL_Agent:
     def __init__(self, model_path, new_model=False):
         self.new_model = new_model
         self.model = PPO.load(model_path)
+        print(self.model.device)
 
     def update_status(self, message):
         print(f"Status: {message}")
@@ -62,16 +70,17 @@ class RL_Agent:
 
 def main():
     # Path to trained model
-    model_path = "logs/sb3/Isaac-Maze-v0/2024-07-11_LearnMazeAdaptedActionSpace/model_491520000_steps.zip"
-    new_model = False
-    # model_path = "logs/sb3/Isaac-Maze-v0/2024-08-26_08-44-35_pos_Real_MultiInput_Normalized_Uniform_Penalty_JointLimits_Friction_Noise_DistanceToTarget/model.zip"
-    # new_model = True
+    # model_path = "logs/sb3/Isaac-Maze-v0/2024-07-11_LearnMazeAdaptedActionSpace/model_491520000_steps.zip"
+    # new_model = False
+    model_path = "checkpoint_models/new_architecture_success/2024-09-18_25Hz_force_delay_fullset_emptymaze.zip"
+    new_model = True
 
     frequency = 50
     update_period = 1.0 / frequency  # Period in seconds (20ms)
     wait_period = 1.0  # Wait 1s if nothing is happening
     agent = RL_Agent(model_path, new_model)
-
+    # agent.model.save("logs/sb3/Isaac-Maze-v0/test-images/emptyMaze")
+    # exit()
     while True:
         if agent.other_nodes_available():
             start_time = time.time()  # Record the start time of the loop iteration
