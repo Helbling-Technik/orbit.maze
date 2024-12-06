@@ -184,9 +184,11 @@ def simulated_camera_image(
     maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
 
     sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
-
-    pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
-    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float, device="cuda:0")
+    # TODO ROV change image size
+    # pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
+    # cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float, device="cuda:0")
+    pad_size = torch.tensor([32, 32], device="cuda:0").to(torch.int16)
+    cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 64, 64), dtype=torch.float, device="cuda:0")
 
     if globals.use_multi_maze:
         for env_idx in range(sphere_pos_env.shape[0]):
@@ -211,7 +213,9 @@ def simulated_camera_image(
 
             cropped_images[env_idx, :, :] = sim_image[x_lo:x_hi, y_lo:y_hi]
             # color center pixels grey to visualize the sphere
-            cropped_images[env_idx, 7:9, 7:9] = 128
+            # TODO ROV change image size not correct in commented part
+            # cropped_images[env_idx, 7:9, 7:9] = 128
+            cropped_images[env_idx, 30:34, 30:34] = 128
 
             if globals.debug_images:
                 if env_idx == 0 or env_idx == 1:
@@ -257,7 +261,9 @@ def simulated_camera_image(
 
             cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
             # color center pixels grey to visualize the sphere
-            cropped_images[i, 7:9, 7:9] = 128
+            # TODO ROV change image size not correct in commented part
+            # cropped_images[i, 7:9, 7:9] = 128
+            cropped_images[i, 30:34, 30:34] = 128
 
             if globals.debug_images:
                 if i == 0:
