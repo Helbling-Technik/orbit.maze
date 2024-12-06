@@ -320,7 +320,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
-            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.2, dynamic_friction=0.2),
+            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.8, dynamic_friction=0.5),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
@@ -417,23 +417,23 @@ class ObservationsCfg:
         # increase observation noise, was 0.001, weaker training: in radians
         joint_pos = ObsTerm(
             func=mdp.joint_pos_with_noise,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
         )
         joint_est_vel = ObsTerm(
             func=velocity_extractor.extract_joint_velocity,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("robot")},
         )
         # increase observation noise, was 0.002, weaker training: in radians
         sphere_pos = ObsTerm(
             func=mdp.root_pos_w_with_noise,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
         )
         sphere_est_vel = ObsTerm(
             func=velocity_extractor.extract_root_velocity,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
         target1_pos = ObsTerm(
@@ -465,7 +465,7 @@ class ObservationsCfg:
 
         image = ObsTerm(
             func=mdp.simulated_camera_image,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={
                 "sphere_cfg": SceneEntityCfg("sphere"),
                 "maze_cfg": SceneEntityCfg("robot"),
@@ -556,66 +556,74 @@ class EventCfg:
     # should only be done on startup and not on reset, very CPU intense and has a limit of num_buckets
     robot_physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
-        mode="startup",
+        mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
-            "static_friction_range": (0.8, 1.0),
-            "dynamic_friction_range": (0.2, 1.0),
-            "restitution_range": (0.0, 1.0),
-            "num_buckets": 500,
+            "static_friction_range": (0.5, 1.0),
+            "dynamic_friction_range": (0.5, 1.0),
+            "restitution_range": (0.0, 0.5),
+            "num_buckets": 300,
         },
     )
     sphere_physics_material = EventTerm(
         func=mdp.randomize_rigid_body_material,
-        mode="startup",
+        mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "static_friction_range": (0.8, 1.0),
-            "dynamic_friction_range": (0.2, 1.0),
-            "restitution_range": (0.0, 1.0),
-            "num_buckets": 500,
+            "static_friction_range": (0.5, 1.0),
+            "dynamic_friction_range": (0.5, 1.0),
+            "restitution_range": (0.0, 0.5),
+            "num_buckets": 300,
         },
     )
     randomize_outer_actuator = EventTerm(
         func=mdp.randomize_actuator_gains,
-        mode="startup",
+        mode="reset",  # TODO ROV was startup
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "damping_distribution_params": (0.5, 2.0),
+            # "stiffness_distribution_params": (0.5, 5.0),
+            # "damping_distribution_params": (0.5, 5.0),
+            "stiffness_distribution_params": (0.5, 10.0),
+            "damping_distribution_params": (0.5, 10.0),
             "operation": "scale",
             "distribution": "uniform",
         },
     )
     randomize_inner_actuator = EventTerm(
         func=mdp.randomize_actuator_gains,
-        mode="startup",
+        mode="reset",  # TODO ROV was startup
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "damping_distribution_params": (0.5, 2.0),
+            # "stiffness_distribution_params": (0.5, 5.0),
+            # "damping_distribution_params": (0.5, 5.0),
+            "stiffness_distribution_params": (0.5, 10.0),
+            "damping_distribution_params": (0.5, 10.0),
             "operation": "scale",
             "distribution": "uniform",
         },
     )
     randomize_outer_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
-        mode="startup",
+        mode="reset",  # TODO ROV was startup
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "friction_distribution_params": (0.05, 0.1),
+            "friction_distribution_params": (0.2, 1.0),
+            # "friction_distribution_params": (0.05, 1.0), TODO ROV
             "operation": "abs",
-            "distribution": "log_uniform",
+            "distribution": "uniform",
+            # "distribution": "log_uniform", TODO ROV
         },
     )
     randomize_inner_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
-        mode="startup",
+        mode="reset",  # TODO ROV was startup
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "friction_distribution_params": (0.05, 0.1),
+            "friction_distribution_params": (0.2, 1.0),
+            # "friction_distribution_params": (0.05, 1.0), TODO ROV
             "operation": "abs",
-            "distribution": "log_uniform",
+            "distribution": "uniform",
+            # "distribution": "log_uniform", TODO ROV
         },
     )
 
@@ -625,10 +633,10 @@ class EventCfg:
     if globals.use_force:
         randomize_sphere_force = EventTerm(
             func=mdp.apply_global_external_force_torque,
-            mode="startup",
+            mode="reset",
             params={
                 "asset_cfg": SceneEntityCfg("sphere"),
-                "force_range": [-0.002, 0.002],
+                "force_range": [-0.001, 0.001],
                 "torque_range": [-0, 0],
                 "is_global_wrench": True,
             },
@@ -720,7 +728,7 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 4  # TODO ROV we simulate observations at 25Hz, trained ok
+        self.decimation = 4  # TODO ROV we simulate observations at 25Hz=4, trained ok
         self.episode_length_s = 20 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
