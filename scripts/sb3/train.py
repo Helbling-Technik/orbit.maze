@@ -49,7 +49,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-11-21_11-11-23_25Hz_2x_img_length_4x_crop_length/model_40960000_steps.zip",
+    default=None,  # "logs/sb3/Isaac-Maze-v0/2024-11-21_11-11-23_25Hz_2x_img_length_4x_crop_length/model_40960000_steps.zip",
     # "logs/sb3/Isaac-Maze-v0/2024-10-25_14-46-22_25_Hz_increased_actuator_rand_longerTraining/model.zip",
     # logs/sb3/Isaac-Maze-v0/2024-10-11_08-45-31_friction_force_on_reset_delay_realmaze/model_98304000_steps.zip
 )
@@ -92,6 +92,7 @@ import numpy as np
 from datetime import datetime
 
 from stable_baselines3 import PPO
+from sb3_contrib import RecurrentPPO
 from stable_baselines3.common.callbacks import CheckpointCallback
 from stable_baselines3.common.logger import configure
 from stable_baselines3.common.vec_env import VecNormalize
@@ -184,9 +185,10 @@ def main():
     # configure the logger
     new_logger = configure(log_dir, ["stdout", "tensorboard"])
     agent.set_logger(new_logger)
+    print(agent.policy)
 
     # callbacks for agent
-    checkpoint_callback = CheckpointCallback(save_freq=500, save_path=log_dir, name_prefix="model", verbose=2)
+    checkpoint_callback = CheckpointCallback(save_freq=100, save_path=log_dir, name_prefix="model", verbose=2)
     # train the agent
     agent.learn(total_timesteps=n_timesteps, callback=checkpoint_callback)
     # save the final model

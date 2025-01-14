@@ -95,7 +95,7 @@ class RandomDelay(DigitalFilter):
 
         choice = random.choices([single_delayed_obs, double_delayed_obs], weights=[0.9, 0.1])[0]
 
-        # calculate current filter value: y[i] = Y*A - X*B
+        # calculate current filter value: y[i] = -Y*A + X*B
         y_i = torch.matmul(self.x_n, choice["B"]) - torch.matmul(self.y_n, self.A)
         y_i.squeeze_(-1)
 

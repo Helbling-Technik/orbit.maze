@@ -76,7 +76,9 @@ Import your python package within `Isaac Sim` and `IsaacLab` using:
 ```python
 import orbit.<your_extension_name>
 ```
-### IMPORTANT: Stable Baselines 3 & Isaac Lab adaptation for MultiInputPolicies
+### IMPORTANT: Stable Baselines 3 & Isaac Lab adaptation
+
+#### MultiInputPolicies
 
 In order for stable baselines to function properly with isaac lab using MultiInputPolicies, the following library files need to be changed.
 
@@ -113,6 +115,42 @@ observation_space = self.unwrapped.single_observation_space
 # was obs = obs_dict["policy"], but we want all the policies in the dict
 obs = obs_dict
 ```
+
+#### Tensorboard Logging
+
+In the ``dump_logs()`` function in ``${PYTHON_ENV}/lib/python3.10/site-packages/stable_baselines3/common/on_policy_algorithm.py``
+
+below 
+
+``` python
+if len(self.ep_info_buffer) > 0 and len(self.ep_info_buffer[0]) > 0:
+    # print([ep_info["r"] for ep_info in self.ep_info_buffer])
+    # print([ep_info for ep_info in self.ep_info_buffer])
+    self.logger.record("rollout/ep_rew_mean", safe_mean([ep_info["r"] for ep_info in self.ep_info_buffer]))
+    self.logger.record("rollout/ep_len_mean", safe_mean([ep_info["l"] for ep_info in self.ep_info_buffer]))
+```
+
+add within the if-statement
+
+``` python
+# Log Episode Rewards
+reward_keys = [key for key in self.ep_info_buffer[0].keys() if key.startswith("Episode Reward/")]
+for key in reward_keys:
+    keyword = key.split("/")[-1]  # Extract the KEYWORD
+    values = [ep_info[key].item() for ep_info in self.ep_info_buffer if key in ep_info]
+    if values:  # Only log if values are available
+        self.logger.record(f"rollout/ep_rew_{keyword}", safe_mean(values))
+
+# Log Episode Terminations
+termination_keys = [key for key in self.ep_info_buffer[0].keys() if key.startswith("Episode Termination/")]
+for key in termination_keys:
+    keyword = key.split("/")[-1]  # Extract the KEYWORD
+    values = [ep_info[key] for ep_info in self.ep_info_buffer if key in ep_info]
+    if values:  # Only log if values are available
+        self.logger.record(f"rollout/ep_term_{keyword}", safe_mean(values))
+```
+
+to make sure you can view the partial rewards on TensorBoard
 
 ### Project Template
 
