@@ -22,7 +22,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2024-12-05_13-55-29/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2024-12-10_17-23-30/model.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(

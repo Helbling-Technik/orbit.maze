@@ -67,8 +67,8 @@ def load_image(image_path: str) -> torch.Tensor:
 
     # Resize the image while maintaining the aspect ratio
     # TODO ROV changed from 64
-    image.thumbnail((128, 128), Image.Resampling.LANCZOS)
-    # image.thumbnail((64, 64), Image.Resampling.LANCZOS)
+    # image.thumbnail((128, 128), Image.Resampling.LANCZOS)
+    image.thumbnail((64, 64), Image.Resampling.LANCZOS)
 
     # Threshold
     # Apply a binary threshold to convert the image to black and white
@@ -85,7 +85,7 @@ def load_image(image_path: str) -> torch.Tensor:
     # Convert to torch tensor
     image_tensor = torch.tensor(image_array, dtype=torch.float16, device="cuda:0")
     # pad tensor to size+8 to avoid index out of bounds when windowing
-    image_tensor = torch.nn.functional.pad(image_tensor, (32, 32, 32, 32), value=0)
+    image_tensor = torch.nn.functional.pad(image_tensor, (16, 16, 16, 16), value=0)
 
     return image_tensor
 
