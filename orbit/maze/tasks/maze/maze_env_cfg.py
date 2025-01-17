@@ -21,7 +21,7 @@ from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
-from omni.isaac.lab.actuators import ImplicitActuatorCfg
+from omni.isaac.lab.actuators import DelayedImplicitActuatorCfg  # SCK: used to be ImplicitActuatorCfg
 from omni.isaac.lab.utils import configclass
 
 import globals
@@ -219,14 +219,18 @@ def get_multi_maze_cfg():
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
-            "outer_actuator": ImplicitActuatorCfg(
+            "outer_actuator": DelayedImplicitActuatorCfg(
+                min_delay=10 if globals.use_delay else 0,  # timesteps
+                max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
                 stiffness=1000.0 if globals.position_control else 0.0,
                 damping=1.0 if globals.position_control else 10.0,
             ),
-            "inner_actuator": ImplicitActuatorCfg(
+            "inner_actuator": DelayedImplicitActuatorCfg(
+                min_delay=10 if globals.use_delay else 0,  # timesteps
+                max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
@@ -271,14 +275,18 @@ def get_maze_cfg():
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
-            "outer_actuator": ImplicitActuatorCfg(
+            "outer_actuator": DelayedImplicitActuatorCfg(
+                min_delay=10 if globals.use_delay else 0,  # timesteps
+                max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
                 stiffness=1000.0 if globals.position_control else 0.0,
                 damping=1.0 if globals.position_control else 10.0,
             ),
-            "inner_actuator": ImplicitActuatorCfg(
+            "inner_actuator": DelayedImplicitActuatorCfg(
+                min_delay=10 if globals.use_delay else 0,  # timesteps
+                max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
@@ -417,23 +425,23 @@ class ObservationsCfg:
         # increase observation noise, was 0.001, weaker training: in radians
         joint_pos = ObsTerm(
             func=mdp.joint_pos_with_noise,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            history_length=3,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
         )
         joint_est_vel = ObsTerm(
             func=velocity_extractor.extract_joint_velocity,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            history_length=3,
             params={"asset_cfg": SceneEntityCfg("robot")},
         )
         # increase observation noise, was 0.002, weaker training: in radians
         sphere_pos = ObsTerm(
             func=mdp.root_pos_w_with_noise,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            history_length=3,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
         )
         sphere_est_vel = ObsTerm(
             func=velocity_extractor.extract_root_velocity,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            history_length=3,
             params={"asset_cfg": SceneEntityCfg("sphere")},
         )
         target1_pos = ObsTerm(
@@ -465,7 +473,6 @@ class ObservationsCfg:
 
         image = ObsTerm(
             func=mdp.simulated_camera_image,
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
             params={
                 "sphere_cfg": SceneEntityCfg("sphere"),
                 "maze_cfg": SceneEntityCfg("robot"),
