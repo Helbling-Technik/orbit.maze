@@ -220,7 +220,7 @@ def get_multi_maze_cfg():
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=6 if globals.use_delay else 0,  # timesteps
+                min_delay=10 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -229,7 +229,7 @@ def get_multi_maze_cfg():
                 damping=1.0 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=6 if globals.use_delay else 0,  # timesteps
+                min_delay=10 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -276,7 +276,7 @@ def get_maze_cfg():
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=6 if globals.use_delay else 0,  # timesteps
+                min_delay=10 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -285,7 +285,7 @@ def get_maze_cfg():
                 damping=1.0 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=6 if globals.use_delay else 0,  # timesteps
+                min_delay=10 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -520,44 +520,6 @@ class EventCfg:
             "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
         },
     )
-
-    # TODO CLEANUP
-    # reset_sphere_pos = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("sphere"),
-    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-    #         "velocity_range": {},
-    #     },
-    # )
-    # reset_target1_pos = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("target1"),
-    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-    #         "velocity_range": {},
-    #     },
-    # )
-    # reset_target2_pos = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("target2"),
-    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-    #         "velocity_range": {},
-    #     },
-    # )
-    # reset_target3_pos = EventTerm(
-    #     func=mdp.reset_root_state_uniform,
-    #     mode="reset",
-    #     params={
-    #         "asset_cfg": SceneEntityCfg("target3"),
-    #         "pose_range": {"x": (-0.0, 0.0), "y": (-0.0, 0.0)},
-    #         "velocity_range": {},
-    #     },
-    # )
 
     # add friction randomization to material, trained ok.
     # should only be done on startup and not on reset, very CPU intense and has a limit of num_buckets

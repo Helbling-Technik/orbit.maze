@@ -85,7 +85,7 @@ def load_image(image_path: str) -> torch.Tensor:
     # Convert to torch tensor
     image_tensor = torch.tensor(image_array, dtype=torch.float16, device="cuda:0")
     # pad tensor to size+8 to avoid index out of bounds when windowing
-    image_tensor = torch.nn.functional.pad(image_tensor, (16, 16, 16, 16), value=0)
+    image_tensor = torch.nn.functional.pad(image_tensor, (8, 8, 8, 8), value=0)
 
     return image_tensor
 
