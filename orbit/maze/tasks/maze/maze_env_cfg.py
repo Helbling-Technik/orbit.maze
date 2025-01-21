@@ -220,7 +220,7 @@ def get_multi_maze_cfg():
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=10 if globals.use_delay else 0,  # timesteps
+                min_delay=6 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -229,7 +229,7 @@ def get_multi_maze_cfg():
                 damping=1.0 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=10 if globals.use_delay else 0,  # timesteps
+                min_delay=6 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -276,7 +276,7 @@ def get_maze_cfg():
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=10 if globals.use_delay else 0,  # timesteps
+                min_delay=6 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
@@ -285,7 +285,7 @@ def get_maze_cfg():
                 damping=1.0 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=10 if globals.use_delay else 0,  # timesteps
+                min_delay=6 if globals.use_delay else 0,  # timesteps
                 max_delay=12 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
