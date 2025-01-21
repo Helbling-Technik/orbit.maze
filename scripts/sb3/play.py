@@ -99,10 +99,11 @@ def main():
     env_cfg = parse_env_cfg(
         # TODO ROV device="cuda:0" instead of use_gpu
         args_cli.task,
-        use_gpu=True,
         num_envs=args_cli.num_envs,
         use_fabric=not args_cli.disable_fabric,
     )
+
+    env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
     # override maze_start_point
     if args_cli.maze_start_point is not None:

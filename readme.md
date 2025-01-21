@@ -134,7 +134,7 @@ add within the if-statement
 
 ``` python
 # Log Episode Rewards
-reward_keys = [key for key in self.ep_info_buffer[0].keys() if key.startswith("Episode Reward/")]
+reward_keys = [key for key in self.ep_info_buffer[0].keys() if key.startswith("Episode_Reward/")]
 for key in reward_keys:
     keyword = key.split("/")[-1]  # Extract the KEYWORD
     values = [ep_info[key].item() for ep_info in self.ep_info_buffer if key in ep_info]
@@ -142,7 +142,7 @@ for key in reward_keys:
         self.logger.record(f"rollout/ep_rew_{keyword}", safe_mean(values))
 
 # Log Episode Terminations
-termination_keys = [key for key in self.ep_info_buffer[0].keys() if key.startswith("Episode Termination/")]
+termination_keys = [key for key in self.ep_info_buffer[0].keys() if key.startswith("Episode_Termination/")]
 for key in termination_keys:
     keyword = key.split("/")[-1]  # Extract the KEYWORD
     values = [ep_info[key] for ep_info in self.ep_info_buffer if key in ep_info]
@@ -150,7 +150,9 @@ for key in termination_keys:
         self.logger.record(f"rollout/ep_term_{keyword}", safe_mean(values))
 ```
 
-to make sure you can view the partial rewards on TensorBoard
+to make sure you can view the partial rewards on TensorBoard.
+As the naming comes from the sb3 wrapper, with the merge from the isaac_lab relese 1.4 the naming works with an underscore 
+'_'.  'Episode Termination' -->  'Episode_Termination' and 'Episode Reward' --> 'Episode_Reward' 
 
 ### Project Template
 
