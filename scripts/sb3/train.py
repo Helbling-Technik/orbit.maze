@@ -104,6 +104,26 @@ import omni.isaac.lab_tasks  # noqa: F401
 from omni.isaac.lab_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
+import json
+
+
+def serialize_config(config):
+    """Recursively serialize a configuration object."""
+    if isinstance(config, dict):
+        # Handle nested dictionaries
+        return {k: serialize_config(v) for k, v in config.items()}
+    elif hasattr(config, "__dict__"):
+        # Handle objects with __dict__ attribute
+        return serialize_config(config.__dict__)
+    elif isinstance(config, (list, tuple)):
+        # Handle lists and tuples
+        return [serialize_config(item) for item in config]
+    elif isinstance(config, (str, int, float, bool, type(None))):
+        # Handle basic types
+        return config
+    else:
+        # Fallback for non-serializable objects
+        return str(config)
 
 
 def main():
@@ -136,6 +156,16 @@ def main():
     dump_yaml(os.path.join(log_dir, "params", "agent.yaml"), agent_cfg)
     dump_pickle(os.path.join(log_dir, "params", "env.pkl"), env_cfg)
     dump_pickle(os.path.join(log_dir, "params", "agent.pkl"), agent_cfg)
+
+    # Save agent configuration
+    agent_cfg_path = os.path.join(log_dir, "agent_config.json")
+    with open(agent_cfg_path, "w") as f:
+        json.dump(agent_cfg, f, indent=4)
+
+    # Save environment configuration
+    env_cfg_path = os.path.join(log_dir, "env_config.json")
+    with open(env_cfg_path, "w") as f:
+        json.dump(serialize_config(env_cfg), f, indent=4)
 
     # post-process agent configuration
     agent_cfg = process_sb3_cfg(agent_cfg)
