@@ -71,16 +71,17 @@ def load_image(image_path: str) -> torch.Tensor:
     image.thumbnail((64, 64), Image.Resampling.LANCZOS)
 
     # Threshold
+    # TODO ROV make this selectable
     # Apply a binary threshold to convert the image to black and white
-    threshold = 80  # This is the threshold value, can be adjusted as needed
-    image = image.point(lambda x: 255 if x > threshold else 0, mode="1")
+    # threshold = 80  # This is the threshold value, can be adjusted as needed
+    # image = image.point(lambda x: 255 if x > threshold else 0)
 
     # Save the image
     if debug_images:
         image.save("logs/sb3/Isaac-Maze-v0/test-images/padded_image.png")
 
     # Convert image (0-1) to NumPy array and scale it back to 0 - 255
-    image_array = np.array(image).astype(np.uint8) * 255
+    image_array = np.array(image).astype(np.uint8)
 
     # Convert to torch tensor
     image_tensor = torch.tensor(image_array, dtype=torch.float16, device="cuda:0")

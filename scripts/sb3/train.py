@@ -49,7 +49,10 @@ parser.add_argument(
 parser.add_argument(
     "--model_path",
     type=str,
-    default=None,  # "logs/sb3/Isaac-Maze-v0/2024-11-21_11-11-23_25Hz_2x_img_length_4x_crop_length/model_40960000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-02-04_14-46-34_33Hz_16gray_6xHistoryPos_BigDelay/model_98304000_steps.zip",
+    # "logs/sb3/Isaac-Maze-v0/2025-01-31_11-33-30_50Hz_gray_6xHistoryPos_Delay/model_180224000_steps.zip",
+    # "logs/sb3/Isaac-Maze-v0/2025-01-23_16-33-41_50hz_gray_historyPos_NoDelay/model_114688000_steps.zip",
+    # "logs/sb3/Isaac-Maze-v0/2024-11-21_11-11-23_25Hz_2x_img_length_4x_crop_length/model_40960000_steps.zip",
     # "logs/sb3/Isaac-Maze-v0/2024-10-25_14-46-22_25_Hz_increased_actuator_rand_longerTraining/model.zip",
     # logs/sb3/Isaac-Maze-v0/2024-10-11_08-45-31_friction_force_on_reset_delay_realmaze/model_98304000_steps.zip
 )
@@ -220,7 +223,7 @@ def main():
     print(agent.policy)
 
     # callbacks for agent
-    checkpoint_callback = CheckpointCallback(save_freq=100, save_path=log_dir, name_prefix="model", verbose=2)
+    checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)
     # train the agent
     agent.learn(total_timesteps=n_timesteps, callback=checkpoint_callback)
     # save the final model

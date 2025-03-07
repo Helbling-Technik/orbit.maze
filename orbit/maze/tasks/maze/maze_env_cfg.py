@@ -221,7 +221,7 @@ def get_multi_maze_cfg():
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
                 min_delay=10 if globals.use_delay else 0,  # timesteps
-                max_delay=12 if globals.use_delay else 0,  # timesteps
+                max_delay=15 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
@@ -230,7 +230,7 @@ def get_multi_maze_cfg():
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
                 min_delay=10 if globals.use_delay else 0,  # timesteps
-                max_delay=12 if globals.use_delay else 0,  # timesteps
+                max_delay=15 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
@@ -277,7 +277,7 @@ def get_maze_cfg():
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
                 min_delay=10 if globals.use_delay else 0,  # timesteps
-                max_delay=12 if globals.use_delay else 0,  # timesteps
+                max_delay=15 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
@@ -286,7 +286,7 @@ def get_maze_cfg():
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
                 min_delay=10 if globals.use_delay else 0,  # timesteps
-                max_delay=12 if globals.use_delay else 0,  # timesteps
+                max_delay=15 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=20 * math.pi,
@@ -389,6 +389,7 @@ class ActionsCfg:
 
     # set scaling to proper angle
     if globals.position_control:
+        # TODO ROV if divided by 100 (action space) would have direct mapping to rad from (-axis limit, +axis-limit)
         outer_joint_effort = mdp.JointPositionActionCfg(
             asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10
         )
@@ -425,25 +426,25 @@ class ObservationsCfg:
         # increase observation noise, was 0.001, weaker training: in radians
         joint_pos = ObsTerm(
             func=mdp.joint_pos_with_noise,
-            history_length=3,
+            history_length=6,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
         )
-        joint_est_vel = ObsTerm(
-            func=velocity_extractor.extract_joint_velocity,
-            history_length=3,
-            params={"asset_cfg": SceneEntityCfg("robot")},
-        )
+        # joint_est_vel = ObsTerm(
+        #     func=velocity_extractor.extract_joint_velocity,
+        #     history_length=6,
+        #     params={"asset_cfg": SceneEntityCfg("robot")},
+        # )
         # increase observation noise, was 0.002, weaker training: in radians
         sphere_pos = ObsTerm(
             func=mdp.root_pos_w_with_noise,
-            history_length=3,
+            history_length=6,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
         )
-        sphere_est_vel = ObsTerm(
-            func=velocity_extractor.extract_root_velocity,
-            history_length=3,
-            params={"asset_cfg": SceneEntityCfg("sphere")},
-        )
+        # sphere_est_vel = ObsTerm(
+        #     func=velocity_extractor.extract_root_velocity,
+        #     history_length=6,
+        #     params={"asset_cfg": SceneEntityCfg("sphere")},
+        # )
         target1_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
@@ -528,8 +529,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
-            "static_friction_range": (0.5, 1.0),
-            "dynamic_friction_range": (0.5, 1.0),
+            "static_friction_range": (0.1, 1.0),
+            "dynamic_friction_range": (0.1, 1.0),
             "restitution_range": (0.0, 0.5),
             "num_buckets": 300,
         },
@@ -539,8 +540,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "static_friction_range": (0.5, 1.0),
-            "dynamic_friction_range": (0.5, 1.0),
+            "static_friction_range": (0.1, 1.0),
+            "dynamic_friction_range": (0.1, 1.0),
             "restitution_range": (0.0, 0.5),
             "num_buckets": 300,
         },
@@ -552,8 +553,8 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
             # "stiffness_distribution_params": (0.5, 5.0),
             # "damping_distribution_params": (0.5, 5.0),
-            "stiffness_distribution_params": (0.5, 10.0),
-            "damping_distribution_params": (0.5, 10.0),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "damping_distribution_params": (0.5, 2.0),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -565,8 +566,8 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
             # "stiffness_distribution_params": (0.5, 5.0),
             # "damping_distribution_params": (0.5, 5.0),
-            "stiffness_distribution_params": (0.5, 10.0),
-            "damping_distribution_params": (0.5, 10.0),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "damping_distribution_params": (0.5, 2.0),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -623,7 +624,7 @@ class RewardsCfg:
     terminating = RewTerm(
         func=mdp.root_height_below_minimum,
         params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
-        weight=-10000.0,
+        weight=-1000.0,
     )
     # (3) Primary task: control maze path
     sphere_maze_path_target = RewTerm(
@@ -697,13 +698,13 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 4  # TODO ROV we simulate observations at 25Hz=4, trained ok
-        self.episode_length_s = 20 if globals.real_maze or globals.use_multi_maze else 10
+        self.decimation = 3  # TODO ROV we simulate observations at 25Hz=4, trained ok
+        self.episode_length_s = 15 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
         self.sim.dt = 1 / 100
-        self.sim.render_interval = 10
+        self.sim.render_interval = 1
 
         # TODO CLEANUP set physics properties if warning, not high enough for 16384 envs
         # self.sim.physx.gpu_collision_stack_size = 2**29
