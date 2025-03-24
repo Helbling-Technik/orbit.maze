@@ -58,16 +58,8 @@ def load_image(image_path: str) -> torch.Tensor:
     image = image.convert("L")  # Convert to grayscale
 
     # Apply a binary threshold to convert the image to black and white
-    # TODO ROV maybe consider this again. Could also load it as a colored image and then threshold?
-    # threshold = 30  # This is the threshold value, can be adjusted as needed
-    # image = image.point(lambda x: 255 if x > threshold else 0, mode="1")
-    # # image = image * 255
-    # if debug_images:
-    #     image.save("logs/sb3/Isaac-Maze-v0/test-images/padded_large_image.png")
 
     # Resize the image while maintaining the aspect ratio
-    # TODO ROV changed from 64
-    # image.thumbnail((128, 128), Image.Resampling.LANCZOS)
     image.thumbnail((64, 64), Image.Resampling.LANCZOS)
 
     # Threshold
@@ -80,7 +72,7 @@ def load_image(image_path: str) -> torch.Tensor:
     if debug_images:
         image.save("logs/sb3/Isaac-Maze-v0/test-images/padded_image.png")
 
-    # Convert image (0-1) to NumPy array and scale it back to 0 - 255
+    # Convert image (0-255) to NumPy array
     image_array = np.array(image).astype(np.uint8)
 
     # Convert to torch tensor

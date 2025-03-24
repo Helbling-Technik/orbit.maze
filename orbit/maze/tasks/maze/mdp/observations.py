@@ -31,8 +31,47 @@ from scipy.spatial.transform import Rotation
 import numpy as np
 import globals
 
+# TODO ROV create P output on action
+from omni.isaac.lab.envs.mdp.actions import JointActionCfg, JointAction
+from omni.isaac.lab.managers.action_manager import ActionTerm
+
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
+
+
+# TODO ROV finish PID implementation
+class JointPositionPID(JointAction):
+    cfg: JointPositionPIDCfg
+
+    def __init__(self, cfg: JointPositionPIDCfg, env: ManagerBasedEnv):
+        # initialize the action term
+        super().__init__(cfg, env)
+        # use default joint positions as offset
+        if cfg.use_default_offset:
+            self._offset = self._asset.data.default_joint_pos[
+                :, self._joint_ids
+            ].clone()
+        self.P = cfg.p_gain
+
+    def apply_actions(self):
+        # set position targets
+        # print(f"Processed action: {self.processed_actions}")
+        # print(f"Current pos     : {self._asset.data.joint_pos[:, self._joint_ids]}")
+        error_action = self.processed_actions - self._asset.data.joint_pos[:, self._joint_ids]
+        # print(f"Error action    : {error_action}")
+        control_action = error_action * self.P + self._asset.data.joint_pos[:, self._joint_ids]
+        # print(f"Control action  : {control_action}")
+        self._asset.set_joint_position_target(
+            control_action, joint_ids=self._joint_ids
+        )
+
+
+# TODO ROV check that this works
+@configclass
+class JointPositionPIDCfg(JointActionCfg):
+    class_type: type[ActionTerm] = JointPositionPID
+    p_gain: float = 1.0
+    use_default_offset: bool = True
 
 
 class VelocityExtractor:
@@ -72,7 +111,6 @@ class VelocityExtractor:
         return current_joint_vel
 
 
-# TODO ROV maybe need to change probability, although like this seems to work
 # this will give a weighted change of 1/10 to have a double delay in the observation, normal is single delay
 class RandomDelay(DigitalFilter):
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
@@ -129,7 +167,7 @@ def apply_global_external_force_torque(
     applied when ``asset.write_data_to_sim()`` is called in the environment.
     """
     # extract the used quantities (to enable type-hinting)
-    asset: RigidObject | Articulation = env.scene[asset_cfg.name]
+    asset: RigidObject = env.scene[asset_cfg.name]
     # resolve environment ids
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=asset.device)
@@ -142,9 +180,7 @@ def apply_global_external_force_torque(
     torques = math_utils.sample_uniform(*torque_range, size, asset.device)
     # set the forces and torques into the buffers
     # note: these are only applied when you call: `asset.write_data_to_sim()`
-    # TODO ROV I changed rigidobject implementation of isaac lab to allow for global wrenches
-    asset.is_external_wrench_global = is_global_wrench
-    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids)
+    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids, is_global_wrench=is_global_wrench)
 
 
 def joint_pos_with_noise(
@@ -184,11 +220,9 @@ def simulated_camera_image(
     maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
 
     sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
-    # TODO ROV change image size
+
     pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
     cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float, device="cuda:0")
-    # pad_size = torch.tensor([16, 16], device="cuda:0").to(torch.int16)
-    # cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 32, 32), dtype=torch.float, device="cuda:0")
 
     if globals.use_multi_maze:
         for env_idx in range(sphere_pos_env.shape[0]):
@@ -213,9 +247,7 @@ def simulated_camera_image(
 
             cropped_images[env_idx, :, :] = sim_image[x_lo:x_hi, y_lo:y_hi]
             # color center pixels grey to visualize the sphere
-            # TODO ROV change image size not correct in commented part
             cropped_images[env_idx, 7:9, 7:9] = 128
-            # cropped_images[env_idx, 15:17, 15:17] = 128
 
             if globals.debug_images:
                 if env_idx == 0 or env_idx == 1:
@@ -261,9 +293,7 @@ def simulated_camera_image(
 
             cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
             # color center pixels grey to visualize the sphere
-            # TODO ROV change image size not correct in commented part
             cropped_images[i, 7:9, 7:9] = 128
-            # cropped_images[i, 15:17, 15:17] = 128
 
             if globals.debug_images:
                 if i == 0:

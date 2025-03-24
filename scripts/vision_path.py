@@ -6,7 +6,6 @@ from PIL import Image, ImageDraw
 from datetime import datetime
 
 
-# TODO ROV sample script for vision pipeline on hardware
 class Image_Observation:
     def __init__(self, image_path, maze_path):
         # image related variables

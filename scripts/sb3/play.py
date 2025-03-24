@@ -22,7 +22,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-02-04_14-46-34_33Hz_16gray_6xHistoryPos_BigDelay/model_147456000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-03-12_16-12-20/model.zip",  # "logs/sb3/Isaac-Maze-v0/2025-02-04_14-46-34_33Hz_16gray_6xHistoryPos_BigDelay/model_147456000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -97,8 +97,8 @@ def main():
     """Play with stable-baselines agent."""
     # parse configuration
     env_cfg = parse_env_cfg(
-        # TODO ROV device="cuda:0" instead of use_gpu
         args_cli.task,
+        device="cuda:0",
         num_envs=args_cli.num_envs,
         use_fabric=not args_cli.disable_fabric,
     )

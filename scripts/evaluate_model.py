@@ -10,7 +10,6 @@ import torch
 print(torch.__version__)
 
 
-# TODO ROV left over for hardware module, only left here for debug purpose
 class RL_Agent:
     def __init__(self, model_path, new_model=False):
         self.new_model = new_model
