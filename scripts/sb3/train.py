@@ -48,7 +48,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-03-11_17-12-22_33Hz_16gray_6xHistoryPos_3-10Delay_Force-0005_real_maze_pretrained_simple/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-04-08_17-15_33Hz_16gray_6xHistoryPos_3-10Delay_ObsDelay2-3_randMass_real_maze_pretrained_real_0312/model.zip",
     # default="logs/sb3/Isaac-Maze-v0/2025-02-04_14-46-34_33Hz_16gray_6xHistoryPos_BigDelay/model_98304000_steps.zip",
     # "logs/sb3/Isaac-Maze-v0/2025-01-31_11-33-30_50Hz_gray_6xHistoryPos_Delay/model_180224000_steps.zip",
     # "logs/sb3/Isaac-Maze-v0/2025-01-23_16-33-41_50hz_gray_historyPos_NoDelay/model_114688000_steps.zip",

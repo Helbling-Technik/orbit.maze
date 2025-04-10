@@ -391,14 +391,19 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
+    # TODO ROV apply rolling resistance
+    rolling_resistance_action = mdp.RollingResistanceActionCfg(
+        asset_name="sphere",
+        resistance_coef_range=[0.001, 0.015],  # This randomizes on reset in this range
+    )
     # set scaling to proper angle
     if globals.position_control:
         # TODO ROV if divided by 100 (action space) would have direct mapping to rad from (-axis limit, +axis-limit)
         # TODO ROV trying out own action config
-        # outer_joint_effort = mdp.observations.JointPositionPIDCfg(
+        # outer_joint_effort = mdp.actions.JointPositionPIDCfg(
         #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10, p_gain=0.3
         # )
-        # inner_joint_effort = mdp.observations.JointPositionPIDCfg(
+        # inner_joint_effort = mdp.actions.JointPositionPIDCfg(
         #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=10 * math.pi / 180 / 10, p_gain=0.3
         # )
         outer_joint_effort = mdp.JointPositionActionCfg(

@@ -31,47 +31,8 @@ from scipy.spatial.transform import Rotation
 import numpy as np
 import globals
 
-# TODO ROV create P output on action
-from omni.isaac.lab.envs.mdp.actions import JointActionCfg, JointAction
-from omni.isaac.lab.managers.action_manager import ActionTerm
-
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
-
-
-# TODO ROV finish PID implementation
-class JointPositionPID(JointAction):
-    cfg: JointPositionPIDCfg
-
-    def __init__(self, cfg: JointPositionPIDCfg, env: ManagerBasedEnv):
-        # initialize the action term
-        super().__init__(cfg, env)
-        # use default joint positions as offset
-        if cfg.use_default_offset:
-            self._offset = self._asset.data.default_joint_pos[
-                :, self._joint_ids
-            ].clone()
-        self.P = cfg.p_gain
-
-    def apply_actions(self):
-        # set position targets
-        # print(f"Processed action: {self.processed_actions}")
-        # print(f"Current pos     : {self._asset.data.joint_pos[:, self._joint_ids]}")
-        error_action = self.processed_actions - self._asset.data.joint_pos[:, self._joint_ids]
-        # print(f"Error action    : {error_action}")
-        control_action = error_action * self.P + self._asset.data.joint_pos[:, self._joint_ids]
-        # print(f"Control action  : {control_action}")
-        self._asset.set_joint_position_target(
-            control_action, joint_ids=self._joint_ids
-        )
-
-
-# TODO ROV check that this works
-@configclass
-class JointPositionPIDCfg(JointActionCfg):
-    class_type: type[ActionTerm] = JointPositionPID
-    p_gain: float = 1.0
-    use_default_offset: bool = True
 
 
 class VelocityExtractor:
