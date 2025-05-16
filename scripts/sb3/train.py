@@ -48,13 +48,7 @@ parser.add_argument(
 parser.add_argument(
     "--model_path",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-04-08_17-15_33Hz_16gray_6xHistoryPos_3-10Delay_ObsDelay2-3_randMass_real_maze_pretrained_real_0312/model.zip",
-    # default="logs/sb3/Isaac-Maze-v0/2025-02-04_14-46-34_33Hz_16gray_6xHistoryPos_BigDelay/model_98304000_steps.zip",
-    # "logs/sb3/Isaac-Maze-v0/2025-01-31_11-33-30_50Hz_gray_6xHistoryPos_Delay/model_180224000_steps.zip",
-    # "logs/sb3/Isaac-Maze-v0/2025-01-23_16-33-41_50hz_gray_historyPos_NoDelay/model_114688000_steps.zip",
-    # "logs/sb3/Isaac-Maze-v0/2024-11-21_11-11-23_25Hz_2x_img_length_4x_crop_length/model_40960000_steps.zip",
-    # "logs/sb3/Isaac-Maze-v0/2024-10-25_14-46-22_25_Hz_increased_actuator_rand_longerTraining/model.zip",
-    # logs/sb3/Isaac-Maze-v0/2024-10-11_08-45-31_friction_force_on_reset_delay_realmaze/model_98304000_steps.zip
+    default=None,
 )
 
 # append AppLauncher cli args
@@ -75,6 +69,9 @@ if args_cli.delay:
     globals.use_delay = True
 if args_cli.ext_force:
     globals.use_force = True
+
+# TODO ROV better way needed to specify frequency
+globals.targeted_frequency = 30.0
 
 # Init globals before everything else
 if args_cli.multi_maze:
@@ -107,6 +104,8 @@ from omni.isaac.lab_tasks.utils import load_cfg_from_registry, parse_env_cfg
 from omni.isaac.lab_tasks.utils.wrappers.sb3 import Sb3VecEnvWrapper, process_sb3_cfg
 import orbit.maze  # noqa: F401  TODO: import orbit.<your_extension_name>
 import json
+
+from orbit.maze.tasks.maze.agents import helbling_combined_extractor
 
 
 def serialize_config(config):
@@ -204,6 +203,13 @@ def main():
             clip_reward=np.inf,
         )
 
+    # create custom object
+    policy_kwargs = dict(
+        features_extractor_class=helbling_combined_extractor.CustomCombinedExtractor,
+        features_extractor_kwargs=dict(normalized_image=True),
+        # TODO ROV maybe also increase net arch with a hidden layer didnt work
+        net_arch=[256, 256, 256],
+    )
     # Check if a model path is provided
     if args_cli.model_path:
         model_path = os.path.abspath(args_cli.model_path)
@@ -213,7 +219,7 @@ def main():
             print(f"[INFO] Loaded existing model from {args_cli.model_path}")
     else:
         # Create a new agent from scratch
-        agent = PPO(policy_arch, env, verbose=1, **agent_cfg)
+        agent = PPO(policy_arch, env, verbose=1, policy_kwargs=policy_kwargs, **agent_cfg)
 
     # configure the logger
     new_logger = configure(log_dir, ["stdout", "tensorboard"])
@@ -226,6 +232,9 @@ def main():
     agent.learn(total_timesteps=n_timesteps, callback=checkpoint_callback)
     # save the final model
     agent.save(os.path.join(log_dir, "model"))
+
+    if "normalize_input" in agent_cfg:
+        env.save(os.path.join(log_dir, "vecnormalize.pkl"))
 
     # close the simulator
     env.close()

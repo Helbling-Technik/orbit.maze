@@ -8,20 +8,16 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-# from omni.isaac.lab.sensors import Camera
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.envs import ManagerBasedEnv
 
-# TODO ROV for the modifiers to work we need Isaac Lab at commit: fecf239ce14a45225fb535ca102c88b4cc1f73bb
-# currently cherry picked since there are breaking chances with the newest main branch
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.modifiers import DigitalFilter, DigitalFilterCfg
 import random
 
 import omni.isaac.lab.utils.math as math_utils
 
-# from omni.isaac.lab.sensors import RayCaster
 from omni.isaac.lab.utils.warp import raycast_mesh  # noqa: F401
 
 from PIL import Image, ImageDraw
@@ -138,6 +134,9 @@ def apply_global_external_force_torque(
     # sample random forces and torques
     size = (len(env_ids), num_bodies, 3)
     forces = math_utils.sample_uniform(*force_range, size, asset.device)
+    # z component should be 0
+    forces[:, :, -1] = 0.0
+
     torques = math_utils.sample_uniform(*torque_range, size, asset.device)
     # set the forces and torques into the buffers
     # note: these are only applied when you call: `asset.write_data_to_sim()`
