@@ -168,6 +168,18 @@ def root_pos_w_with_noise(
     return robot_pos + noise_tensor
 
 
+def root_pos_xy_w_with_noise(
+    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
+) -> torch.Tensor:
+    """Asset root position in the environment frame."""
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    robot_pos = asset.data.root_pos_w - env.scene.env_origins
+    noise_tensor = torch.normal(mean=0, std=std, size=asset.data.root_pos_w.shape).to(robot_pos.device)
+    root_pos_noisy = robot_pos + noise_tensor
+    return root_pos_noisy[:, :2]
+
+
 def simulated_camera_image(
     env: ManagerBasedRLEnv,
     sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere"),

@@ -11,9 +11,6 @@ import math
 import omni.isaac.lab.sim as sim_utils
 from omni.isaac.lab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
 from omni.isaac.lab.envs import ManagerBasedRLEnvCfg
-
-# from omni.isaac.lab.sensors import CameraCfg, RayCasterCfg
-# from omni.isaac.lab.sensors.ray_caster.patterns import BpearlPatternCfg, GridPatternCfg
 from omni.isaac.lab.managers import EventTermCfg as EventTerm
 from omni.isaac.lab.managers import ObservationGroupCfg as ObsGroup
 from omni.isaac.lab.managers import ObservationTermCfg as ObsTerm
@@ -28,6 +25,7 @@ import globals
 
 import orbit.maze.tasks.maze.mdp as mdp
 import os
+from datetime import datetime
 
 # Multimaze imports
 from pxr import Usd
@@ -268,7 +266,6 @@ def get_maze_cfg():
                 sleep_threshold=0.005,
                 stabilization_threshold=0.001,
             ),
-            # TODO ROV not sure if this is what I want or if I should apply it to the material
             mass_props=sim_utils.MassPropertiesCfg(
                 density=410,
             )
@@ -278,24 +275,29 @@ def get_maze_cfg():
         ),
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
+        # Tuned using gain tuner from Isaac Sim, relatable values for stiffness and damping are (logarithmic):
+        # Stiffness: 5.15 1/deg or 2.47 1/rad
+        # Damping: 1.74 1/deg or 2 1/rad
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=3 if globals.use_delay else 0,  # timesteps was 10
-                max_delay=10 if globals.use_delay else 0,  # timesteps was 15
+                # TODO ROV changed delay from 3-10 to 2-3
+                min_delay=2 if globals.use_delay else 0,  # timesteps was 10
+                max_delay=3 if globals.use_delay else 0,  # timesteps was 15
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,  # rad/s = RPM * 2pi/60
-                stiffness=1000.0 if globals.position_control else 0.0,
-                damping=0.0 if globals.position_control else 10.0,
+                stiffness=5.15 if globals.position_control else 0.0,
+                damping=1.74 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=3 if globals.use_delay else 0,  # timesteps was 10
-                max_delay=10 if globals.use_delay else 0,  # timesteps was 15
+                # TODO ROV changed delay from 3-10 to 2-3
+                min_delay=2 if globals.use_delay else 0,  # timesteps was 10
+                max_delay=3 if globals.use_delay else 0,  # timesteps was 15
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,  # rad/s = RPM * 2pi/60
-                stiffness=1000.0 if globals.position_control else 0.0,
-                damping=0.0 if globals.position_control else 10.0,
+                stiffness=5.15 if globals.position_control else 0.0,
+                damping=1.74 if globals.position_control else 10.0,
             ),
         },
     )
@@ -332,7 +334,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
             rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=True),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
-            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.8, dynamic_friction=0.5),
+            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.8, dynamic_friction=0.5, restitution=0.5),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
@@ -391,27 +393,59 @@ class CommandsCfg:
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    # TODO ROV apply rolling resistance
-    rolling_resistance_action = mdp.RollingResistanceActionCfg(
-        asset_name="sphere",
-        resistance_coef_range=[0.001, 0.015],  # This randomizes on reset in this range
-    )
+    # rolling_resistance_action = mdp.RollingResistanceActionCfg(
+    #     asset_name="sphere",
+    #     resistance_coef_range=[0.01, 0.015],  # This randomizes on reset in this range
+    #     speed_threshold=5.0,
+    #     stick_slip_angle_range_deg=[2, 4],  # This randomizes on reset in this range
+    # )
+    # stick_slip_action = mdp.StickSlipActionCfg(
+    #     asset_name="sphere",
+    #     stick_slip_angle_range_deg=[2, 2],  # This randomizes on reset in this range
+    # )
+
     # set scaling to proper angle
+    # if divided by 100 (action space) would have direct mapping to rad from (-axis limit, +axis-limit)
+    # Adding clipping will not work well for PPO so commented out
     if globals.position_control:
-        # TODO ROV if divided by 100 (action space) would have direct mapping to rad from (-axis limit, +axis-limit)
-        # TODO ROV trying out own action config
-        # outer_joint_effort = mdp.actions.JointPositionPIDCfg(
-        #     asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10, p_gain=0.3
-        # )
-        # inner_joint_effort = mdp.actions.JointPositionPIDCfg(
-        #     asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=10 * math.pi / 180 / 10, p_gain=0.3
-        # )
-        outer_joint_effort = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=7 * math.pi / 180 / 10
-        )
-        inner_joint_effort = mdp.JointPositionActionCfg(
-            asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=10 * math.pi / 180 / 10
-        )
+        if True:  # TODO ROV define proper variable
+            outer_joint_effort = mdp.actions.JointPositionPIDCfg(
+                asset_name="robot",
+                joint_names=["OuterDOF_RevoluteJoint"],
+                scale=7 * math.pi / 180 / 10,
+                p_gain=0.65,
+                i_gain=-1.0,
+                d_gain=0.13,
+                frequency=globals.targeted_frequency,
+                alpha=1.0,
+                limit=7 * math.pi / 180,
+                # clip={"OuterDOF_RevoluteJoint" : [-3 * math.pi / 180, 3 * math.pi / 180]}
+            )
+            inner_joint_effort = mdp.actions.JointPositionPIDCfg(
+                asset_name="robot",
+                joint_names=["InnerDOF_RevoluteJoint"],
+                scale=10 * math.pi / 180 / 10,
+                p_gain=0.65,
+                i_gain=-1.0,
+                d_gain=0.13,
+                frequency=globals.targeted_frequency,
+                alpha=1.0,
+                limit=10 * math.pi / 180,
+                # clip={"InnerDOF_RevoluteJoint" : [-4 * math.pi / 180, 4 * math.pi / 180]}
+            )
+        else:
+            outer_joint_effort = mdp.JointPositionActionCfg(
+                asset_name="robot",
+                joint_names=["OuterDOF_RevoluteJoint"],
+                scale=7 * math.pi / 180 / 10,
+                # clip={"OuterDOF_RevoluteJoint" : [-3 * math.pi / 180, 3 * math.pi / 180]}
+            )
+            inner_joint_effort = mdp.JointPositionActionCfg(
+                asset_name="robot",
+                joint_names=["InnerDOF_RevoluteJoint"],
+                scale=10 * math.pi / 180 / 10,
+                # clip={"InnerDOF_RevoluteJoint" : [-4 * math.pi / 180, 4 * math.pi / 180]}
+            )
     else:
         outer_joint_effort = mdp.JointEffortActionCfg(
             asset_name="robot", joint_names=["OuterDOF_RevoluteJoint"], scale=1.0
@@ -424,6 +458,7 @@ class ActionsCfg:
 # velocity_extractor = mdp.VelocityExtractor()
 
 
+# TODO ROV NORMALIZE ALL OBSERVATIONS
 @configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
@@ -432,15 +467,11 @@ class ObservationsCfg:
     class MlpPolicyCfg(ObsGroup):
         """Observations for policy group."""
 
-        # TODO ROV had to rewrite observation_manager.py for modifier to work again
-        
-        # TODO ROV history length (how many obs time steps that we pass to the model) as parameter        
         # observation terms (order preserved)
         joint_pos = ObsTerm(
             func=mdp.joint_pos_with_noise,
             history_length=6,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
-            # TODO ROV add modifier again, check modifier length though, always delayed by 2 timestep, occasionally 3:
             modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
         )
         # TODO ROV make this selectable
@@ -451,10 +482,11 @@ class ObservationsCfg:
         # )
 
         sphere_pos = ObsTerm(
-            func=mdp.root_pos_w_with_noise,
+            # TODO ROV train without pos z
+            # func=mdp.root_pos_w_with_noise,
+            func=mdp.root_pos_xy_w_with_noise,
             history_length=6,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
-            # TODO ROV add modifier again, check modifier length though, always delayed by 2 timestep, occasionally 3:
             modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
         )
         # TODO ROV make this selectable
@@ -468,7 +500,6 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg("target1"),
             },
-            # TODO ROV add modifier again, check modifier length though, always delayed by 2 timestep, occasionally 3:
             modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
         )
         target2_pos = ObsTerm(
@@ -476,7 +507,6 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg("target2"),
             },
-            # TODO ROV add modifier again, check modifier length though, always delayed by 2 timestep, occasionally 3:
             modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
         )
         target3_pos = ObsTerm(
@@ -484,7 +514,6 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg("target3"),
             },
-            # TODO ROV add modifier again, check modifier length though, always delayed by 2 timestep, occasionally 3:
             modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
         )
 
@@ -502,7 +531,6 @@ class ObservationsCfg:
                 "sphere_cfg": SceneEntityCfg("sphere"),
                 "maze_cfg": SceneEntityCfg("robot"),
             },
-            # TODO ROV add modifier again, check modifier length though, always delayed by 2 timestep, occasionally 3:
             modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
         )
 
@@ -518,6 +546,15 @@ class ObservationsCfg:
 @configclass
 class EventCfg:
     """Configuration for events."""
+    # TODO ROV event term to save max path, define variable
+    if False:
+        record_max_path = EventTerm(
+            func=mdp.store_accumulated_path_score,
+            mode="reset",
+            params={
+                "file_path": "logs/sb3/Isaac-Maze-v0/test-scores/test_run_" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".csv",
+            },
+        )
 
     reset_maze_state = EventTerm(
         func=mdp.reset_maze_state,
@@ -547,9 +584,9 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
-            "static_friction_range": (0.1, 1.0),
-            "dynamic_friction_range": (0.1, 1.0),
-            "restitution_range": (0.0, 0.5),
+            "static_friction_range": (0.1, 0.8),
+            "dynamic_friction_range": (0.1, 0.8),
+            "restitution_range": (0.25, 0.75),
             "num_buckets": 300,
         },
     )
@@ -559,13 +596,13 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "static_friction_range": (0.1, 1.0),
-            "dynamic_friction_range": (0.1, 1.0),
-            "restitution_range": (0.0, 0.5),
+            "static_friction_range": (0.1, 0.8),
+            "dynamic_friction_range": (0.1, 0.8),
+            "restitution_range": (0.25, 0.75),
             "num_buckets": 300,
         },
     )
-    # TODO ROV randomize mass
+
     randomize_robot_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
         mode="reset",
@@ -588,45 +625,24 @@ class EventCfg:
         }
     )
 
-    # TODO ROV only use stiffness
     randomize_outer_actuator = EventTerm(
         func=mdp.randomize_actuator_gains,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "stiffness_distribution_params": (0.1, 2.0),
-            # "damping_distribution_params": (0.5, 2.0),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
+            "stiffness_distribution_params": (0.5, 2.0),
+            "damping_distribution_params": (0.5, 2.0),
             "operation": "scale",
             "distribution": "uniform",
         },
     )
-    randomize_inner_actuator = EventTerm(
-        func=mdp.randomize_actuator_gains,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "stiffness_distribution_params": (0.1, 2.0),
-            # "damping_distribution_params": (0.5, 2.0),
-            "operation": "scale",
-            "distribution": "uniform",
-        },
-    )
+
     randomize_outer_joint = EventTerm(
         func=mdp.randomize_joint_parameters,
         mode="reset",
         params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="OuterDOF_RevoluteJoint"),
-            "friction_distribution_params": (0.2, 1.0),
-            "operation": "abs",
-            "distribution": "uniform",
-        },
-    )
-    randomize_inner_joint = EventTerm(
-        func=mdp.randomize_joint_parameters,
-        mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names="InnerDOF_RevoluteJoint"),
-            "friction_distribution_params": (0.2, 1.0),
+            "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
+            "friction_distribution_params": (0.0, 0.1),
             "operation": "abs",
             "distribution": "uniform",
         },
@@ -650,20 +666,21 @@ class EventCfg:
 @configclass
 class RewardsCfg:
     """Reward terms for the MDP."""
-
     # (1) Constant running reward
-    alive = RewTerm(func=mdp.is_alive, weight=0.1)
+    alive = RewTerm(func=mdp.is_alive, weight=0.0001)
 
     # (2) Failure penalty
     terminating = RewTerm(
         func=mdp.root_height_below_minimum,
         params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
-        weight=-1000.0,
+        # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
+        weight=-1.0 * globals.targeted_frequency,
     )
     # (3) Primary task: control maze path
     sphere_maze_path_target = RewTerm(
         func=mdp.path_point_target,
-        weight=1000.0,
+        # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
+        weight=1.0 * globals.targeted_frequency,
         params={
             "target1_cfg": SceneEntityCfg("target1"),
             "target2_cfg": SceneEntityCfg("target2"),
@@ -674,12 +691,13 @@ class RewardsCfg:
     # smoother with increased penalty here
     joint_action = RewTerm(
         func=mdp.action_l2,
-        weight=-1,
+        weight=-0.001,
     )
     # smoother with increased penalty here
+    # TODO ROV maybe increase rate penalty?
     joint_action_rate = RewTerm(
         func=mdp.action_rate_l2,
-        weight=-1,
+        weight=-0.001,
     )
 
 
@@ -732,13 +750,13 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
-        self.decimation = 3  # TODO ROV we simulate observations at 25Hz=4, trained ok
+        self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
         self.episode_length_s = 15 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
-        self.sim.dt = 1 / 100
-        self.sim.render_interval = 1
+        self.sim.dt = 1 / (self.decimation * globals.targeted_frequency)
+        self.sim.render_interval = 3
 
         # TODO CLEANUP set physics properties if warning, not high enough for 16384 envs
         # self.sim.physx.gpu_collision_stack_size = 2**29

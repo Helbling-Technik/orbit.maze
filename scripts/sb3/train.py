@@ -207,7 +207,7 @@ def main():
     policy_kwargs = dict(
         features_extractor_class=helbling_combined_extractor.CustomCombinedExtractor,
         features_extractor_kwargs=dict(normalized_image=True),
-        # TODO ROV maybe also increase net arch with a hidden layer didnt work
+        # TODO ROV maybe also increase net arch with a hidden layer
         net_arch=[256, 256, 256],
     )
     # Check if a model path is provided

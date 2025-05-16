@@ -13,6 +13,8 @@ from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.envs import ManagerBasedEnv
 import omni.isaac.lab.utils.math as math_utils
 import random
+import pandas as pd
+import os
 
 import globals
 
@@ -61,6 +63,9 @@ def path_point_target(
     # update the path index and last target
     globals.path_idx[target_reached_ids] += globals.path_direction[target_reached_ids]
 
+    # accumulate points crossed for evaluation metric
+    globals.path_accumulated[target_reached_ids] += 1
+
     # check out of bounds and set last target point to beginning/end of path, will propagate to the others in next target reached
     globals.path_idx[globals.path_idx < 0] = 0
 
@@ -88,6 +93,40 @@ def path_point_target(
     target2.write_root_pose_to_sim(target3to2, env_ids=target_reached_ids)
     target3.write_root_pose_to_sim(targetNextto3, env_ids=target_reached_ids)
     return xy_sparse_reward
+
+
+def store_accumulated_path_score(env: ManagerBasedEnv, env_ids: torch.Tensor, file_path: str):
+    if globals.path_accumulated is None:
+        return
+
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+    env_ids = env_ids.cpu().numpy()
+    path_accumulated = globals.path_accumulated[env_ids].cpu().numpy()
+
+    if os.path.exists(file_path):
+        df = pd.read_csv(file_path, index_col=0)
+    else:
+        num_envs = globals.path_accumulated.shape[0]
+        df = pd.DataFrame(index=range(num_envs))
+
+    for i, env_id in enumerate(env_ids):
+        env_idx = env_id.item()
+        value = int(path_accumulated[i])
+
+        # If env row doesn't exist, initialize it
+        if env_idx not in df.index:
+            df.loc[env_idx] = []
+
+        # Find next available column index for this env
+        existing_row = df.loc[env_idx].dropna()
+        next_col = f"run_{len(existing_row)}"
+
+        # Insert the new value
+        df.at[env_idx, next_col] = value
+
+    # Save updated file
+    df.sort_index(inplace=True)
+    df.reset_index().rename(columns={"index": "env"}).to_csv(file_path, index=False)
 
 
 def reset_maze_path_idx(env: ManagerBasedEnv, env_ids: torch.Tensor, sphere_cfg: SceneEntityCfg):
@@ -162,6 +201,8 @@ def reset_maze_state(
             globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
             globals.path_direction[globals.path_idx >= int(path_length / 2)] = -1
 
+            globals.path_accumulated = torch.zeros_like(globals.path_direction)
+
         if globals.maze_start_point < 0:
             globals.path_idx[env_ids] = math_utils.sample_uniform(
                 0, path_length, len(env_ids), device=sphere.device
@@ -175,6 +216,7 @@ def reset_maze_state(
         path_direction_temp = path_direction_temp.to(torch.int)
 
     globals.path_direction[env_ids] = path_direction_temp[env_ids]
+    globals.path_accumulated[env_ids] = 0
 
     # frmt = "{:>3}" * len(globals.path_direction)
     # print("path_dir", frmt.format(*globals.path_direction.tolist()), sep="\t")

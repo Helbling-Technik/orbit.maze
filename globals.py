@@ -4,9 +4,10 @@ import yaml
 import os
 from PIL import Image
 
-global path_idx, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
-global debug_images, real_maze, position_control, use_delay, use_force
+global path_idx, path_accumulated, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
+global debug_images, real_maze, position_control, use_delay, use_force, targeted_frequency
 path_idx = None
+path_accumulated = None
 path_start_idx = None
 maze_path = None
 path_direction = None
@@ -18,6 +19,7 @@ position_control = None
 usd_file_path = None
 use_delay = None
 use_force = None
+targeted_frequency = None
 
 global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array, maze_start_list
 use_multi_maze = None
@@ -63,7 +65,7 @@ def load_image(image_path: str) -> torch.Tensor:
     image.thumbnail((64, 64), Image.Resampling.LANCZOS)
 
     # Threshold
-    # TODO ROV make this selectable
+    # TODO Cleanup
     # Apply a binary threshold to convert the image to black and white
     # threshold = 80  # This is the threshold value, can be adjusted as needed
     # image = image.point(lambda x: 255 if x > threshold else 0)
@@ -127,14 +129,17 @@ def init_single_usd():
         yaml_path = "usds/generated_mazes/real_maze_01.yaml"
         image_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.png"
         # file with proper joint limits
-        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.usd"
+        # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.usd"
+        # TODO ROV with physics materials
+        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.usd"
+
     else:
-        yaml_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.yaml"
-        image_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.png"
-        usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.usd"
-        # yaml_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.yaml"
-        # image_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.png"
-        # usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.usd"
+        # yaml_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.yaml"
+        # image_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.png"
+        # usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.usd"
+        yaml_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.yaml"
+        image_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.png"
+        usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.usd"
 
     # load maze path from yaml file
     with open(os.path.join(yaml_path), "r") as file:

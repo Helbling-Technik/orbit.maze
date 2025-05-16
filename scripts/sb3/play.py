@@ -22,7 +22,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-03-12_16-12-20/model.zip",  # "logs/sb3/Isaac-Maze-v0/2025-02-04_14-46-34_33Hz_16gray_6xHistoryPos_BigDelay/model_147456000_steps.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-05-15_10-11-50/model_114688000_steps.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -64,6 +64,9 @@ if args_cli.delay:
     globals.use_delay = True
 if args_cli.ext_force:
     globals.use_force = True
+
+# TODO ROV better way needed to specify frequency
+globals.targeted_frequency = 30.0
 
 # Init globals before everything else
 if args_cli.multi_maze:
