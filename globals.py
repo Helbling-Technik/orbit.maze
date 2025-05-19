@@ -5,7 +5,7 @@ import os
 from PIL import Image
 
 global path_idx, path_accumulated, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
-global debug_images, real_maze, position_control, use_delay, use_force, targeted_frequency
+global debug_images, real_maze, position_control, use_delay, use_force, targeted_frequency, small_joint_friction, small_actuator_gains, record_path_score
 path_idx = None
 path_accumulated = None
 path_start_idx = None
@@ -20,6 +20,9 @@ usd_file_path = None
 use_delay = None
 use_force = None
 targeted_frequency = None
+small_joint_friction = None
+small_actuator_gains = None
+record_path_score = None
 
 global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array, maze_start_list
 use_multi_maze = None

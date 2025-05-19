@@ -31,6 +31,9 @@ parser.add_argument("--seed", type=int, default=None, help="Seed used for the en
 parser.add_argument(
     "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
 )
+parser.add_argument(
+    "--frames_per_second", type=int, default=30, help="Update frames per second of observation and action"
+)
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
@@ -38,6 +41,8 @@ parser.add_argument(
     "--delay", action="store_true", default=False, help="Add delay to observation & randomized longer delay"
 )
 parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
+parser.add_argument("--small_joint_friction", action="store_true", default=False, help="Small range for joint friction randomization")
+parser.add_argument("--small_actuator_gains", action="store_true", default=False, help="Small range for actuator randomization")
 parser.add_argument(
     "--multi_maze",
     action="store_true",
@@ -69,9 +74,12 @@ if args_cli.delay:
     globals.use_delay = True
 if args_cli.ext_force:
     globals.use_force = True
+if args_cli.small_joint_friction:
+    globals.small_joint_friction = True
+if args_cli.small_actuator_gains:
+    globals.small_actuator_gains = True
 
-# TODO ROV better way needed to specify frequency
-globals.targeted_frequency = 30.0
+globals.targeted_frequency = args_cli.frames_per_second
 
 # Init globals before everything else
 if args_cli.multi_maze:

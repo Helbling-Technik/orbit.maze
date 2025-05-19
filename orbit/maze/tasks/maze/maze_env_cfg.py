@@ -408,7 +408,7 @@ class ActionsCfg:
     # if divided by 100 (action space) would have direct mapping to rad from (-axis limit, +axis-limit)
     # Adding clipping will not work well for PPO so commented out
     if globals.position_control:
-        if True:  # TODO ROV define proper variable
+        if False:  # TODO ROV define proper variable
             outer_joint_effort = mdp.actions.JointPositionPIDCfg(
                 asset_name="robot",
                 joint_names=["OuterDOF_RevoluteJoint"],
@@ -547,7 +547,7 @@ class ObservationsCfg:
 class EventCfg:
     """Configuration for events."""
     # TODO ROV event term to save max path, define variable
-    if False:
+    if globals.record_path_score:
         record_max_path = EventTerm(
             func=mdp.store_accumulated_path_score,
             mode="reset",
@@ -630,8 +630,8 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
-            "stiffness_distribution_params": (0.5, 2.0),
-            "damping_distribution_params": (0.5, 2.0),
+            "stiffness_distribution_params": (0.9, 1.1) if globals.small_actuator_gains else (0.3, 1.7),
+            "damping_distribution_params": (0.9, 1.1) if globals.small_actuator_gains else (0.3, 1.7),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -642,7 +642,7 @@ class EventCfg:
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
-            "friction_distribution_params": (0.0, 0.1),
+            "friction_distribution_params": (0.0, 0.1) if globals.small_joint_friction else (0.0, 0.2),
             "operation": "abs",
             "distribution": "uniform",
         },
