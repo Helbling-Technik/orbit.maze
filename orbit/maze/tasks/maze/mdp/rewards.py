@@ -67,6 +67,7 @@ def path_point_target(
     globals.path_accumulated[target_reached_ids] += 1
 
     # check out of bounds and set last target point to beginning/end of path, will propagate to the others in next target reached
+    globals.path_direction[globals.path_idx < 0] *= -1
     globals.path_idx[globals.path_idx < 0] = 0
 
     # get next target points
@@ -76,12 +77,14 @@ def path_point_target(
             path_maze = globals.get_list_entry_from_env(globals.maze_path_list, reached_idx)
             path_length = path_maze.shape[0]
             if globals.path_idx[reached_idx] >= path_length:
+                globals.path_direction[reached_idx] *= -1
                 globals.path_idx[reached_idx] = path_length - 1
             updated_path_idx = globals.path_idx[reached_idx]
             targetNextList.append(path_maze[updated_path_idx, :])
         targetNext = torch.stack(targetNextList, dim=0).to(sphere.device)
     else:
         path_length = globals.maze_path.shape[0]
+        globals.path_direction[globals.path_idx >= path_length] *= -1
         globals.path_idx[globals.path_idx >= path_length] = path_length - 1
 
         updated_path_idx = globals.path_idx[target_reached_ids].clone().detach().to(device=sphere.device, dtype=int)
@@ -129,17 +132,6 @@ def store_accumulated_path_score(env: ManagerBasedEnv, env_ids: torch.Tensor, fi
     df.reset_index().rename(columns={"index": "env"}).to_csv(file_path, index=False)
 
 
-def reset_maze_path_idx(env: ManagerBasedEnv, env_ids: torch.Tensor, sphere_cfg: SceneEntityCfg):
-    sphere: RigidObject = env.scene[sphere_cfg.name]
-
-    if globals.path_idx is None:
-        globals.path_idx = 2 * torch.ones(env.num_envs, device=sphere.device, dtype=int)
-        globals.path_idx = globals.path_idx.to(sphere.device)
-
-    globals.path_idx[env_ids] = 2 * torch.ones(len(env_ids), device=sphere.device, dtype=int)
-    globals.path_idx = globals.path_idx.clone().to(sphere.device)
-
-
 def reset_maze_state(
     env: ManagerBasedEnv,
     env_ids: torch.Tensor,
@@ -167,11 +159,9 @@ def reset_maze_state(
                     path_idx_list.append(start_point)
 
             globals.path_idx = torch.tensor(path_idx_list, device=sphere.device, dtype=torch.int)
-            globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
-            for e_idx in env_ids:
-                path_length = globals.get_list_entry_from_env(globals.maze_path_list, e_idx).shape[0]
-                if globals.path_idx[e_idx] >= int(path_length / 2):
-                    globals.path_direction[e_idx] = -1
+            globals.path_direction = torch.randint(0, 2, env_ids.shape, device=sphere.device, dtype=torch.int) * 2 - 1
+            globals.path_accumulated = torch.zeros_like(globals.path_direction)
+
         # Need to reset globals.path_idx in env_ids
         for e_idx in env_ids:
             start_point = globals.get_list_entry_from_env(globals.maze_start_list, e_idx)
@@ -181,10 +171,7 @@ def reset_maze_state(
             else:
                 globals.path_idx[e_idx] = start_point
 
-        path_direction_temp = torch.zeros_like(globals.path_direction, dtype=torch.int)
-        for e_idx in env_ids:
-            path_length = globals.get_list_entry_from_env(globals.maze_path_list, e_idx).shape[0]
-            path_direction_temp[e_idx] = 2 * (globals.path_idx[e_idx] < int(path_length / 2)) - 1
+        path_direction_temp = torch.randint(0, 2, globals.path_direction.shape, device=sphere.device) * 2 - 1
         path_direction_temp = path_direction_temp.to(torch.int)
     else:
         path_length = globals.maze_path.shape[0]
@@ -198,9 +185,7 @@ def reset_maze_state(
                     len(env_ids), device=sphere.device, dtype=torch.int
                 )
 
-            globals.path_direction = torch.ones(len(env_ids), device=sphere.device, dtype=torch.int)
-            globals.path_direction[globals.path_idx >= int(path_length / 2)] = -1
-
+            globals.path_direction = torch.randint(0, 2, env_ids.shape, device=sphere.device, dtype=torch.int) * 2 - 1
             globals.path_accumulated = torch.zeros_like(globals.path_direction)
 
         if globals.maze_start_point < 0:
@@ -211,16 +196,12 @@ def reset_maze_state(
             globals.path_idx[env_ids] = globals.maze_start_point * torch.ones(
                 len(env_ids), device=sphere.device, dtype=torch.int
             )
-        path_direction_temp = torch.zeros_like(globals.path_direction, dtype=torch.int)
-        path_direction_temp = 2 * (globals.path_idx < int(path_length / 2)) - 1
+
+        path_direction_temp = torch.randint(0, 2, globals.path_direction.shape, device=sphere.device) * 2 - 1
         path_direction_temp = path_direction_temp.to(torch.int)
 
     globals.path_direction[env_ids] = path_direction_temp[env_ids]
     globals.path_accumulated[env_ids] = 0
-
-    # frmt = "{:>3}" * len(globals.path_direction)
-    # print("path_dir", frmt.format(*globals.path_direction.tolist()), sep="\t")
-    # print("globals.path_idx", frmt.format(*globals.path_idx.tolist()), sep="\t")
 
     sphere_pos = sphere.data.default_root_state[env_ids, :7].clone()
     target1_pos = sphere_pos.clone()
@@ -228,23 +209,25 @@ def reset_maze_state(
     target3_pos = target1_pos.clone()
 
     if globals.use_multi_maze:
-        # the asset configs come in a list of reseted envs, not all of them
+        # the asset configs come in a list of resetted envs, not all of them
         for idx, e_idx in enumerate(env_ids):
             maze_path = globals.get_list_entry_from_env(globals.maze_path_list, e_idx)
+            path_length = maze_path.shape[0]
             sphere_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
-            globals.path_idx[e_idx] = globals.path_idx[e_idx] + globals.path_direction[e_idx]
+            _step_path_savely(e_idx, path_length)
             target1_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
-            globals.path_idx[e_idx] = globals.path_idx[e_idx] + globals.path_direction[e_idx]
+            _step_path_savely(e_idx, path_length)
             target2_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
-            globals.path_idx[e_idx] = globals.path_idx[e_idx] + globals.path_direction[e_idx]
+            _step_path_savely(e_idx, path_length)
             target3_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
     else:
+        path_length = globals.maze_path.shape[0]
         sphere_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
-        globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
+        _step_path_savely(env_ids, path_length)
         target1_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
-        globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
+        _step_path_savely(env_ids, path_length)
         target2_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
-        globals.path_idx[env_ids] = globals.path_idx[env_ids] + globals.path_direction[env_ids]
+        _step_path_savely(env_ids, path_length)
         target3_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
 
     sphere.write_root_pose_to_sim(sphere_pos, env_ids=env_ids)
@@ -252,6 +235,23 @@ def reset_maze_state(
     target1.write_root_pose_to_sim(target1_pos, env_ids=env_ids)
     target3.write_root_pose_to_sim(target3_pos, env_ids=env_ids)
     target2.write_root_pose_to_sim(target2_pos, env_ids=env_ids)
+
+
+def _step_path_savely(env_ids, path_length):
+    # Get current index and direction for the selected envs
+    idx = globals.path_idx[env_ids]
+    direction = globals.path_direction[env_ids]
+
+    # Reverse direction if out of bounds
+    out_of_bounds_high = (idx + direction) >= path_length
+    out_of_bounds_low = (idx + direction) <= 0
+
+    # Flip direction only where needed
+    direction[out_of_bounds_high | out_of_bounds_low] *= -1
+
+    # Update global direction and index
+    globals.path_direction[env_ids] = direction
+    globals.path_idx[env_ids] = idx + direction
 
 
 def root_xypos_target(

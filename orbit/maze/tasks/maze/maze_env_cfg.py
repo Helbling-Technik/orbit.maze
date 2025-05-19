@@ -217,23 +217,25 @@ def get_multi_maze_cfg():
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
+            # TODO ROV changed delay from 3-10 to 2-3
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=10 if globals.use_delay else 0,  # timesteps
-                max_delay=15 if globals.use_delay else 0,  # timesteps
+                min_delay=2 if globals.use_delay else 0,  # timesteps
+                max_delay=3 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
-                effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
-                velocity_limit=20 * math.pi,
-                stiffness=1000.0 if globals.position_control else 0.0,
-                damping=1.0 if globals.position_control else 10.0,
+                effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
+                velocity_limit=600 * 2 * math.pi / 60,
+                stiffness=5.15 if globals.position_control else 0.0,
+                damping=1.74 if globals.position_control else 10.0,
             ),
+            # TODO ROV changed delay from 3-10 to 2-3
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=10 if globals.use_delay else 0,  # timesteps
-                max_delay=15 if globals.use_delay else 0,  # timesteps
+                min_delay=2 if globals.use_delay else 0,  # timesteps
+                max_delay=3 if globals.use_delay else 0,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
-                effort_limit=10,  # 5g * 9.81 * 0.15m = 0.007357
-                velocity_limit=20 * math.pi,
-                stiffness=1000.0 if globals.position_control else 0.0,
-                damping=1.0 if globals.position_control else 10.0,
+                effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
+                velocity_limit=600 * 2 * math.pi / 60,
+                stiffness=5.15 if globals.position_control else 0.0,
+                damping=1.74 if globals.position_control else 10.0,
             ),
         },
     )
@@ -482,8 +484,6 @@ class ObservationsCfg:
         # )
 
         sphere_pos = ObsTerm(
-            # TODO ROV train without pos z
-            # func=mdp.root_pos_w_with_noise,
             func=mdp.root_pos_xy_w_with_noise,
             history_length=6,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
@@ -546,7 +546,6 @@ class ObservationsCfg:
 @configclass
 class EventCfg:
     """Configuration for events."""
-    # TODO ROV event term to save max path, define variable
     if globals.record_path_score:
         record_max_path = EventTerm(
             func=mdp.store_accumulated_path_score,

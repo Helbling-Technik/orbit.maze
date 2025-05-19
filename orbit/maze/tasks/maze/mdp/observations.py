@@ -157,15 +157,16 @@ def joint_pos_with_noise(
     return joint_pos + noise_tensor
 
 
-def root_pos_w_with_noise(
-    env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
-) -> torch.Tensor:
-    """Asset root position in the environment frame."""
-    # extract the used quantities (to enable type-hinting)
-    asset: RigidObject = env.scene[asset_cfg.name]
-    robot_pos = asset.data.root_pos_w - env.scene.env_origins
-    noise_tensor = torch.normal(mean=0, std=std, size=asset.data.root_pos_w.shape).to(robot_pos.device)
-    return robot_pos + noise_tensor
+# TODO CLEANUP
+# def root_pos_w_with_noise(
+#     env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
+# ) -> torch.Tensor:
+#     """Asset root position in the environment frame."""
+#     # extract the used quantities (to enable type-hinting)
+#     asset: RigidObject = env.scene[asset_cfg.name]
+#     robot_pos = asset.data.root_pos_w - env.scene.env_origins
+#     noise_tensor = torch.normal(mean=0, std=std, size=asset.data.root_pos_w.shape).to(robot_pos.device)
+#     return robot_pos + noise_tensor
 
 
 def root_pos_xy_w_with_noise(
