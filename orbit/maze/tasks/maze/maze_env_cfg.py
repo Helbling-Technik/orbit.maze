@@ -217,20 +217,18 @@ def get_multi_maze_cfg():
         # Position Control: For position controlled joints, set a high stiffness and relatively low or zero damping.
         # Velocity Control: For velocity controller joints, set a high damping and zero stiffness.
         actuators={
-            # TODO ROV changed delay from 3-10 to 2-3
             "outer_actuator": DelayedImplicitActuatorCfg(
-                min_delay=2 if globals.use_delay else 0,  # timesteps
-                max_delay=3 if globals.use_delay else 0,  # timesteps
+                min_delay=2 if globals.small_delay else 3,  # timesteps
+                max_delay=3 if globals.small_delay else 10,  # timesteps
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,
                 stiffness=5.15 if globals.position_control else 0.0,
                 damping=1.74 if globals.position_control else 10.0,
             ),
-            # TODO ROV changed delay from 3-10 to 2-3
             "inner_actuator": DelayedImplicitActuatorCfg(
-                min_delay=2 if globals.use_delay else 0,  # timesteps
-                max_delay=3 if globals.use_delay else 0,  # timesteps
+                min_delay=2 if globals.small_delay else 3,  # timesteps
+                max_delay=3 if globals.small_delay else 10,  # timesteps
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,
@@ -282,9 +280,8 @@ def get_maze_cfg():
         # Damping: 1.74 1/deg or 2 1/rad
         actuators={
             "outer_actuator": DelayedImplicitActuatorCfg(
-                # TODO ROV changed delay from 3-10 to 2-3
-                min_delay=2 if globals.use_delay else 0,  # timesteps was 10
-                max_delay=3 if globals.use_delay else 0,  # timesteps was 15
+                min_delay=2 if globals.small_delay else 3,  # timesteps was 10
+                max_delay=3 if globals.small_delay else 10,  # timesteps was 15
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,  # rad/s = RPM * 2pi/60
@@ -292,9 +289,8 @@ def get_maze_cfg():
                 damping=1.74 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
-                # TODO ROV changed delay from 3-10 to 2-3
-                min_delay=2 if globals.use_delay else 0,  # timesteps was 10
-                max_delay=3 if globals.use_delay else 0,  # timesteps was 15
+                min_delay=2 if globals.small_delay else 3,  # timesteps was 10
+                max_delay=3 if globals.small_delay else 10,  # timesteps was 15
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,  # rad/s = RPM * 2pi/60
@@ -391,6 +387,7 @@ class CommandsCfg:
     null = mdp.NullCommandCfg()
 
 
+# TODO ROV BOUNDED ACTION SPACE
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
@@ -410,7 +407,7 @@ class ActionsCfg:
     # if divided by 100 (action space) would have direct mapping to rad from (-axis limit, +axis-limit)
     # Adding clipping will not work well for PPO so commented out
     if globals.position_control:
-        if False:  # TODO ROV define proper variable
+        if globals.use_pid:
             outer_joint_effort = mdp.actions.JointPositionPIDCfg(
                 asset_name="robot",
                 joint_names=["OuterDOF_RevoluteJoint"],
@@ -456,11 +453,13 @@ class ActionsCfg:
             asset_name="robot", joint_names=["InnerDOF_RevoluteJoint"], scale=1.0
         )
 
-# TODO ROV make this selectable
-# velocity_extractor = mdp.VelocityExtractor()
+
+if globals.velocity_obs:
+    velocity_extractor = mdp.VelocityExtractor()
 
 
 # TODO ROV NORMALIZE ALL OBSERVATIONS
+# TODO ROV add single delay modifier for observationscfg 
 @configclass
 class ObservationsCfg:
     """Observation specifications for the MDP."""
@@ -474,47 +473,50 @@ class ObservationsCfg:
             func=mdp.joint_pos_with_noise,
             history_length=6,
             params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.small_delay else [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])],
         )
-        # TODO ROV make this selectable
-        # joint_est_vel = ObsTerm(
-        #     func=velocity_extractor.extract_joint_velocity,
-        #     history_length=6,
-        #     params={"asset_cfg": SceneEntityCfg("robot")},
-        # )
+
+        if globals.velocity_obs:
+            joint_est_vel = ObsTerm(
+                func=velocity_extractor.extract_joint_velocity,
+                history_length=6,
+                params={"asset_cfg": SceneEntityCfg("robot")},
+            )
 
         sphere_pos = ObsTerm(
             func=mdp.root_pos_xy_w_with_noise,
             history_length=6,
             params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.small_delay else [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])],
         )
-        # TODO ROV make this selectable
-        # sphere_est_vel = ObsTerm(
-        #     func=velocity_extractor.extract_root_velocity,
-        #     history_length=6,
-        #     params={"asset_cfg": SceneEntityCfg("sphere")},
-        # )
+
+        if globals.velocity_obs:
+            sphere_est_vel = ObsTerm(
+                func=velocity_extractor.extract_root_velocity,
+                history_length=6,
+                params={"asset_cfg": SceneEntityCfg("sphere")},
+            )
+
         target1_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
                 "asset_cfg": SceneEntityCfg("target1"),
             },
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.small_delay else [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])],
         )
         target2_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
                 "asset_cfg": SceneEntityCfg("target2"),
             },
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.small_delay else [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])],
         )
         target3_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
                 "asset_cfg": SceneEntityCfg("target3"),
             },
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.small_delay else [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])],
         )
 
         def __post_init__(self) -> None:
@@ -531,7 +533,7 @@ class ObservationsCfg:
                 "sphere_cfg": SceneEntityCfg("sphere"),
                 "maze_cfg": SceneEntityCfg("robot"),
             },
-            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.use_delay else None,
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])] if globals.small_delay else [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])],
         )
 
         def __post_init__(self) -> None:

@@ -22,7 +22,7 @@ parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of t
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-05-16_15-59-40_Gridsearch/2025-05-18_06-55-45/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-05-19_14-56-05/model.zip",
     help="Path to model checkpoint.",
 )
 parser.add_argument(
@@ -39,12 +39,12 @@ parser.add_argument(
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
-parser.add_argument(
-    "--delay", action="store_true", default=False, help="Add delay to observation & randomized longer delay"
-)
+parser.add_argument("--small_delay", action="store_true", default=False, help="Use smaller delay for observation & motor commands")
 parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
 parser.add_argument("--small_joint_friction", action="store_true", default=False, help="Small range for joint friction randomization")
 parser.add_argument("--small_actuator_gains", action="store_true", default=False, help="Small range for actuator randomization")
+parser.add_argument("--use_pid", action="store_true", default=False, help="Use same PID as real hardware for actuation")
+parser.add_argument("--velocity_obs", action="store_true", default=False, help="Use velocity observation, default false")
 parser.add_argument("--record_path_score", action="store_true", default=False, help="Log path score for each env")
 parser.add_argument(
     "--multi_maze",
@@ -66,14 +66,18 @@ if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:
     globals.position_control = True
-if args_cli.delay:
-    globals.use_delay = True
+if args_cli.small_delay:
+    globals.small_delay = True
 if args_cli.ext_force:
     globals.use_force = True
 if args_cli.small_joint_friction:
     globals.small_joint_friction = True
 if args_cli.small_actuator_gains:
     globals.small_actuator_gains = True
+if args_cli.use_pid:
+    globals.use_pid = True
+if args_cli.velocity_obs:
+    globals.velocity_obs = True
 if args_cli.record_path_score:
     globals.record_path_score = True
 

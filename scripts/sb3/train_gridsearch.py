@@ -7,7 +7,7 @@ from datetime import datetime
 # Define your hyperparameter grid
 param_grid = {
     "frames_per_second": [50, 30],
-    "delay": [True, False],
+    "small_delay": [True, False],
     "small_joint_friction": [True, False],
     "small_actuator_gains": [True, False],
 }
