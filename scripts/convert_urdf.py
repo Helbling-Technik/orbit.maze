@@ -41,13 +41,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/converter_input/generated/generated_maze_rov.urdf",
+    default="urdfs/converter_input/real_maze_simple/real_maze_simple_01.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/converter_output/generated_maze_rov_02_jointLimit",
+    default="urdfs/converter_output/real_maze_simple_01",
     help="The path to store the USD file.",
 )
 parser.add_argument(
@@ -220,9 +220,9 @@ def main():
             # Ensure the prim is a revolute joint
             if "revolute" in str(prim.GetPath()).lower():
                 if "outerdof_revolutejoint" in str(prim.GetPath()).lower():
-                    joint_limit = 7.0
+                    joint_limit = 3.0  # TODO ROV was at 7
                 else:
-                    joint_limit = 10.0
+                    joint_limit = 3.0  # TODO ROV was at 10
                 # Set revolute joint properties
                 if UsdPhysics.RevoluteJoint(prim):
                     # Access the RevoluteJointAPI
