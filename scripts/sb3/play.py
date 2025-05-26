@@ -13,44 +13,30 @@ from omni.isaac.lab.app import AppLauncher
 
 # add argparse arguments
 parser = argparse.ArgumentParser(description="Play a checkpoint of an RL agent from Stable-Baselines3.")
-parser.add_argument(
-    "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
-)
+parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations.")
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
-# specify model to use here, it is advised to use one which has not overfitted
-parser.add_argument(
-    "--checkpoint",
-    type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-05-19_14-56-05/model.zip",
-    help="Path to model checkpoint.",
-)
-parser.add_argument(
-    "--use_last_checkpoint",
-    action="store_true",
-    help="When no checkpoint provided, use the last saved model. Otherwise use the best saved model.",
-)
-parser.add_argument(
-    "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
-)
-parser.add_argument(
-    "--frames_per_second", type=int, default=30, help="Update frames per second of observation and action"
-)
+parser.add_argument("--use_last_checkpoint", action="store_true", help="When no checkpoint provided, use the last saved model. Otherwise use the best saved model.")
+parser.add_argument("--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length")
+parser.add_argument("--frames_per_second", type=int, default=30, help="Update frames per second of observation and action")
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 parser.add_argument("--small_delay", action="store_true", default=False, help="Use smaller delay for observation & motor commands")
+parser.add_argument("--synced_obs_delay", action="store_true", default=False, help="Use synced delay for observations, no randomization")
 parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
 parser.add_argument("--small_joint_friction", action="store_true", default=False, help="Small range for joint friction randomization")
 parser.add_argument("--small_actuator_gains", action="store_true", default=False, help="Small range for actuator randomization")
 parser.add_argument("--use_pid", action="store_true", default=False, help="Use same PID as real hardware for actuation")
 parser.add_argument("--velocity_obs", action="store_true", default=False, help="Use velocity observation, default false")
 parser.add_argument("--record_path_score", action="store_true", default=False, help="Log path score for each env")
+parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment, has --real_maze inherently")
+# specify model to use here, it is advised to use one which has not overfitted
 parser.add_argument(
-    "--multi_maze",
-    action="store_true",
-    default=False,
-    help="Multi maze environment, has --real_maze inherently",
+    "--checkpoint",
+    type=str,
+    default="logs/gridsearch/2025-05-23_15-46-32_Gridsearch/2025-05-25_18-06-16/model.zip",
+    help="Path to model checkpoint.",
 )
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -81,6 +67,7 @@ if args_cli.velocity_obs:
 if args_cli.record_path_score:
     globals.record_path_score = True
 
+globals.synced_obs_delay = args_cli.synced_obs_delay
 globals.targeted_frequency = args_cli.frames_per_second
 
 # Init globals before everything else
@@ -133,6 +120,8 @@ def main():
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg)
+    # TODO ROV ACTION BOUNDS
+    env.unwrapped.single_action_space = gym.spaces.Box(low=-1, high=1, shape=env.unwrapped.single_action_space.shape)
     # wrap around environment for stable baselines
     env = Sb3VecEnvWrapper(env)
 

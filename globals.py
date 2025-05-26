@@ -5,7 +5,7 @@ import os
 from PIL import Image
 
 global path_idx, path_accumulated, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
-global debug_images, real_maze, position_control, small_delay, use_force, targeted_frequency
+global debug_images, real_maze, position_control, small_delay, synced_obs_delay, use_force, targeted_frequency
 global small_joint_friction, small_actuator_gains, record_path_score, use_pid, velocity_obs
 path_idx = None
 path_accumulated = None
@@ -19,6 +19,7 @@ real_maze = None
 position_control = None
 usd_file_path = None
 small_delay = None
+synced_obs_delay = None
 use_force = None
 targeted_frequency = None
 small_joint_friction = None
@@ -34,6 +35,13 @@ image_list = []
 maze_path_list = []
 maze_type_array = None
 maze_start_list = []
+
+global reward_distance, rew_dist_generated, rew_dist_real, joint_limits
+reward_distance = None
+rew_dist_generated = 0.03
+rew_dist_real = 0.01
+# TODO ROV could I get this from the usd?
+joint_limits = np.array([3, 3])
 
 
 # get the path for all the different mazes
@@ -130,15 +138,21 @@ def init_single_usd():
     # Take correct paths to real maze or simple maze
     global real_maze
     global usd_file_path
+    global reward_distance
+    global rew_dist_generated
+    global rew_dist_real
+
     # change yaml, usd and image file here
     if real_maze:
-        yaml_path = "usds/generated_mazes/real_maze_01.yaml"
-        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.png"
-        # file with proper joint limits
-        # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded.usd"
-        # TODO ROV with physics materials
-        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.usd"
+        # TODO ROV change back to real difficult but apply joint limits 3
+        # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.yaml"
+        # image_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.png"
+        # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.usd"
 
+        yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
+        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.png"
+        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.usd"
+        reward_distance = rew_dist_real
     else:
         # yaml_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.yaml"
         # image_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.png"
@@ -146,6 +160,7 @@ def init_single_usd():
         yaml_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.yaml"
         image_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.png"
         usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.usd"
+        reward_distance = rew_dist_generated
 
     # load maze path from yaml file
     with open(os.path.join(yaml_path), "r") as file:

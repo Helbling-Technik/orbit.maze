@@ -40,13 +40,13 @@ def path_point_target(
 
     # change distance to target based on used maze
     if globals.use_multi_maze:
-        distance_tensor = 0.03 * torch.ones((sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0")
+        distance_tensor = globals.rew_dist_generated * torch.ones((sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0")
         for env_idx in range(sphere_pos.shape[0]):
             if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
-                distance_tensor[env_idx] = 0.01
+                distance_tensor[env_idx] = globals.rew_dist_real
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_tensor
     else:
-        distance_from_target = 0.01 if globals.real_maze else 0.03
+        distance_from_target = globals.reward_distance
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
 
     target_reached_ids = torch.nonzero(xy_sparse_reward).view(-1)

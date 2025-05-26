@@ -1,9 +1,8 @@
 usd_paths:
 - location: "usds/generated_mazes/correct_joint_limit/generated_maze_rov_01_jointLimit.usd"
   type: generated
-  # TODO ROV replace with new type real but simpler
-- location: "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.usd"
-  type: generated
+- location: "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.usd"
+  type: real
 - location: "usds/generated_mazes/correct_joint_limit/generated_simple_maze_01_jointLimit.usd"
   type: generated
 - location: "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.usd"

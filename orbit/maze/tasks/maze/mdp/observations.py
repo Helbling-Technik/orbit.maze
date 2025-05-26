@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
+# import math
 
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
@@ -29,6 +30,7 @@ import globals
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
+    from . import modifier_cfg
 
 
 class VelocityExtractor:
@@ -70,6 +72,10 @@ class VelocityExtractor:
 
 # this will give a weighted change of 1/10 to have a double delay in the observation, normal is single delay
 class RandomDelay(DigitalFilter):
+    def __init__(self, cfg: modifier_cfg.DigitalFilterCfg, data_dim: tuple[int, ...], device: str) -> None:
+        self.randomizeDelay = cfg.randomizeDelay
+        super().__init__(cfg, data_dim, device)
+
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
         """Applies digital filter modification with a rolling history window inputs and outputs.
 
@@ -85,11 +91,12 @@ class RandomDelay(DigitalFilter):
 
         # we want single and occasional double delay, for this we roll B=[0.0, 1.0, 0.0] -> B=[0.0, 0.0, 1.0]
         B_rolled = torch.roll(self.B, shifts=1, dims=0)
-        single_delayed_obs = {"B": self.B}
-        double_delayed_obs = {"B": B_rolled}
-
-        choice = random.choices([single_delayed_obs, double_delayed_obs], weights=[0.9, 0.1])[0]
-
+        standard_delayed_obs = {"B": self.B}
+        additional_delayed_obs = {"B": B_rolled}
+        if self.randomizeDelay:
+            choice = random.choices([standard_delayed_obs, additional_delayed_obs], weights=[0.9, 0.1])[0]
+        else:
+            choice = standard_delayed_obs
         # calculate current filter value: y[i] = -Y*A + X*B
         y_i = torch.matmul(self.x_n, choice["B"]) - torch.matmul(self.y_n, self.A)
         y_i.squeeze_(-1)
@@ -105,6 +112,7 @@ class RandomDelay(DigitalFilter):
 @configclass
 class RandomDelayCfg(DigitalFilterCfg):
     func: type[RandomDelay] = RandomDelay
+    randomizeDelay: bool = True
 
 
 # Can be used to apply a global external force and torque onto an object
@@ -154,6 +162,9 @@ def joint_pos_with_noise(
     asset: Articulation = env.scene[asset_cfg.name]
     joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
     noise_tensor = torch.normal(mean=0, std=std, size=joint_pos.shape).to(joint_pos.device)
+    # TODO ROV normalize
+    # joint_pos_normalized = (joint_pos + noise_tensor) / torch.tensor(globals.joint_limits * math.pi / 180, device="cuda:0")
+
     return joint_pos + noise_tensor
 
 
@@ -244,6 +255,7 @@ def simulated_camera_image(
     else:
         # single maze env
         # change maze size here to required size for usds
+        # TODO ROV maze_size should be global
         if globals.real_maze:
             maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
         else:

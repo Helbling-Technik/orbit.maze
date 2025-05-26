@@ -22,33 +22,24 @@ parser = argparse.ArgumentParser(description="Train an RL agent with Stable-Base
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
-parser.add_argument(
-    "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
-)
+parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations.")
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
-parser.add_argument(
-    "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
-)
-parser.add_argument(
-    "--frames_per_second", type=int, default=30, help="Update frames per second of observation and action"
-)
+parser.add_argument("--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length")
+parser.add_argument("--frames_per_second", type=int, default=30, help="Update frames per second of observation and action")
+parser.add_argument("--overwrite_n_timesteps", type=float, default=None, help="If specified overwrite n_timesteps of training config")
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 parser.add_argument("--small_delay", action="store_true", default=False, help="Use smaller delay for observation & motor commands")
+parser.add_argument("--synced_obs_delay", action="store_true", default=False, help="Use synced delay for observations, no randomization")
 parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
 parser.add_argument("--small_joint_friction", action="store_true", default=False, help="Small range for joint friction randomization")
 parser.add_argument("--small_actuator_gains", action="store_true", default=False, help="Small range for actuator randomization")
 parser.add_argument("--use_pid", action="store_true", default=False, help="Use same PID as real hardware for actuation")
 parser.add_argument("--velocity_obs", action="store_true", default=False, help="Use velocity observation, default false")
-parser.add_argument(
-    "--multi_maze",
-    action="store_true",
-    default=False,
-    help="Multi maze environment, has --real_maze inherently",
-)
+parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment, has --real_maze inherently")
 # specify a starting model here, it is advised to use one which has not overfitted
 parser.add_argument(
     "--model_path",
@@ -83,6 +74,7 @@ if args_cli.use_pid:
 if args_cli.velocity_obs:
     globals.velocity_obs = True
 
+globals.synced_obs_delay = args_cli.synced_obs_delay
 globals.targeted_frequency = args_cli.frames_per_second
 
 # Init globals before everything else
@@ -179,14 +171,29 @@ def main():
     with open(env_cfg_path, "w") as f:
         json.dump(serialize_config(env_cfg), f, indent=4)
 
+    # Convert Namespace to dictionary
+    args_dict = vars(args_cli)
+
+    # Define output file
+    argparse_cmd_path = os.path.join(log_dir, "parsed_arguments.json")
+
+    # Save to file in JSON format
+    with open(argparse_cmd_path, "w") as f:
+        json.dump(args_dict, f, indent=4)
+
     # post-process agent configuration
     agent_cfg = process_sb3_cfg(agent_cfg)
     # read configurations about the agent-training
     policy_arch = agent_cfg.pop("policy")
     n_timesteps = agent_cfg.pop("n_timesteps")
 
+    if args_cli.overwrite_n_timesteps:
+        n_timesteps = args_cli.overwrite_n_timesteps
+
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    # TODO ROV ACTION BOUNDS
+    env.unwrapped.single_action_space = gym.spaces.Box(low=-1, high=1, shape=env.unwrapped.single_action_space.shape)
     # wrap for video recording
     if args_cli.video:
         video_kwargs = {
@@ -219,7 +226,6 @@ def main():
     policy_kwargs = dict(
         features_extractor_class=helbling_combined_extractor.CustomCombinedExtractor,
         features_extractor_kwargs=dict(normalized_image=True),
-        # TODO ROV maybe also increase net arch with a hidden layer
         net_arch=[256, 256, 256],
     )
     # Check if a model path is provided
