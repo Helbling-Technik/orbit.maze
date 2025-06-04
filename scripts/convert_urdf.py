@@ -41,13 +41,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/converter_input/real_maze_simple/real_maze_simple_01.urdf",
+    default="urdfs/converter_input/real_maze/real_maze_02.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/converter_output/real_maze_simple_01",
+    default="urdfs/converter_output/real_maze_01_material_adjusted",
     help="The path to store the USD file.",
 )
 parser.add_argument(
@@ -193,36 +193,81 @@ def main():
                         print(f"Inertia is already set to ignore for {prim}.")
 
     # Define the material path
-    material_path = "/Labyrinth/Looks/BlackMaterial"
+    material_path_black = "/Labyrinth/Looks/BlackMaterial"
     # Create a new material
-    material = UsdShade.Material.Define(stage, material_path)
+    material_black = UsdShade.Material.Define(stage, material_path_black)
 
     # Create a surface shader
-    shader = UsdShade.Shader.Define(stage, material_path + "/Shader")
+    shader = UsdShade.Shader.Define(stage, material_path_black + "/Shader")
     shader.CreateIdAttr("UsdPreviewSurface")
 
     # Set the diffuse color to black (RGB values of 0, 0, 0)
     shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(0.0, 0.0, 0.0))
 
     # Connect the shader to the material
-    material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+    material_black.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+
+    usd_physics_material_black = UsdPhysics.MaterialAPI(material_black)
+
+    # Set physical properties (example: static friction, dynamic friction, restitution)
+    usd_physics_material_black.CreateStaticFrictionAttr().Set(1.0)
+    usd_physics_material_black.CreateDynamicFrictionAttr().Set(1.0)
+    usd_physics_material_black.CreateRestitutionAttr().Set(1.0)
+    usd_physics_material_black.Apply(material_black.GetPrim())
 
     # Ensure the mesh exists before applying the material
     if innerDOFWallsvisual:
-        UsdShade.MaterialBindingAPI(innerDOFWallsvisual).Bind(material)
+        UsdShade.MaterialBindingAPI(innerDOFWallsvisual).Bind(material_black)
     else:
         print(f"Mesh at path {innerDOFWallsvisual} does not exist.")
 
-    # change to proper limits: lr = +-10 InnerJoint; vh = +-7 OuterJoint
+    # Define the material path
+    material_path_white = "/Labyrinth/Looks/WhiteMaterial"
+    # Create a new material
+    material_white = UsdShade.Material.Define(stage, material_path_white)
+
+    # Create a surface shader
+    shader = UsdShade.Shader.Define(stage, material_path_white + "/Shader")
+    shader.CreateIdAttr("UsdPreviewSurface")
+
+    # Set the diffuse color to black (RGB values of 0, 0, 0)
+    shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(255.0, 255.0, 255.0))
+
+    # Connect the shader to the material
+    material_white.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+
+    usd_physics_material_white = UsdPhysics.MaterialAPI(material_white)
+
+    # Set physical properties (example: static friction, dynamic friction, restitution)
+    usd_physics_material_white.CreateStaticFrictionAttr().Set(1.0)
+    usd_physics_material_white.CreateDynamicFrictionAttr().Set(1.0)
+    usd_physics_material_white.CreateRestitutionAttr().Set(1.0)
+    usd_physics_material_white.Apply(material_white.GetPrim())
+
+    # Ensure the mesh exists before applying the material
+    if innerDOFvisual:
+        UsdShade.MaterialBindingAPI(innerDOFvisual).Bind(material_white)
+    else:
+        print(f"Mesh at path {innerDOFvisual} does not exist.")
+    if outerDOFvisual:
+        UsdShade.MaterialBindingAPI(outerDOFvisual).Bind(material_white)
+    else:
+        print(f"Mesh at path {outerDOFvisual} does not exist.")
+    if supportvisual:
+        UsdShade.MaterialBindingAPI(supportvisual).Bind(material_white)
+    else:
+        print(f"Mesh at path {supportvisual} does not exist.")
+
+    # change to proper limits: lr = +-3 InnerJoint; vh = +-3 OuterJoint
     # In revolutejoint set limits and in drive change stiffness 10000000 and damping 100000 and max force 1000
     for prim in stage.Traverse():
         if prim.GetPath().HasPrefix(robot.GetPath()):
             # Ensure the prim is a revolute joint
             if "revolute" in str(prim.GetPath()).lower():
                 if "outerdof_revolutejoint" in str(prim.GetPath()).lower():
-                    joint_limit = 3.0  # TODO ROV was at 7
+                    joint_limit = 3.0
                 else:
-                    joint_limit = 3.0  # TODO ROV was at 10
+                    joint_limit = 3.0
                 # Set revolute joint properties
                 if UsdPhysics.RevoluteJoint(prim):
                     # Access the RevoluteJointAPI

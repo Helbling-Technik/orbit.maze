@@ -4,3 +4,5 @@ logs/
 _orbit*
 */converter_output/.asset_hash
 */converter_output/config.yaml
+*_convex*
+*.thumbs
