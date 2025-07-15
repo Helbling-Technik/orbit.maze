@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import torch
 from typing import TYPE_CHECKING
-# import math
+import math
 
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
@@ -160,12 +160,13 @@ def joint_pos_with_noise(
     """
     # extract the used quantities (to enable type-hinting)
     asset: Articulation = env.scene[asset_cfg.name]
+
     joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
     noise_tensor = torch.normal(mean=0, std=std, size=joint_pos.shape).to(joint_pos.device)
-    # TODO ROV normalize
-    # joint_pos_normalized = (joint_pos + noise_tensor) / torch.tensor(globals.joint_limits * math.pi / 180, device="cuda:0")
+    joint_pos_noisy = joint_pos + noise_tensor
+    joint_pos_normalized = joint_pos_noisy / torch.tensor(globals.joint_limits * math.pi / 180, device="cuda:0")
 
-    return joint_pos + noise_tensor
+    return joint_pos_normalized
 
 
 # TODO CLEANUP
@@ -189,7 +190,10 @@ def root_pos_xy_w_with_noise(
     robot_pos = asset.data.root_pos_w - env.scene.env_origins
     noise_tensor = torch.normal(mean=0, std=std, size=asset.data.root_pos_w.shape).to(robot_pos.device)
     root_pos_noisy = robot_pos + noise_tensor
-    return root_pos_noisy[:, :2]
+    # TODO ROV normalize, wont work for multimaze
+    root_pos_normalized = root_pos_noisy[:, :2] / torch.tensor(globals.maze_size, device="cuda:0")
+
+    return root_pos_normalized  # root_pos_noisy[:, :2]
 
 
 def simulated_camera_image(
@@ -212,9 +216,9 @@ def simulated_camera_image(
         for env_idx in range(sphere_pos_env.shape[0]):
             # change maze size here to required size for usds
             if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
-                maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
+                maze_size = globals.real_maze_size
             else:
-                maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
+                maze_size = globals.gen_maze_size
             sim_image = globals.get_list_entry_from_env(globals.image_list, env_idx)
 
             padded_image_size = torch.tensor([sim_image.shape[0], sim_image.shape[1]], device="cuda:0")
@@ -254,13 +258,7 @@ def simulated_camera_image(
                     )
     else:
         # single maze env
-        # change maze size here to required size for usds
-        # TODO ROV maze_size should be global
-        if globals.real_maze:
-            maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
-        else:
-            maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
-
+        maze_size = globals.maze_size
         padded_image_size = torch.tensor(
             [globals.simulated_image_tensor.shape[0], globals.simulated_image_tensor.shape[1]], device="cuda:0"
         )
@@ -278,7 +276,8 @@ def simulated_camera_image(
 
             cropped_images[i, :, :] = globals.simulated_image_tensor[x_lo:x_hi, y_lo:y_hi]
             # color center pixels grey to visualize the sphere
-            cropped_images[i, 7:9, 7:9] = 128
+            # TODO ROV try without center pixels
+            # cropped_images[i, 7:9, 7:9] = 128
 
             if globals.debug_images:
                 if i == 0:
@@ -298,7 +297,9 @@ def simulated_camera_image(
                         "logs/sb3/Isaac-Maze-v0/test-images/cropped_image_" + str(i) + "_" + date_string + ".png"
                     )
     # channel first, normalized image
-    return cropped_images.unsqueeze(1) / 255.0
+    # return cropped_images.unsqueeze(1) / 255.0
+    # TODO ROV would be needed to have proper dimensions with history
+    return cropped_images / 255.0
 
 
 def cropped_camera_image(
@@ -362,4 +363,7 @@ def root_pos_w_xy(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntit
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
     position = asset.data.root_pos_w - env.scene.env_origins
-    return position[:, :2]
+    # TODO ROV normalize wont work for multimaze
+    position_normalized = position[:, :2] / torch.tensor(globals.maze_size, device="cuda:0")
+
+    return position_normalized  # position[:, :2]
