@@ -11,12 +11,11 @@ n_timesteps = 50000000
 
 param_grid = {
     "frames_per_second": [lower_fps],
-    # "frames_per_second": [higher_fps, lower_fps],
-    "synced_obs_delay": [True, False],
-    "small_delay": [True, False],
-    "small_joint_friction": [True, False],
-    "small_actuator_gains": [True, False],
-    "use_pid": [True, False]
+    "delay_level": [-1, 0, 1],
+    "ext_force_level": [-1, 0, 1],
+    "randomization_level": [-1, 0, 1],
+    # "joint_friction_level": [-1, 0, 1],
+    # "actuator_gain_level": [-1, 0, 1],
 }
 
 # Output CSV
@@ -40,7 +39,7 @@ for i, params in enumerate(param_combinations):
     print(f"\nRunning configuration {i + 1}/{len(param_combinations)}: {params}")
 
     # Build the command
-    cmd = ["python", "scripts/sb3/train.py", "--task", "Isaac-Maze-v0", "--num_envs", "16384", "--headless", "--maze_start_point", "-1", "--pos_ctrl", "--real_maze", "--ext_force"]
+    cmd = ["python", "scripts/sb3/train.py", "--task", "Isaac-Maze-v0", "--num_envs", "16384", "--headless", "--maze_start_point", "-1", "--pos_ctrl", "--real_maze"]
     for k, v in params.items():
         if isinstance(v, bool):
             if v:

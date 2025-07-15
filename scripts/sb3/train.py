@@ -32,14 +32,18 @@ parser.add_argument("--overwrite_n_timesteps", type=float, default=None, help="I
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
-parser.add_argument("--small_delay", action="store_true", default=False, help="Use smaller delay for observation & motor commands")
-parser.add_argument("--synced_obs_delay", action="store_true", default=False, help="Use synced delay for observations, no randomization")
-parser.add_argument("--ext_force", action="store_true", default=False, help="Add random external force to sphere")
-parser.add_argument("--small_joint_friction", action="store_true", default=False, help="Small range for joint friction randomization")
-parser.add_argument("--small_actuator_gains", action="store_true", default=False, help="Small range for actuator randomization")
 parser.add_argument("--use_pid", action="store_true", default=False, help="Use same PID as real hardware for actuation")
 parser.add_argument("--velocity_obs", action="store_true", default=False, help="Use velocity observation, default false")
 parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment, has --real_maze inherently")
+parser.add_argument("--synced_obs_delay", action="store_true", default=False, help="Use synced delay for observations, no randomization")
+
+# TODO ROV make these in levels
+parser.add_argument("--delay_level", type=int, choices=[-1, 0, 1], default=-1, help="Use delay for observation & motor commands: -1 no, 0 small, 1 large")
+parser.add_argument("--ext_force_level", type=int, choices=[-1, 0, 1], default=-1, help="Apply ext force on sphere: -1 no, 0 small, 1 large")
+parser.add_argument("--joint_friction_level", type=int, choices=[-1, 0, 1], default=-1, help="Apply joint friction: -1 no, 0 small, 1 large")
+parser.add_argument("--actuator_gain_level", type=int, choices=[-1, 0, 1], default=-1, help="Apply actuator gain: -1 no, 0 small, 1 large")
+parser.add_argument("--randomization_level", type=int, choices=[-1, 0, 1], default=None, help="Overwrites actuator gain and joint friction: -1 no, 0 small, 1 large")
+
 # specify a starting model here, it is advised to use one which has not overfitted
 parser.add_argument(
     "--model_path",
@@ -61,19 +65,20 @@ if args_cli.real_maze:
     globals.real_maze = True
 if args_cli.pos_ctrl:
     globals.position_control = True
-if args_cli.small_delay:
-    globals.small_delay = True
-if args_cli.ext_force:
-    globals.use_force = True
-if args_cli.small_joint_friction:
-    globals.small_joint_friction = True
-if args_cli.small_actuator_gains:
-    globals.small_actuator_gains = True
 if args_cli.use_pid:
     globals.use_pid = True
 if args_cli.velocity_obs:
     globals.velocity_obs = True
 
+globals.actuator_gain_level = args_cli.actuator_gain_level
+globals.joint_friction_level = args_cli.joint_friction_level
+
+if args_cli.randomization_level is not None:
+    globals.actuator_gain_level = args_cli.randomization_level
+    globals.joint_friction_level = args_cli.randomization_level
+
+globals.ext_force_level = args_cli.ext_force_level
+globals.delay_level = args_cli.delay_level
 globals.synced_obs_delay = args_cli.synced_obs_delay
 globals.targeted_frequency = args_cli.frames_per_second
 
@@ -192,7 +197,7 @@ def main():
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
-    # TODO ROV ACTION BOUNDS
+    # Bound the actions!
     env.unwrapped.single_action_space = gym.spaces.Box(low=-1, high=1, shape=env.unwrapped.single_action_space.shape)
     # wrap for video recording
     if args_cli.video:
@@ -226,7 +231,9 @@ def main():
     policy_kwargs = dict(
         features_extractor_class=helbling_combined_extractor.CustomCombinedExtractor,
         features_extractor_kwargs=dict(normalized_image=True),
-        net_arch=[256, 256, 256],
+        net_arch=dict(pi=[256, 256, 256], vf=[256, 256, 256]),
+        # TODO ROV seems worse
+        # share_features_extractor=False,  # False: 444517, True: 373429
     )
     # Check if a model path is provided
     if args_cli.model_path:
@@ -243,6 +250,8 @@ def main():
     new_logger = configure(log_dir, ["stdout", "tensorboard"])
     agent.set_logger(new_logger)
     print(agent.policy)
+    total_params = sum(p.numel() for p in agent.policy.parameters())
+    print(f"Total number of parameters in the model: {total_params}")
 
     # callbacks for agent
     checkpoint_callback = CheckpointCallback(save_freq=1000, save_path=log_dir, name_prefix="model", verbose=2)

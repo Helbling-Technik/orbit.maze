@@ -5,8 +5,8 @@ import os
 from PIL import Image
 
 global path_idx, path_accumulated, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
-global debug_images, real_maze, position_control, small_delay, synced_obs_delay, use_force, targeted_frequency
-global small_joint_friction, small_actuator_gains, record_path_score, use_pid, velocity_obs
+global debug_images, real_maze, position_control, delay_level, synced_obs_delay, ext_force_level, targeted_frequency
+global joint_friction_level, actuator_gain_level, record_path_score, use_pid, velocity_obs
 path_idx = None
 path_accumulated = None
 path_start_idx = None
@@ -18,12 +18,12 @@ debug_images = None
 real_maze = None
 position_control = None
 usd_file_path = None
-small_delay = None
+delay_level = None
 synced_obs_delay = None
-use_force = None
+ext_force_level = None
 targeted_frequency = None
-small_joint_friction = None
-small_actuator_gains = None
+joint_friction_level = None
+actuator_gain_level = None
 record_path_score = None
 use_pid = None
 velocity_obs = None
@@ -36,12 +36,14 @@ maze_path_list = []
 maze_type_array = None
 maze_start_list = []
 
-global reward_distance, rew_dist_generated, rew_dist_real, joint_limits
+global reward_distance, rew_dist_generated, rew_dist_real, joint_limits, real_maze_size, gen_maze_size, maze_size
+maze_size = None
 reward_distance = None
 rew_dist_generated = 0.03
 rew_dist_real = 0.01
-# TODO ROV could I get this from the usd?
 joint_limits = np.array([3, 3])
+real_maze_size = torch.tensor([0.276, 0.23], device="cuda:0")
+gen_maze_size = torch.tensor([0.3, 0.3], device="cuda:0")
 
 
 # get the path for all the different mazes
@@ -141,18 +143,24 @@ def init_single_usd():
     global reward_distance
     global rew_dist_generated
     global rew_dist_real
+    global maze_size
+    global real_maze_size
+    global gen_maze_size
 
     # change yaml, usd and image file here
     if real_maze:
-        # TODO ROV change back to real difficult but apply joint limits 3
-        # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.yaml"
-        # image_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.png"
-        # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.usd"
+        # TODO ROV change back to real difficult
+        yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.yaml"
+        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.png"
+        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.usd"
 
-        yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
-        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.png"
-        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.usd"
+        # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
+        # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.usd"
+        # image_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.png"
+        # rew_dist_real = 0.03
+
         reward_distance = rew_dist_real
+        maze_size = real_maze_size
     else:
         # yaml_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.yaml"
         # image_path = "usds/generated_mazes/correct_joint_limit/generated_maze_rov_02_jointLimit.png"
@@ -161,6 +169,7 @@ def init_single_usd():
         image_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.png"
         usd_file_path = "usds/generated_mazes/correct_joint_limit/generated_simple_maze_02.usd"
         reward_distance = rew_dist_generated
+        maze_size = gen_maze_size
 
     # load maze path from yaml file
     with open(os.path.join(yaml_path), "r") as file:

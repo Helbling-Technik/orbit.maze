@@ -4,26 +4,23 @@ import seaborn as sns
 import os
 
 # Load the CSV file
-csv_path = "logs/gridsearch/grid_search_results_20250523_154632.csv"
+csv_path = "logs/gridsearch/grid_search_results_20250613_141452.csv"
 df = pd.read_csv(csv_path)
 
 # Drop columns that are not needed
 df = df.drop(columns=["start_time", "end_time"])
 
 # Rename columns
-df = df.rename(columns={"frames_per_second": "FPS",
-                        "synced_obs_delay": "SyncedObs",
-                        "small_delay": "DelaySmall",
-                        "small_joint_friction": "JointFrictionSmall",
-                        "small_actuator_gains": "ActuatorGainSmall",
-                        "use_pid": "PID"})
+df = df.rename(columns={"delay_level": "NoSmallBig-Delay",
+                        "ext_force_level": "NoSmallBig-Force",
+                        "randomization_level": "NoSmallBig-Randomization"})
 
 # Plot
 sns.clustermap(df.pivot_table(
     values="result_training",
-    index=["FPS", "SyncedObs", "DelaySmall"],
-    columns=["JointFrictionSmall", "ActuatorGainSmall", "PID"]
-), annot=True)
+    index=["NoSmallBig-Delay"],
+    columns=["NoSmallBig-Force", "NoSmallBig-Randomization"]
+), annot=True, row_cluster=False, col_cluster=False)
 
 # Save the plot in the same folder as the CSV
 plot_path = os.path.splitext(csv_path)[0] + ".png"
