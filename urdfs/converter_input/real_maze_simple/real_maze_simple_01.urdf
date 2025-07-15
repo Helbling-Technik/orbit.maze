@@ -34,7 +34,7 @@
     <visual>
       <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
       <geometry>
-        <mesh filename="meshes/InnerDOFWalls.STL" scale="1 1 1"/>
+        <mesh filename="meshes/InnerDOFWalls-Adjusted.STL" scale="1 1 1"/>
       </geometry>
       <material name="Black">
           <color rgba="0.0 0.0 0.0 1.0"/> <!-- RGB + Alpha (transparency) -->

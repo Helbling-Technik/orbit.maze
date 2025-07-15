@@ -39,6 +39,7 @@ def path_point_target(
     target1_pos = target1.data.root_pos_w - env.scene.env_origins
 
     # change distance to target based on used maze
+    # TODO ROV this should be able to differentiate between simple and hard real maze
     if globals.use_multi_maze:
         distance_tensor = globals.rew_dist_generated * torch.ones((sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0")
         for env_idx in range(sphere_pos.shape[0]):
@@ -269,7 +270,27 @@ def root_xypos_target(
     root_pos = asset.data.root_pos_w - env.scene.env_origins
     # compute the reward
     xy_reward_l2 = torch.norm(root_pos[:, :2] - target_pos[:, :2], p=LNorm, dim=1)
-    return xy_reward_l2
+    return xy_reward_l2 / 0.06
+
+
+# TODO figure out which one makes sense and implement
+# def shaping_reward():
+#     # Distance based reward
+#     reward += prev_dist_to_target - curr_dist_to_target
+
+#     # Path-Following Reward (Vector Alignment)
+#     direction_to_target = normalize(next_target - sphere_pos)
+#     sphere_velocity = sphere_pos - prev_sphere_pos
+
+#     alignment = np.dot(normalize(sphere_velocity), direction_to_target)
+#     reward += k_align * alignment  # ranges from -1 to 1
+
+#     # Waypoint based progress
+#     # Penalize distance from the ideal path (e.g., line between waypoints)
+#     reward -= k_deviation * perpendicular_distance_to_path
+
+#     # Scaling shaping reward?
+#     shaping_scale = initial_scale * exp(-decay_rate * episode_number)
 
 
 def spline_point_target(
