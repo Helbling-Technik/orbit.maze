@@ -33,7 +33,7 @@ optional arguments:
 
 import argparse
 
-# from omni.isaac.lab.app import AppLauncher
+from omni.isaac.lab.app import AppLauncher
 from isaacsim import SimulationApp
 
 # add argparse arguments
@@ -41,13 +41,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/converter_input/real_maze/real_maze_02.urdf",
+    default="urdfs/converter_input/maze_no_holes/maze_no_holes.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/converter_output/real_maze_01_material_adjusted",
+    default="urdfs/converter_output/maze_no_holes",
     help="The path to store the USD file.",
 )
 parser.add_argument(
@@ -63,11 +63,13 @@ parser.add_argument(
     default=False,
     help="Make the asset instanceable for efficient cloning.",
 )
-
 # # parse the arguments
+AppLauncher.add_app_launcher_args(parser)
 args_cli = parser.parse_args()
 
-simulation_app = SimulationApp({"hide_ui": False})
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
+# simulation_app = SimulationApp({"hide_ui": False})
 from omni.isaac.core.utils.extensions import enable_extension
 
 enable_extension("omni.kit.streamsdk.plugins-3.2.1")
@@ -145,6 +147,12 @@ def main():
     innerDOFvisual = stage.GetPrimAtPath("/Labyrinth/InnerDOF/visuals")
     innerDOFWallsvisual = stage.GetPrimAtPath("/Labyrinth/InnerDOFWalls/visuals")
 
+    innerDOF_base_1collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_0")
+    innerDOF_short_wall1collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_1")
+    innerDOF_short_wall2collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_2")
+    innerDOF_long_wall1collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_3")
+    innerDOF_long_wall2collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_4")
+
     # Define the path for the physics scene
     physics_scene_path = "/physicsScene"
 
@@ -160,8 +168,13 @@ def main():
     # Set the colliders
     utils.setCollider(supportvisual, "sdf")
     utils.setCollider(outerDOFvisual, "sdf")
-    utils.setCollider(innerDOFvisual, "sdf")
     utils.setCollider(innerDOFWallsvisual, "sdf")
+
+    utils.setCollider(innerDOF_base_1collision, "convexHull")
+    utils.setCollider(innerDOF_short_wall1collision, "convexHull")
+    utils.setCollider(innerDOF_short_wall2collision, "convexHull")
+    utils.setCollider(innerDOF_long_wall1collision, "convexHull")
+    utils.setCollider(innerDOF_long_wall2collision, "convexHull")
 
     # TODO use something like this if you plan on doing instanced meshes
     # Create a new reference
@@ -173,9 +186,12 @@ def main():
 
     # Reset the mass to autocompute for rigid bodies and ignore diagonal inertia
     for prim in stage.Traverse():
-        if prim.GetPath().HasPrefix(robot.GetPath()):
+        print("Prim path:", prim.GetPath())
+        if prim.GetPath().HasPrefix(robot.GetPath()) and prim.GetPath() != "/Labyrinth/InnerDOF":
             if UsdPhysics.RigidBodyAPI(prim):
+                print(prim.GetPath(), " has a rigidbody api ")
                 if UsdPhysics.MassAPI(prim):
+                    print(prim.GetPath(), " has a rigidbody and mass api ")
                     usd_physics_mass_api = UsdPhysics.MassAPI(prim)
 
                     mass_attr = usd_physics_mass_api.GetMassAttr()
@@ -249,6 +265,26 @@ def main():
         UsdShade.MaterialBindingAPI(innerDOFvisual).Bind(material_white)
     else:
         print(f"Mesh at path {innerDOFvisual} does not exist.")
+    if innerDOF_base_1collision:
+        UsdShade.MaterialBindingAPI(innerDOF_base_1collision).Bind(material_white)
+    else:
+        print(f"Mesh at path {innerDOF_base_1collision} does not exist.")
+    if innerDOF_short_wall1collision:
+        UsdShade.MaterialBindingAPI(innerDOF_short_wall1collision).Bind(material_white)
+    else:
+        print(f"Mesh at path {innerDOF_short_wall1collision} does not exist.")
+    if innerDOF_short_wall2collision:
+        UsdShade.MaterialBindingAPI(innerDOF_short_wall2collision).Bind(material_white)
+    else:
+        print(f"Mesh at path {innerDOF_short_wall2collision} does not exist.")
+    if innerDOF_long_wall1collision:
+        UsdShade.MaterialBindingAPI(innerDOF_long_wall1collision).Bind(material_white)
+    else:
+        print(f"Mesh at path {innerDOF_long_wall1collision} does not exist.")
+    if innerDOF_long_wall2collision:
+        UsdShade.MaterialBindingAPI(innerDOF_long_wall2collision).Bind(material_white)
+    else:
+        print(f"Mesh at path {innerDOF_long_wall2collision} does not exist.")
     if outerDOFvisual:
         UsdShade.MaterialBindingAPI(outerDOFvisual).Bind(material_white)
     else:

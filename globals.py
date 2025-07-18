@@ -152,7 +152,8 @@ def init_single_usd():
         # TODO ROV change back to real difficult
         yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.yaml"
         image_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.png"
-        usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.usd"
+        # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.usd"
+        usd_file_path = "urdfs/converter_output/maze_no_holes.usd"
 
         # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
         # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.usd"
