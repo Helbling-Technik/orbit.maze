@@ -150,15 +150,18 @@ def init_single_usd():
     # change yaml, usd and image file here
     if real_maze:
         # TODO ROV change back to real difficult
-        yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.yaml"
-        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.png"
+        # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_rounded_materials.yaml"
+        # image_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.png"
         # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_01_jointlimit_3_adjusted.usd"
-        usd_file_path = "urdfs/converter_output/maze_no_holes.usd"
+
+        yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
+        image_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.png"
+        usd_file_path = "urdfs/converter_output/simple_maze_no_holes.usd"
 
         # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
         # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.usd"
         # image_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.png"
-        # rew_dist_real = 0.03
+        rew_dist_real = 0.03
 
         reward_distance = rew_dist_real
         maze_size = real_maze_size
