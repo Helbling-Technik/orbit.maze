@@ -84,9 +84,7 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint",
     type=str,
-    # default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-13_14-14-55/model.zip",  # Nothing
-    # default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-14_21-53-39/model.zip",  # Big Delay
-    default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-14_07-50-07/model.zip",  # Small Delay, Small Randomization TODO ROV maybe try this one on HW
+    default="logs/sb3/Isaac-Maze-v0/2025-07-18_17-11-40/model.zip",
     help="Path to model checkpoint.",
 )
 # append AppLauncher cli args

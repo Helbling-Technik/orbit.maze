@@ -146,6 +146,7 @@ def init_single_usd():
     global maze_size
     global real_maze_size
     global gen_maze_size
+    global holes_path
 
     # change yaml, usd and image file here
     if real_maze:
@@ -157,6 +158,7 @@ def init_single_usd():
         yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
         image_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.png"
         usd_file_path = "urdfs/converter_output/simple_maze_no_holes.usd"
+        holes_path = "usds/generated_mazes/SimpleMazeCenteredHoles.yaml"
 
         # yaml_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_jointlimit_3.yaml"
         # usd_file_path = "usds/generated_mazes/correct_joint_limit/real_maze_simple_01_joint_limit_3_adjusted.usd"
@@ -180,6 +182,12 @@ def init_single_usd():
         global maze_path
         data = yaml.safe_load(file)
         maze_path = torch.tensor([data["x"], data["y"]], device="cuda:0").T
+
+    # load holes
+    with open(os.path.join(holes_path), "r") as file:
+        global holes_positions
+        data = yaml.safe_load(file)
+        holes_positions = torch.tensor([data["x"], data["y"]], device="cuda:0").T
 
     global simulated_image_tensor
     simulated_image_tensor = load_image(image_path)

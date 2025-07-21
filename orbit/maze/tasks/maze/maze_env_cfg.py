@@ -747,15 +747,22 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Constant running reward
-    alive = RewTerm(func=mdp.is_alive, weight=0.0001)
+    # alive = RewTerm(func=mdp.is_alive, weight=0.0001)
 
     # (2) Failure penalty
-    terminating = RewTerm(
-        func=mdp.root_height_below_minimum,
-        params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
-        # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
-        weight=-1.0 * globals.targeted_frequency,
+    on_hole = RewTerm(
+        func=mdp.on_hole,
+        params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
+        weight=-20.0,
     )
+
+    # terminating = RewTerm(
+    # func=mdp.root_height_below_minimum,
+    # params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
+    # # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
+    # weight=-1.0 * globals.targeted_frequency,
+    # )
+
     # (3) Primary task: control maze path
     sphere_maze_path_target = RewTerm(
         func=mdp.path_point_target,
@@ -768,6 +775,7 @@ class RewardsCfg:
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
+
     # TODO ROV reward shaping
     # sphere_path_distance = RewTerm(
     #     func=mdp.root_xypos_target,
@@ -840,7 +848,7 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
-        self.episode_length_s = 100 if globals.real_maze or globals.use_multi_maze else 10
+        self.episode_length_s = 15 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

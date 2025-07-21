@@ -8,7 +8,7 @@ from __future__ import annotations
 import torch
 from typing import TYPE_CHECKING
 
-from omni.isaac.lab.assets import RigidObject
+from omni.isaac.lab.assets import RigidObject, Articulation
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.envs import ManagerBasedEnv
 import omni.isaac.lab.utils.math as math_utils
@@ -41,7 +41,9 @@ def path_point_target(
     # change distance to target based on used maze
     # TODO ROV this should be able to differentiate between simple and hard real maze
     if globals.use_multi_maze:
-        distance_tensor = globals.rew_dist_generated * torch.ones((sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0")
+        distance_tensor = globals.rew_dist_generated * torch.ones(
+            (sphere_pos.shape[0]), dtype=torch.float16, device="cuda:0"
+        )
         for env_idx in range(sphere_pos.shape[0]):
             if globals.get_list_entry_from_env(globals.maze_type_array, env_idx):
                 distance_tensor[env_idx] = globals.rew_dist_real
@@ -97,6 +99,44 @@ def path_point_target(
     target2.write_root_pose_to_sim(target3to2, env_ids=target_reached_ids)
     target3.write_root_pose_to_sim(targetNextto3, env_ids=target_reached_ids)
     return xy_sparse_reward
+
+
+def on_hole(
+    env: ManagerBasedRLEnv,
+    hole_radius: float,
+    sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere"),
+    maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+) -> torch.Tensor:
+    """Penalize when the asset is on a hole, which would lead to a failure."""
+    # extract the used quantities (to enable type-hinting)
+
+    sphere: RigidObject = env.scene[sphere_cfg.name]
+    maze: Articulation = env.scene[maze_cfg.name]
+
+    maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
+    sphere_pos = sphere.data.root_link_pos_w - env.scene.env_origins
+    sphere_pos = sphere_pos[:, :2] / torch.cos(maze_joint_pos)
+    holes_pos = globals.holes_positions
+
+    squared_dists = torch.sum((holes_pos.unsqueeze(0) - sphere_pos.unsqueeze(1)) ** 2, dim=2)
+    is_on_hole = torch.any(squared_dists < hole_radius**2, dim=1).squeeze()
+
+    return is_on_hole.float()
+
+
+# def near_holes(
+#     env: ManagerBasedRLEnv, hole_sigma: float, asset_cfg: SceneEntityCfg = SceneEntityCfg("sphere")
+# ) -> torch.Tensor:
+#     """Penalize when the asset is on a hole, which would lead to a failure."""
+#     # extract the used quantities (to enable type-hinting)
+#     asset: RigidObject = env.scene[asset_cfg.name]
+#     sphere_pos = asset.data.root_link_pos_w[:, :2]
+
+#     # TODO DRP Take joint angle in consideration
+#     holes_pos = globals.holes_positions
+
+#     squared_dists = torch.sum((holes_pos - sphere_pos) ** 2, dim=1)
+#     return torch.exp(-squared_dists / (2 * hole_sigma**2))
 
 
 def store_accumulated_path_score(env: ManagerBasedEnv, env_ids: torch.Tensor, file_path: str):
