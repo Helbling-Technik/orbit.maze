@@ -11,6 +11,7 @@ import gymnasium as gym
 
 from . import agents
 from .maze_env_cfg import MazeEnvCfg
+from .maze_env import MazeEnv
 
 ##
 # Register Gym environments.
@@ -18,7 +19,7 @@ from .maze_env_cfg import MazeEnvCfg
 
 gym.register(
     id="Isaac-Maze-v0",
-    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    entry_point="orbit.maze.tasks.maze.maze_env:MazeEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": MazeEnvCfg,

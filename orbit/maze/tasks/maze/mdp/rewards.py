@@ -5,6 +5,8 @@
 
 from __future__ import annotations
 
+import time
+
 import torch
 from typing import TYPE_CHECKING
 
@@ -109,6 +111,7 @@ def on_hole(
 ) -> torch.Tensor:
     """Penalize when the asset is on a hole, which would lead to a failure."""
     # extract the used quantities (to enable type-hinting)
+    t_start = time.time()
 
     sphere: RigidObject = env.scene[sphere_cfg.name]
     maze: Articulation = env.scene[maze_cfg.name]
@@ -120,6 +123,17 @@ def on_hole(
 
     squared_dists = torch.sum((holes_pos.unsqueeze(0) - sphere_pos.unsqueeze(1)) ** 2, dim=2)
     is_on_hole = torch.any(squared_dists < hole_radius**2, dim=1).squeeze()
+
+    env.hole_crossings += is_on_hole.float()
+
+    just_crossed = is_on_hole & ~env.hole_crossed
+    env.path_before_hole[just_crossed] = globals.path_accumulated[just_crossed].float()
+    env.hole_crossed |= just_crossed
+    env.path_before_hole[~env.hole_crossed] = globals.path_accumulated[~env.hole_crossed].float()
+
+    t_end = time.time()
+    duration = t_end - t_start
+    # print("OnHole Reward computation duration: ", duration)
 
     return is_on_hole.float()
 
@@ -243,6 +257,9 @@ def reset_maze_state(
 
     globals.path_direction[env_ids] = path_direction_temp[env_ids]
     globals.path_accumulated[env_ids] = 0
+    env.hole_crossed[env_ids] = False
+    env.path_before_hole[env_ids] = 0
+    env.hole_crossings[env_ids] = 0
 
     sphere_pos = sphere.data.default_root_state[env_ids, :7].clone()
     target1_pos = sphere_pos.clone()

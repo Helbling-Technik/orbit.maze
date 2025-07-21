@@ -753,7 +753,7 @@ class RewardsCfg:
     on_hole = RewTerm(
         func=mdp.on_hole,
         params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
-        weight=-20.0,
+        weight=-1.0 * globals.targeted_frequency,
     )
 
     # terminating = RewTerm(
