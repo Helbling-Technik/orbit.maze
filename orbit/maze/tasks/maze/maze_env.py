@@ -25,8 +25,12 @@ class MazeEnv(ManagerBasedRLEnv):
         self.log_dir = ""
         self.writer = None
         self.average_path = 0
+        self.maximum_average_path = 0
         self.average_path_before_hole = 0
-        self.hole_crossings = torch.zeros(self.num_envs, device="cuda:0")  # TODO DRP device?
+        self.maximum_average_path_before_hole = 0
+        self.average_path_after_hole = 0
+        self.maximum_average_path_after_hole = 0
+        self.hole_crossings = torch.zeros(self.num_envs, device="cuda:0")
         self.path_before_hole = torch.zeros(
             self.num_envs,
             device="cuda:0",
@@ -54,30 +58,8 @@ class MazeEnv(ManagerBasedRLEnv):
             A tuple containing the observations, rewards, resets (terminated and truncated) and extras.
         """
 
-        if self.writer is None:
-            self.writer = SummaryWriter(self.log_dir)
-        self.writer.add_scalar(
-            "path/average_path",
-            self.average_path,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "path/average_path_before_hole",
-            self.average_path_before_hole,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar("path/crossed_hole_percentage", self.hole_crossed_percentage, self.common_step_counter)
-        self.writer.add_histogram("path/histogram/path", globals.path_accumulated, self.common_step_counter)
-        self.writer.add_histogram("path/histogram/path_before_hole", globals.path_accumulated, self.common_step_counter)
-        self.writer.flush()
-        self.hole_crossed_percentage = sum(self.hole_crossed) / self.num_envs * 100
-        self.average_path = sum(globals.path_accumulated) / self.num_envs
-        self.average_path_before_hole = sum(self.path_before_hole) / self.num_envs
-
-        print("Average path: ", self.average_path)
-        print("Average path before hole: ", self.average_path_before_hole)
-        print("Percentage of environments going on a hole: ", self.hole_crossed_percentage, "%")
-        print("Number of hole crossings", sum(self.hole_crossings))
+        self.update_writer()
+        self.update_metrics()
 
         # process actions
         self.action_manager.process_action(action.to(self.device))
@@ -150,3 +132,52 @@ class MazeEnv(ManagerBasedRLEnv):
 
         # return observations, rewards, resets and extras
         return self.obs_buf, self.reward_buf, self.reset_terminated, self.reset_time_outs, self.extras
+
+    def update_writer(self):
+        if self.writer is None:
+            self.writer = SummaryWriter(self.log_dir)
+        self.writer.add_scalar(
+            "path/average_path",
+            self.average_path,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "path/average_path_before_hole",
+            self.average_path_before_hole,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar("path/average_path_after_hole", self.average_path_after_hole, self.common_step_counter)
+        self.writer.add_scalar(
+            "path/maximum_average_path",
+            self.maximum_average_path,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "path/maximum_average_path_before_hole",
+            self.maximum_average_path_before_hole,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "path/maximum_average_path_after_hole", self.maximum_average_path_after_hole, self.common_step_counter
+        )
+
+        self.writer.add_scalar("path/crossed_hole_percentage", self.hole_crossed_percentage, self.common_step_counter)
+        self.writer.flush()
+
+    def update_metrics(self):
+        self.hole_crossed_percentage = sum(self.hole_crossed) / self.num_envs * 100
+        self.average_path = (sum(globals.path_accumulated) / self.num_envs).item()
+
+        if self.average_path > self.maximum_average_path:
+            self.maximum_average_path = self.average_path
+        self.average_path_before_hole = (sum(self.path_before_hole) / self.num_envs).item()
+        if self.average_path_before_hole > self.maximum_average_path_before_hole:
+            self.maximum_average_path_before_hole = self.average_path_before_hole
+        self.average_path_after_hole = self.average_path - self.average_path_before_hole
+        if self.average_path_after_hole > self.maximum_average_path_after_hole:
+            self.maximum_average_path_after_hole = self.average_path_after_hole
+
+        print("Maximum average path: ", self.maximum_average_path)
+        print("Maximum average path before hole: ", self.maximum_average_path_before_hole)
+        print("Percentage of environments going on a hole: ", self.hole_crossed_percentage.item(), "%")
+        print("Number of hole crossings", sum(self.hole_crossings).item())

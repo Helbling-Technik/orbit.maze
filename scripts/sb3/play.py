@@ -84,7 +84,7 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-07-18_17-11-40/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-07-21_17-01-15/model.zip",
     help="Path to model checkpoint.",
 )
 # append AppLauncher cli args

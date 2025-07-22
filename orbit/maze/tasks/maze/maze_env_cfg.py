@@ -17,6 +17,7 @@ from omni.isaac.lab.managers import ObservationTermCfg as ObsTerm
 from omni.isaac.lab.managers import RewardTermCfg as RewTerm
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.managers import TerminationTermCfg as DoneTerm
+from omni.isaac.lab.managers import CurriculumTermCfg as CurrTerm
 from omni.isaac.lab.scene import InteractiveSceneCfg
 from omni.isaac.lab.actuators import DelayedImplicitActuatorCfg  # SCK: used to be ImplicitActuatorCfg
 from omni.isaac.lab.utils import configclass
@@ -753,7 +754,7 @@ class RewardsCfg:
     on_hole = RewTerm(
         func=mdp.on_hole,
         params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
-        weight=-1.0 * globals.targeted_frequency,
+        weight=-0.5 * globals.targeted_frequency,
     )
 
     # terminating = RewTerm(
@@ -815,7 +816,10 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Configuration for the curriculum."""
 
-    pass
+    penalty_on_hole = CurrTerm(
+        func=mdp.increase_penalty_on_hole,
+        params={"new_weight": -2.0 * globals.targeted_frequency, "threshold": 20},
+    )
 
 
 ##

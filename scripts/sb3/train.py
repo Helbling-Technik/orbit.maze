@@ -22,27 +22,71 @@ parser = argparse.ArgumentParser(description="Train an RL agent with Stable-Base
 parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
 parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
 parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
-parser.add_argument("--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations.")
+parser.add_argument(
+    "--disable_fabric", action="store_true", default=False, help="Disable fabric and use USD I/O operations."
+)
 parser.add_argument("--num_envs", type=int, default=4, help="Number of environments to simulate.")
 parser.add_argument("--task", type=str, default="Isaac-Maze-v0", help="Name of the task.")
 parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
-parser.add_argument("--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length")
-parser.add_argument("--frames_per_second", type=int, default=30, help="Update frames per second of observation and action")
-parser.add_argument("--overwrite_n_timesteps", type=float, default=None, help="If specified overwrite n_timesteps of training config")
+parser.add_argument(
+    "--maze_start_point", type=int, default=0, help="Negative = random, 0-len(path), will be clipped to max length"
+)
+parser.add_argument(
+    "--frames_per_second", type=int, default=30, help="Update frames per second of observation and action"
+)
+parser.add_argument(
+    "--overwrite_n_timesteps", type=float, default=None, help="If specified overwrite n_timesteps of training config"
+)
 parser.add_argument("--debug_images", action="store_true", default=False, help="Output debug images of camera")
 parser.add_argument("--real_maze", action="store_true", default=False, help="For real maze usd")
 parser.add_argument("--pos_ctrl", action="store_true", default=False, help="Position control, default is torque")
 parser.add_argument("--use_pid", action="store_true", default=False, help="Use same PID as real hardware for actuation")
-parser.add_argument("--velocity_obs", action="store_true", default=False, help="Use velocity observation, default false")
-parser.add_argument("--multi_maze", action="store_true", default=False, help="Multi maze environment, has --real_maze inherently")
-parser.add_argument("--synced_obs_delay", action="store_true", default=False, help="Use synced delay for observations, no randomization")
+parser.add_argument(
+    "--velocity_obs", action="store_true", default=False, help="Use velocity observation, default false"
+)
+parser.add_argument(
+    "--multi_maze", action="store_true", default=False, help="Multi maze environment, has --real_maze inherently"
+)
+parser.add_argument(
+    "--synced_obs_delay", action="store_true", default=False, help="Use synced delay for observations, no randomization"
+)
 
 # TODO ROV make these in levels
-parser.add_argument("--delay_level", type=int, choices=[-1, 0, 1], default=-1, help="Use delay for observation & motor commands: -1 no, 0 small, 1 large")
-parser.add_argument("--ext_force_level", type=int, choices=[-1, 0, 1], default=-1, help="Apply ext force on sphere: -1 no, 0 small, 1 large")
-parser.add_argument("--joint_friction_level", type=int, choices=[-1, 0, 1], default=-1, help="Apply joint friction: -1 no, 0 small, 1 large")
-parser.add_argument("--actuator_gain_level", type=int, choices=[-1, 0, 1], default=-1, help="Apply actuator gain: -1 no, 0 small, 1 large")
-parser.add_argument("--randomization_level", type=int, choices=[-1, 0, 1], default=None, help="Overwrites actuator gain and joint friction: -1 no, 0 small, 1 large")
+parser.add_argument(
+    "--delay_level",
+    type=int,
+    choices=[-1, 0, 1],
+    default=-1,
+    help="Use delay for observation & motor commands: -1 no, 0 small, 1 large",
+)
+parser.add_argument(
+    "--ext_force_level",
+    type=int,
+    choices=[-1, 0, 1],
+    default=-1,
+    help="Apply ext force on sphere: -1 no, 0 small, 1 large",
+)
+parser.add_argument(
+    "--joint_friction_level",
+    type=int,
+    choices=[-1, 0, 1],
+    default=-1,
+    help="Apply joint friction: -1 no, 0 small, 1 large",
+)
+parser.add_argument(
+    "--actuator_gain_level",
+    type=int,
+    choices=[-1, 0, 1],
+    default=-1,
+    help="Apply actuator gain: -1 no, 0 small, 1 large",
+)
+parser.add_argument(
+    "--randomization_level",
+    type=int,
+    choices=[-1, 0, 1],
+    default=None,
+    help="Overwrites actuator gain and joint friction: -1 no, 0 small, 1 large",
+)
 
 # specify a starting model here, it is advised to use one which has not overfitted
 parser.add_argument(
@@ -197,6 +241,7 @@ def main():
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+    env.env.log_dir = log_dir
     # Bound the actions!
     env.unwrapped.single_action_space = gym.spaces.Box(low=-1, high=1, shape=env.unwrapped.single_action_space.shape)
     # wrap for video recording
