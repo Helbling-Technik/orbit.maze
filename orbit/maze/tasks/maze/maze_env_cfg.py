@@ -818,7 +818,13 @@ class CurriculumCfg:
 
     penalty_on_hole = CurrTerm(
         func=mdp.increase_penalty_on_hole,
-        params={"new_weight": -2.0 * globals.targeted_frequency, "threshold": 20},
+        params={
+            "thresholds_and_weights": [
+                (20, -2.0 * globals.targeted_frequency),
+                (40, -8.0 * globals.targeted_frequency),
+                (60, -32.0 * globals.targeted_frequency),
+            ]  # Make sure thresholds are in increasing order
+        },
     )
 
 
