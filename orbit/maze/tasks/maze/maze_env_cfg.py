@@ -364,7 +364,7 @@ class MazeSceneCfg(InteractiveSceneCfg):
                 min_torsional_patch_radius=0.001,
             ),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.2, 0.2, 0.2), metallic=0.0),
-            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.8, dynamic_friction=0.5, restitution=0.5),
+            physics_material=sim_utils.RigidBodyMaterialCfg(static_friction=0.8, dynamic_friction=0.5, restitution=0.1),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
@@ -666,7 +666,7 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
             "static_friction_range": (0.1, 0.8),
             "dynamic_friction_range": (0.1, 0.8),
-            "restitution_range": (0.25, 0.75),
+            "restitution_range": (0.05, 0.25),
             "num_buckets": 300,
         },
     )
@@ -678,7 +678,7 @@ class EventCfg:
             "asset_cfg": SceneEntityCfg("sphere"),
             "static_friction_range": (0.1, 0.8),
             "dynamic_friction_range": (0.1, 0.8),
-            "restitution_range": (0.25, 0.75),
+            "restitution_range": (0.05, 0.25),
             "num_buckets": 300,
         },
     )
@@ -885,3 +885,5 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
 
         # TODO CLEANUP set physics properties if warning, not high enough for 16384 envs
         self.sim.physx.gpu_collision_stack_size = 2**30
+        self.sim.physx.bounce_threshold_velocity = 0.02
+        # self.sim.physx.friction_offset_threshold = 0.01
