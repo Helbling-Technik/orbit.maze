@@ -748,20 +748,20 @@ class RewardsCfg:
     """Reward terms for the MDP."""
 
     # (1) Constant running reward
-    # alive = RewTerm(func=mdp.is_alive, weight=0.0001)
+    alive = RewTerm(func=mdp.is_alive, weight=0.0001)
 
     # (2) Failure penalty
     on_hole = RewTerm(
-        func=mdp.on_hole,
-        params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
-        weight=-0.5 * globals.targeted_frequency,
+        func=mdp.termination_reward,
+        params={"term_name": "sphere_on_hole"},
+        weight=-1.0 * globals.targeted_frequency,
     )
 
-    # terminating = RewTerm(
-    # func=mdp.root_height_below_minimum,
-    # params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
-    # # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
-    # weight=-1.0 * globals.targeted_frequency,
+    # # (2) Failure penalty
+    # on_hole = RewTerm(
+    #     func=mdp.on_hole,
+    #     params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
+    #     weight=-0.5 * globals.targeted_frequency,
     # )
 
     # (3) Primary task: control maze path
@@ -811,21 +811,39 @@ class TerminationsCfg:
         params={"asset_cfg": SceneEntityCfg("sphere"), "minimum_height": 0.01},
     )
 
+    sphere_on_hole = DoneTerm(
+        func=mdp.on_hole,
+        params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
+    )
+
 
 @configclass
 class CurriculumCfg:
     """Configuration for the curriculum."""
 
     penalty_on_hole = CurrTerm(
-        func=mdp.increase_penalty_on_hole,
+        func=mdp.modify_reward_path,
         params={
+            "term_name": "on_hole",
             "thresholds_and_weights": [
-                (20, -2.0 * globals.targeted_frequency),
-                (40, -8.0 * globals.targeted_frequency),
-                (60, -32.0 * globals.targeted_frequency),
-            ]  # Make sure thresholds are in increasing order
+                (10, -4.0 * globals.targeted_frequency),
+                # (40, -16.0 * globals.targeted_frequency),
+                # (53, -32.0 * globals.targeted_frequency),
+            ],  # Make sure thresholds are in increasing order
         },
     )
+
+    # penalty_on_hole_steps = CurrTerm(
+    #     func=mdp.modify_reward_steps,
+    #     params={
+    #         "term_name": "on_hole",
+    #         "steps_and_weights": [
+    #             (3000, -4.0 * globals.targeted_frequency),
+    #             (4500, -8.0 * globals.targeted_frequency),
+    #             (6000, -16.0 * globals.targeted_frequency),
+    #         ],  # Make sure steps are in increasing order
+    #     },
+    # )
 
 
 ##

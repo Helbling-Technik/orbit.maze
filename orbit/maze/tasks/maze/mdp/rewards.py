@@ -24,6 +24,10 @@ if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
 
 
+def termination_reward(env: ManagerBasedRLEnv, term_name: str) -> torch.Tensor:
+    return env.termination_manager.get_term(term_name).float()
+
+
 def path_point_target(
     env: ManagerBasedRLEnv,
     target1_cfg: SceneEntityCfg,
@@ -135,7 +139,7 @@ def on_hole(
     duration = t_end - t_start
     # print("OnHole Reward computation duration: ", duration)
 
-    return is_on_hole.float()
+    return is_on_hole
 
 
 # def near_holes(
