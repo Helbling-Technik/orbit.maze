@@ -41,13 +41,13 @@ parser = argparse.ArgumentParser(description="Utility to convert a URDF into USD
 parser.add_argument(
     "--input",
     type=str,
-    default="urdfs/converter_input/simple_maze_no_holes/simple_maze_no_holes.urdf",
+    default="urdfs/converter_input/maze_no_holes/maze_no_holes.urdf",
     help="The path to the input URDF file.",
 )
 parser.add_argument(
     "--output",
     type=str,
-    default="urdfs/converter_output/simple_maze_no_holes",
+    default="urdfs/converter_output/maze_no_holes",
     help="The path to store the USD file.",
 )
 parser.add_argument(
@@ -141,6 +141,8 @@ def main():
     stage_utils.open_stage(usd_path)
     stage = usd_context.get_stage()
 
+    num_walls = 55
+
     robot = stage.GetPrimAtPath("/Labyrinth")
     supportvisual = stage.GetPrimAtPath("/Labyrinth/Support/visuals")
     outerDOFvisual = stage.GetPrimAtPath("/Labyrinth/OuterDOF/visuals")
@@ -152,6 +154,9 @@ def main():
     innerDOF_short_wall2collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_2")
     innerDOF_long_wall1collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_3")
     innerDOF_long_wall2collision = stage.GetPrimAtPath("/Labyrinth/InnerDOFCollisions/collisions/mesh_4")
+    innerDOFWallscollisions = [
+        stage.GetPrimAtPath(f"/Labyrinth/InnerDOFWallsCollisions/collisions/mesh_{i}") for i in range(num_walls)
+    ]
 
     # Define the path for the physics scene
     physics_scene_path = "/physicsScene"
@@ -168,13 +173,16 @@ def main():
     # Set the colliders
     utils.setCollider(supportvisual, "sdf")
     utils.setCollider(outerDOFvisual, "sdf")
-    utils.setCollider(innerDOFWallsvisual, "sdf")
+    # utils.setCollider(innerDOFWallsvisual, "sdf")
 
     utils.setCollider(innerDOF_base_1collision, "convexHull")
     utils.setCollider(innerDOF_short_wall1collision, "convexHull")
     utils.setCollider(innerDOF_short_wall2collision, "convexHull")
     utils.setCollider(innerDOF_long_wall1collision, "convexHull")
     utils.setCollider(innerDOF_long_wall2collision, "convexHull")
+
+    for i in range(num_walls):
+        utils.setCollider(innerDOFWallscollisions[i], "convexHull")
 
     # TODO use something like this if you plan on doing instanced meshes
     # Create a new reference
@@ -187,7 +195,10 @@ def main():
     # Reset the mass to autocompute for rigid bodies and ignore diagonal inertia
     for prim in stage.Traverse():
         print("Prim path:", prim.GetPath())
-        if prim.GetPath().HasPrefix(robot.GetPath()) and prim.GetPath() != "/Labyrinth/InnerDOF":
+        if prim.GetPath().HasPrefix(robot.GetPath()) and prim.GetPath() not in [
+            "/Labyrinth/InnerDOF",
+            "/Labyrinth/InnerDOFWalls",
+        ]:
             if UsdPhysics.RigidBodyAPI(prim):
                 print(prim.GetPath(), " has a rigidbody api ")
                 if UsdPhysics.MassAPI(prim):
@@ -226,9 +237,9 @@ def main():
     usd_physics_material_black = UsdPhysics.MaterialAPI(material_black)
 
     # Set physical properties (example: static friction, dynamic friction, restitution)
-    usd_physics_material_black.CreateStaticFrictionAttr().Set(1.0)
-    usd_physics_material_black.CreateDynamicFrictionAttr().Set(1.0)
-    usd_physics_material_black.CreateRestitutionAttr().Set(1.0)
+    usd_physics_material_black.CreateStaticFrictionAttr().Set(0.1)
+    usd_physics_material_black.CreateDynamicFrictionAttr().Set(0.1)
+    usd_physics_material_black.CreateRestitutionAttr().Set(0.2)
     usd_physics_material_black.Apply(material_black.GetPrim())
 
     # Ensure the mesh exists before applying the material
@@ -236,6 +247,11 @@ def main():
         UsdShade.MaterialBindingAPI(innerDOFWallsvisual).Bind(material_black)
     else:
         print(f"Mesh at path {innerDOFWallsvisual} does not exist.")
+    for i in range(num_walls):
+        if innerDOFWallscollisions[i]:
+            UsdShade.MaterialBindingAPI(innerDOFWallscollisions[i]).Bind(material_black)
+        else:
+            print(f"Mesh at path {innerDOFWallsvisual} does not exist.")
 
     # Define the material path
     material_path_white = "/Labyrinth/Looks/WhiteMaterial"
@@ -255,9 +271,9 @@ def main():
     usd_physics_material_white = UsdPhysics.MaterialAPI(material_white)
 
     # Set physical properties (example: static friction, dynamic friction, restitution)
-    usd_physics_material_white.CreateStaticFrictionAttr().Set(1.0)
-    usd_physics_material_white.CreateDynamicFrictionAttr().Set(1.0)
-    usd_physics_material_white.CreateRestitutionAttr().Set(1.0)
+    usd_physics_material_white.CreateStaticFrictionAttr().Set(0.1)
+    usd_physics_material_white.CreateDynamicFrictionAttr().Set(0.1)
+    usd_physics_material_white.CreateRestitutionAttr().Set(0.2)
     usd_physics_material_white.Apply(material_white.GetPrim())
 
     # Ensure the mesh exists before applying the material

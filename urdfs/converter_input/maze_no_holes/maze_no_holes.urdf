@@ -78,7 +78,359 @@
           <color rgba="0.0 0.0 0.0 1.0"/> <!-- RGB + Alpha (transparency) -->
       </material>
     </visual>
-  </link> 
+  </link>
+
+  <link name="InnerDOFWallsCollisions">
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_1.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_2.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_3.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_4.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_5.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_6.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_7.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_8.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_9.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_10.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_11.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_12.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_13.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_14.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_15.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_16.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_17.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_18.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_19.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_20.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_21.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_22.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_23.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_24.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_25.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_26.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_27.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_28.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_29.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_30.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_31.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_32.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_33.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_34.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_35.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_36.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_37.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_38.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_39.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_40.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_41.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_42.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_43.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_44.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_45.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_46.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_47.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_48.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_49.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_50.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_51.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_52.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_53.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_54.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_55.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_56.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_57.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+    <collision>
+      <origin xyz="0.0 0.0 -0.1" rpy="1.57 0. 0. "/>
+      <geometry>
+        <mesh filename="convex_walls/InnerDOFWalls_convex_58.STL" scale="1 1 1"/>
+      </geometry>
+    </collision>
+  </link>
+
 
   <joint name="InnerDOF_RevoluteJoint" type="continuous">
     <origin xyz="0.0 0.0 0.0" rpy="0.0 0. 0."/>
@@ -101,34 +453,14 @@
     <parent link="InnerDOF"/>
     <child link="InnerDOFWalls"/>
   </joint>
+  <joint name="FixedMazeWallCollisionsJoint" type="fixed">
+    <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
+    <parent link="InnerDOF"/>
+    <child link="InnerDOFWallsCollisions"/>
+  </joint>
   <joint name="FixedMazeCollisionsJoint" type="fixed">
     <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
     <parent link="InnerDOF"/>
     <child link="InnerDOFCollisions"/>
   </joint>
-  <!-- <joint name="FixedShortWallJoint-1" type="fixed">
-    <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
-    <parent link="InnerDOF"/>
-    <child link="InnerDOF_short_wall-1"/>
-  </joint>
-  <joint name="FixedShortWallJoint-2" type="fixed">
-    <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
-    <parent link="InnerDOF"/>
-    <child link="InnerDOF_short_wall-2"/>
-  </joint>
-  <joint name="FixedLongWallJoint-1" type="fixed">
-    <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
-    <parent link="InnerDOF"/>
-    <child link="InnerDOF_long_wall-1"/>
-  </joint>
-  <joint name="FixedLongWallJoint-2" type="fixed">
-    <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
-    <parent link="InnerDOF"/>
-    <child link="InnerDOF_long_wall-2"/>
-  </joint>
-  <joint name="FixedBasedJoint-1" type="fixed">
-    <origin xyz="0.0 0.0 0.0" rpy="0. 0. 0."/>
-    <parent link="InnerDOF"/>
-    <child link="InnerDOF_base-1"/>
-  </joint> -->
 </robot>
