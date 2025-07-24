@@ -369,6 +369,8 @@ class MazeSceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.12)),
     )
 
+    # TODO Think about a way to automate number of targets
+
     target1 = RigidObjectCfg(
         prim_path="{ENV_REGEX_NS}/target1",
         spawn=sim_utils.SphereCfg(
@@ -396,6 +398,28 @@ class MazeSceneCfg(InteractiveSceneCfg):
             rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
             collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
             visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0), metallic=0.2),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+    )
+
+    target4 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/target4",
+        spawn=sim_utils.SphereCfg(
+            radius=0.003,
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
+            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 0.0), metallic=0.2),
+        ),
+        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+    )
+
+    target5 = RigidObjectCfg(
+        prim_path="{ENV_REGEX_NS}/target5",
+        spawn=sim_utils.SphereCfg(
+            radius=0.003,
+            rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
+            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
+            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0), metallic=0.2),
         ),
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
@@ -571,6 +595,7 @@ class ObservationsCfg:
                 params={"asset_cfg": SceneEntityCfg("sphere")},
             )
 
+        # TODO DRP Refactor and handle targets with single more parametrizable ObsTerm
         target1_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
@@ -589,6 +614,22 @@ class ObservationsCfg:
             func=mdp.root_pos_w_xy,
             params={
                 "asset_cfg": SceneEntityCfg("target3"),
+            },
+            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+        )
+
+        target4_pos = ObsTerm(
+            func=mdp.root_pos_w_xy,
+            params={
+                "asset_cfg": SceneEntityCfg("target4"),
+            },
+            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+        )
+
+        target5_pos = ObsTerm(
+            func=mdp.root_pos_w_xy,
+            params={
+                "asset_cfg": SceneEntityCfg("target5"),
             },
             modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
         )
@@ -644,6 +685,8 @@ class EventCfg:
             "target1_cfg": SceneEntityCfg("target1"),
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
+            "target4_cfg": SceneEntityCfg("target4"),
+            "target5_cfg": SceneEntityCfg("target5"),
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
@@ -773,6 +816,8 @@ class RewardsCfg:
             "target1_cfg": SceneEntityCfg("target1"),
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
+            "target4_cfg": SceneEntityCfg("target4"),
+            "target5_cfg": SceneEntityCfg("target5"),
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
@@ -786,6 +831,9 @@ class RewardsCfg:
     #         "asset_cfg": SceneEntityCfg("sphere"),
     #     },
     # )
+
+    # TODO DRP Try "force field" dense velocity rewards: attractive gaussians for targets, repulsive gaussians for holes
+
     # smoother with increased penalty here
     joint_action = RewTerm(
         func=mdp.action_l2,
@@ -821,17 +869,17 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Configuration for the curriculum."""
 
-    penalty_on_hole = CurrTerm(
-        func=mdp.modify_reward_path,
-        params={
-            "term_name": "on_hole",
-            "thresholds_and_weights": [
-                (10, -4.0 * globals.targeted_frequency),
-                # (40, -16.0 * globals.targeted_frequency),
-                # (53, -32.0 * globals.targeted_frequency),
-            ],  # Make sure thresholds are in increasing order
-        },
-    )
+    # penalty_on_hole = CurrTerm(
+    #     func=mdp.modify_reward_path,
+    #     params={
+    #         "term_name": "on_hole",
+    #         "thresholds_and_weights": [
+    #             (10, -4.0 * globals.targeted_frequency),
+    #             # (40, -16.0 * globals.targeted_frequency),
+    #             # (53, -32.0 * globals.targeted_frequency),
+    #         ],  # Make sure thresholds are in increasing order
+    #     },
+    # )
 
     # penalty_on_hole_steps = CurrTerm(
     #     func=mdp.modify_reward_steps,

@@ -33,6 +33,8 @@ def path_point_target(
     target1_cfg: SceneEntityCfg,
     target2_cfg: SceneEntityCfg,
     target3_cfg: SceneEntityCfg,
+    target4_cfg: SceneEntityCfg,
+    target5_cfg: SceneEntityCfg,
     sphere_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     """Asset root position in the environment frame."""
@@ -41,6 +43,8 @@ def path_point_target(
     target1: RigidObject = env.scene[target1_cfg.name]
     target2: RigidObject = env.scene[target2_cfg.name]
     target3: RigidObject = env.scene[target3_cfg.name]
+    target4: RigidObject = env.scene[target4_cfg.name]
+    target5: RigidObject = env.scene[target5_cfg.name]
     sphere_pos = sphere.data.root_pos_w - env.scene.env_origins
     target1_pos = target1.data.root_pos_w - env.scene.env_origins
 
@@ -62,12 +66,16 @@ def path_point_target(
     if target_reached_ids.numel() == 0:
         return xy_sparse_reward
 
+    # TODO DRP Handle this in an own event
+
     target2to1 = target2.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
     target3to2 = target3.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
-    targetNextto3 = target3.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+    target4to3 = target4.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+    target5to4 = target5.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+    targetNextto5 = target5.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
 
-    if targetNextto3.dim() == 1:
-        targetNextto3 = targetNextto3.unsqueeze(0)
+    if targetNextto5.dim() == 1:
+        targetNextto5 = targetNextto5.unsqueeze(0)
 
     # update the path index and last target
     globals.path_idx[target_reached_ids] += globals.path_direction[target_reached_ids]
@@ -99,11 +107,13 @@ def path_point_target(
         updated_path_idx = globals.path_idx[target_reached_ids].clone().detach().to(device=sphere.device, dtype=int)
         targetNext = globals.maze_path[updated_path_idx, :]
 
-    targetNextto3[:, :2] = targetNext + env.scene.env_origins[target_reached_ids, :2]
+    targetNextto5[:, :2] = targetNext + env.scene.env_origins[target_reached_ids, :2]
 
     target1.write_root_pose_to_sim(target2to1, env_ids=target_reached_ids)
     target2.write_root_pose_to_sim(target3to2, env_ids=target_reached_ids)
-    target3.write_root_pose_to_sim(targetNextto3, env_ids=target_reached_ids)
+    target3.write_root_pose_to_sim(target4to3, env_ids=target_reached_ids)
+    target4.write_root_pose_to_sim(target5to4, env_ids=target_reached_ids)
+    target5.write_root_pose_to_sim(targetNextto5, env_ids=target_reached_ids)
     return xy_sparse_reward
 
 
@@ -197,6 +207,8 @@ def reset_maze_state(
     target1_cfg: SceneEntityCfg,
     target2_cfg: SceneEntityCfg,
     target3_cfg: SceneEntityCfg,
+    target4_cfg: SceneEntityCfg,
+    target5_cfg: SceneEntityCfg,
     sphere_cfg: SceneEntityCfg,
 ):
 
@@ -204,6 +216,8 @@ def reset_maze_state(
     target1: RigidObject = env.scene[target1_cfg.name]
     target2: RigidObject = env.scene[target2_cfg.name]
     target3: RigidObject = env.scene[target3_cfg.name]
+    target4: RigidObject = env.scene[target4_cfg.name]
+    target5: RigidObject = env.scene[target5_cfg.name]
 
     if globals.use_multi_maze:
         # Need to create globals.path_idx
@@ -269,6 +283,8 @@ def reset_maze_state(
     target1_pos = sphere_pos.clone()
     target2_pos = target1_pos.clone()
     target3_pos = target1_pos.clone()
+    target4_pos = target1_pos.clone()
+    target5_pos = target1_pos.clone()
 
     if globals.use_multi_maze:
         # the asset configs come in a list of resetted envs, not all of them
@@ -282,6 +298,10 @@ def reset_maze_state(
             target2_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
             _step_path_savely(e_idx, path_length)
             target3_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
+            _step_path_savely(e_idx, path_length)
+            target4_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
+            _step_path_savely(e_idx, path_length)
+            target5_pos[idx, :2] = maze_path[globals.path_idx[e_idx], :] + env.scene.env_origins[e_idx, :2]
     else:
         path_length = globals.maze_path.shape[0]
         sphere_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
@@ -291,12 +311,18 @@ def reset_maze_state(
         target2_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
         _step_path_savely(env_ids, path_length)
         target3_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
+        _step_path_savely(env_ids, path_length)
+        target4_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
+        _step_path_savely(env_ids, path_length)
+        target5_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
 
     sphere.write_root_pose_to_sim(sphere_pos, env_ids=env_ids)
     sphere.write_root_velocity_to_sim(torch.zeros(len(env_ids), 6, device=sphere.device), env_ids=env_ids)
     target1.write_root_pose_to_sim(target1_pos, env_ids=env_ids)
-    target3.write_root_pose_to_sim(target3_pos, env_ids=env_ids)
     target2.write_root_pose_to_sim(target2_pos, env_ids=env_ids)
+    target3.write_root_pose_to_sim(target3_pos, env_ids=env_ids)
+    target4.write_root_pose_to_sim(target4_pos, env_ids=env_ids)
+    target5.write_root_pose_to_sim(target5_pos, env_ids=env_ids)
 
 
 def _step_path_savely(env_ids, path_length):

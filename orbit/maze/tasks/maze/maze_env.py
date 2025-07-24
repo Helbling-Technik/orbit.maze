@@ -98,6 +98,8 @@ class MazeEnv(ManagerBasedRLEnv):
         # -- reward computation
         self.reward_buf = self.reward_manager.compute(dt=self.step_dt)
 
+        # TODO DRP Handle target switching with a reach_buf and event manager (custom mode)
+
         if len(self.recorder_manager.active_terms) > 0:
             # update observations for recording if needed
             self.obs_buf = self.observation_manager.compute()
