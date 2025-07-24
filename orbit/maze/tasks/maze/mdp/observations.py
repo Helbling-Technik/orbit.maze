@@ -30,6 +30,8 @@ import globals
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
+    from ..maze_env import MazeEnv
+    import orbit.maze.tasks.maze.randomization as rdm
     from . import modifier_cfg
 
 
@@ -148,7 +150,9 @@ def apply_global_external_force_torque(
     torques = math_utils.sample_uniform(*torque_range, size, asset.device)
     # set the forces and torques into the buffers
     # note: these are only applied when you call: `asset.write_data_to_sim()`
-    asset.set_external_force_and_torque(forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids, is_global_wrench=is_global_wrench)
+    asset.set_external_force_and_torque(
+        forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids, is_global_wrench=is_global_wrench
+    )
 
 
 def joint_pos_with_noise(
@@ -165,6 +169,35 @@ def joint_pos_with_noise(
     noise_tensor = torch.normal(mean=0, std=std, size=joint_pos.shape).to(joint_pos.device)
     joint_pos_noisy = joint_pos + noise_tensor
     joint_pos_normalized = joint_pos_noisy / torch.tensor(globals.joint_limits * math.pi / 180, device="cuda:0")
+
+    return joint_pos_normalized
+
+
+def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
+    """Joint positions with per-env randomized noise for maze robot."""
+    maze_cfg = SceneEntityCfg("robot")
+    maze: Articulation = env.scene[maze_cfg.name]
+    joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
+
+    num_envs, num_joints = joint_pos.shape
+
+    inner_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["inner_joint_pos_std"]
+    outer_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["outer_joint_pos_std"]
+
+    device = joint_pos.device
+    inner_stds = inner_param.sample_n(num_envs, device)
+    outer_stds = outer_param.sample_n(num_envs, device)
+
+    print("inner_stds:", inner_stds)
+    print("outer_stds:", outer_stds)
+    stds = torch.stack([inner_stds, outer_stds], dim=1)
+    noise = torch.normal(mean=0.0, std=stds)
+    joint_pos_noisy = joint_pos + noise
+
+    # Normalize
+    joint_limits_deg = torch.tensor(globals.joint_limits, device=device)
+    joint_limits_rad = joint_limits_deg * math.pi / 180.0
+    joint_pos_normalized = joint_pos_noisy / joint_limits_rad
 
     return joint_pos_normalized
 

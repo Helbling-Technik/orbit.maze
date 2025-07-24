@@ -1,0 +1,152 @@
+from __future__ import annotations
+
+import random
+import numpy as np
+import globals
+from typing import TYPE_CHECKING, List, Tuple, Sequence
+
+from .randomization_bound_type import RandomizationBoundType
+from .randomization_bound import RandomizationBound
+from .randomization_boundary import RandomizationBoundary
+from .randomization_parameter import RandomizationParameter
+from .randomization_performance_buffer import RandomizationPerformanceBuffer
+
+if TYPE_CHECKING:
+    from ..maze_env import MazeEnv, MazeEnvCfg
+    from ..maze_env_cfg import DomainRandomizationCfg
+
+
+class DomainRandomizer:
+
+    def __init__(self, env: MazeEnv, cfg: MazeEnvCfg):
+        self.env = env
+        domain_cfg: DomainRandomizationCfg = cfg.domain_randomization
+        randomizable_params: List[RandomizationParameter] = domain_cfg.RANDOMIZABLE_PARAMETERS
+        self.randomized_parameters = self._init_params(randomizable_params)
+        self.buffer = RandomizationPerformanceBuffer(randomizable_params, buffer_size=domain_cfg.buffer_size)
+
+        self.evaluation_probability = domain_cfg.evaluation_probability
+        self.buffer_size = domain_cfg.buffer_size
+
+        self.sampled_boundaries = [None] * cfg.scene.num_envs
+
+        # performance
+        self.lower_performance_threshold = domain_cfg.performance_threshold_lower
+        self.upper_performance_threshold = domain_cfg.performance_threshold_upper
+
+    @staticmethod
+    def _init_params(params: List[RandomizationParameter]) -> dict:
+        """
+        Convert a list of parameters to dict.
+
+        Args:
+            params (List[RandomizationParameter]): A list of randomized parameters.
+
+        Returns:
+            dict
+        """
+        randomized = dict()
+
+        for param in params:
+            randomized[param.name] = param
+
+        return randomized
+
+    def step(self, env_ids: Sequence[int]):
+
+        for env_id in env_ids:
+            boundary = self.sampled_boundaries[env_id]
+            if boundary is not None:
+                self.update_buffer(boundary, float(globals.path_accumulated[env_id]))
+                self.update_boundary(boundary)
+
+            # sample
+            randomized_param, boundary = self._sample_param_and_boundary()
+            self.sampled_boundaries[env_id] = boundary
+
+    def update_buffer(self, sampled_boundary: RandomizationBoundary, episode_return: float) -> None:
+        """
+        Update buffer with the sampled boundary and associated episode return.
+
+        Args:
+          sampled_boundary (RandomizationBoundary): Parameter boundary sampled for Auto DR.
+          episode_return (float): Episode return for the sampled boundary.
+
+        Returns:
+          None
+        """
+        self.buffer.insert(sampled_boundary, episode_return)
+
+    def update_boundary(self, sampled_boundary: RandomizationBoundary) -> None:
+        """
+        Update ADR bounds based on the performance for a given boundary.
+
+        Args:
+          sampled_boundary (RandomizationBoundary): Sampled boundary to evaluate.
+
+        Returns:
+          None
+        """
+
+        if not self.buffer.is_full(sampled_boundary):
+            return
+
+        performance = np.mean(np.array(self.buffer.get(sampled_boundary)))
+        self.buffer.truncate(sampled_boundary)
+
+        param: RandomizationParameter = sampled_boundary.parameter
+        bound: RandomizationBound = sampled_boundary.bound
+
+        # increase entropy
+        if performance >= self.upper_performance_threshold:
+            if bound.type == RandomizationBoundType.UPPER_BOUND:
+                self.randomized_parameters[param.name].increase_upper_bound()
+            elif bound.type == RandomizationBoundType.LOWER_BOUND:
+                self.randomized_parameters[param.name].decrease_lower_bound()
+            else:
+                raise ValueError
+
+        # decrease entropy
+        if performance < self.lower_performance_threshold:
+            if bound.type == RandomizationBoundType.UPPER_BOUND:
+                self.randomized_parameters[param.name].decrease_upper_bound()
+            elif bound.type == RandomizationBoundType.LOWER_BOUND:
+                self.randomized_parameters[param.name].increase_lower_bound()
+            else:
+                raise ValueError
+
+    def _sample_param_and_boundary(self) -> Tuple:
+        """
+        Get randomized parameter values.
+
+        Returns:
+          Tuple
+        """
+        randomized_params = dict()
+
+        # boundary
+        sampled_boundary = None
+
+        for param in self.randomized_parameters.values():
+            lower_bound = param.lower_bound
+            upper_bound = param.upper_bound
+
+            randomized_params[param.name] = np.random.uniform(lower_bound.value, upper_bound.value)
+
+        # adr
+        if np.random.uniform(0, 1) <= self.evaluation_probability:
+            sampled_param = random.choice(list(self.randomized_parameters.values()))
+            sampled_bound = random.choice(list([sampled_param.lower_bound, sampled_param.upper_bound]))
+
+            # boundary sampling
+            if sampled_bound.type == RandomizationBoundType.UPPER_BOUND:
+                randomized_params[sampled_param.name] = sampled_bound.value
+            elif sampled_bound.type == RandomizationBoundType.LOWER_BOUND:
+                randomized_params[sampled_param.name] = sampled_bound.value
+            else:
+                raise ValueError
+
+            sampled_boundary = RandomizationBoundary(parameter=sampled_param, bound=sampled_bound)
+            pass
+
+        return randomized_params, sampled_boundary

@@ -5,6 +5,7 @@ from omni.isaac.lab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from omni.isaac.lab.envs.common import VecEnvStepReturn
 
 from .maze_env_cfg import MazeEnvCfg
+import orbit.maze.tasks.maze.randomization as rdm
 
 import globals
 
@@ -21,6 +22,7 @@ class MazeEnv(ManagerBasedRLEnv):
             cfg: The configuration for the environment.
         """
         # initialize the base class to setup the scene.
+        self.randomizer = rdm.DomainRandomizer(self, cfg=cfg)
         super().__init__(cfg=cfg)
         self.log_dir = ""
         self.writer = None
@@ -168,6 +170,30 @@ class MazeEnv(ManagerBasedRLEnv):
         self.writer.add_scalar("reward_weights/penalty_on_hole", on_hole_weight, self.common_step_counter)
         maze_path_weight = self.reward_manager.get_term_cfg("sphere_maze_path_target").weight
         self.writer.add_scalar("reward_weights/maze_path", maze_path_weight, self.common_step_counter)
+
+        stiffness_params = self.event_manager.get_term_cfg("randomize_outer_actuator").params[
+            "stiffness_distribution_params"
+        ]
+        self.writer.add_scalar("params/stiffness_upper_bound", stiffness_params[1], self.common_step_counter)
+
+        friction_params = self.event_manager.get_term_cfg("randomize_outer_joint").params[
+            "friction_distribution_params"
+        ]
+        self.writer.add_scalar("params/friction_upper_bound", friction_params[1], self.common_step_counter)
+
+        inner_joint_pos_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["inner_joint_pos_std"]
+        self.writer.add_scalar(
+            "adr/inner_joint_pos_std_upper_bound",
+            inner_joint_pos_std.upper_bound.value,
+            self.common_step_counter,
+        )
+
+        outer_joint_pos_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["outer_joint_pos_std"]
+        self.writer.add_scalar(
+            "adr/outer_joint_pos_std_upper_bound",
+            outer_joint_pos_std.upper_bound.value,
+            self.common_step_counter,
+        )
 
         self.writer.flush()
 

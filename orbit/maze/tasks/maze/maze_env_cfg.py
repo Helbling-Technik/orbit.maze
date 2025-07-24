@@ -25,6 +25,7 @@ from omni.isaac.lab.utils import configclass
 import globals
 
 import orbit.maze.tasks.maze.mdp as mdp
+import orbit.maze.tasks.maze.randomization as rdm
 import os
 from datetime import datetime
 
@@ -558,13 +559,19 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
+        # joint_pos = ObsTerm(
+        # func=mdp.joint_pos_with_noise,
+        # history_length=6,
+        # params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
+        # modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+        # )
+
         joint_pos = ObsTerm(
-            func=mdp.joint_pos_with_noise,
+            func=mdp.maze_joint_pos,
             history_length=6,
-            params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
+            # params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
             modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
         )
-
         # TODO ROV normalize if needed again
         if globals.velocity_obs:
             joint_est_vel = ObsTerm(
@@ -869,6 +876,8 @@ class TerminationsCfg:
 class CurriculumCfg:
     """Configuration for the curriculum."""
 
+    update_domain_randomization = CurrTerm(func=mdp.update_domain_randomization)
+
     # penalty_on_hole = CurrTerm(
     #     func=mdp.modify_reward_path,
     #     params={
@@ -895,6 +904,53 @@ class CurriculumCfg:
 
 
 ##
+# Domain Randomization configuration
+##
+
+
+class DomainRandomizationCfg:
+    evaluation_probability: float = 1.0
+    buffer_size: int = 10
+    performance_threshold_lower: float = 17
+    performance_threshold_upper: float = 22
+
+    RANDOMIZABLE_PARAMETERS = [
+        rdm.RandomizationParameter(
+            name="inner_joint_pos_std",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=0.03,
+            ),
+            delta=0.001,
+        ),
+        rdm.RandomizationParameter(
+            name="outer_joint_pos_std",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=0.03,
+            ),
+            delta=0.001,
+        ),
+    ]
+
+
+##
 # Environment configuration
 ##
 
@@ -918,13 +974,14 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     terminations: TerminationsCfg = TerminationsCfg()
     # No command generator
     commands: CommandsCfg = CommandsCfg()
+    domain_randomization: DomainRandomizationCfg = DomainRandomizationCfg()
 
     # Post initialization
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
         self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
-        self.episode_length_s = 15 if globals.real_maze or globals.use_multi_maze else 10
+        self.episode_length_s = 7.5 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
