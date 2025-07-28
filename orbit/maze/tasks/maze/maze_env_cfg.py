@@ -403,27 +403,27 @@ class MazeSceneCfg(InteractiveSceneCfg):
         init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
     )
 
-    target4 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/target4",
-        spawn=sim_utils.SphereCfg(
-            radius=0.003,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
-            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 0.0), metallic=0.2),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
-    )
+    # target4 = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/target4",
+    #     spawn=sim_utils.SphereCfg(
+    #         radius=0.003,
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(1.0, 1.0, 0.0), metallic=0.2),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+    # )
 
-    target5 = RigidObjectCfg(
-        prim_path="{ENV_REGEX_NS}/target5",
-        spawn=sim_utils.SphereCfg(
-            radius=0.003,
-            rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
-            collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
-            visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0), metallic=0.2),
-        ),
-        init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
-    )
+    # target5 = RigidObjectCfg(
+    #     prim_path="{ENV_REGEX_NS}/target5",
+    #     spawn=sim_utils.SphereCfg(
+    #         radius=0.003,
+    #         rigid_props=sim_utils.RigidBodyPropertiesCfg(rigid_body_enabled=True, disable_gravity=True),
+    #         collision_props=sim_utils.CollisionPropertiesCfg(collision_enabled=False),
+    #         visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 1.0), metallic=0.2),
+    #     ),
+    #     init_state=RigidObjectCfg.InitialStateCfg(pos=(0.0, 0.0, 0.105)),
+    # )
 
     dome_light = AssetBaseCfg(
         prim_path="/World/DomeLight",
@@ -617,21 +617,21 @@ class ObservationsCfg:
             modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
         )
 
-        target4_pos = ObsTerm(
-            func=mdp.root_pos_w_xy,
-            params={
-                "asset_cfg": SceneEntityCfg("target4"),
-            },
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
-        )
+        # target4_pos = ObsTerm(
+        #     func=mdp.root_pos_w_xy,
+        #     params={
+        #         "asset_cfg": SceneEntityCfg("target4"),
+        #     },
+        #     modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+        # )
 
-        target5_pos = ObsTerm(
-            func=mdp.root_pos_w_xy,
-            params={
-                "asset_cfg": SceneEntityCfg("target5"),
-            },
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
-        )
+        # target5_pos = ObsTerm(
+        #     func=mdp.root_pos_w_xy,
+        #     params={
+        #         "asset_cfg": SceneEntityCfg("target5"),
+        #     },
+        #     modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+        # )
 
         def __post_init__(self) -> None:
             self.enable_corruption = False
@@ -684,8 +684,8 @@ class EventCfg:
             "target1_cfg": SceneEntityCfg("target1"),
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
-            "target4_cfg": SceneEntityCfg("target4"),
-            "target5_cfg": SceneEntityCfg("target5"),
+            # "target4_cfg": SceneEntityCfg("target4"),
+            # "target5_cfg": SceneEntityCfg("target5"),
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
@@ -812,8 +812,8 @@ class RewardsCfg:
             "target1_cfg": SceneEntityCfg("target1"),
             "target2_cfg": SceneEntityCfg("target2"),
             "target3_cfg": SceneEntityCfg("target3"),
-            "target4_cfg": SceneEntityCfg("target4"),
-            "target5_cfg": SceneEntityCfg("target5"),
+            # "target4_cfg": SceneEntityCfg("target4"),
+            # "target5_cfg": SceneEntityCfg("target5"),
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
