@@ -185,8 +185,8 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     outer_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["outer_joint_pos_std"]
 
     device = joint_pos.device
-    inner_stds = inner_param.sample_n(num_envs, mode="str", device=device)
-    outer_stds = outer_param.sample_n(num_envs, mode="str", device=device)
+    inner_stds = inner_param.sample_n(num_envs, mode="std", device=device)
+    outer_stds = outer_param.sample_n(num_envs, mode="std", device=device)
 
     print("inner_stds:", inner_stds)
     print("outer_stds:", outer_stds)
@@ -218,8 +218,8 @@ def sphere_pos(env: MazeEnv) -> torch.Tensor:
     y_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["sphere_y_std"]
 
     device = sphere_pos.device
-    x_stds = x_param.sample_n(num_envs, mode="str", device=device)
-    y_stds = y_param.sample_n(num_envs, mode="str", device=device)
+    x_stds = x_param.sample_n(num_envs, mode="std", device=device)
+    y_stds = y_param.sample_n(num_envs, mode="std", device=device)
 
     print("x_stds:", x_stds)
     print("y_stds:", y_stds)
