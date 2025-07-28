@@ -1,10 +1,15 @@
+from __future__ import annotations
+
 import torch
+import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
 from omni.isaac.lab.envs.manager_based_rl_env import ManagerBasedRLEnv
 from omni.isaac.lab.envs.common import VecEnvStepReturn
 
 from .maze_env_cfg import MazeEnvCfg
+
+# from .maze_observation_manager import MazeObservationManager
 import orbit.maze.tasks.maze.randomization as rdm
 
 import globals
@@ -24,6 +29,8 @@ class MazeEnv(ManagerBasedRLEnv):
         # initialize the base class to setup the scene.
         self.randomizer = rdm.DomainRandomizer(self, cfg=cfg)
         super().__init__(cfg=cfg)
+        # self.observation_manager = MazeObservationManager(self.cfg.observations, self)
+
         self.log_dir = ""
         self.writer = None
         self.average_path = 0
@@ -39,6 +46,9 @@ class MazeEnv(ManagerBasedRLEnv):
         )
         self.hole_crossed = torch.zeros(self.num_envs, dtype=torch.bool, device="cuda:0")
         self.hole_crossed_percentage = 0
+
+        self.joint_pos_noisy = None
+        self.sphere_pos_noisy = None
 
     def step(self, action: torch.Tensor) -> VecEnvStepReturn:
         """Execute one time-step of the environment's dynamics and reset terminated environments.
@@ -140,6 +150,9 @@ class MazeEnv(ManagerBasedRLEnv):
     def update_writer(self):
         if self.writer is None:
             self.writer = SummaryWriter(self.log_dir)
+
+        # -- PATH RELATED -- #
+
         self.writer.add_scalar(
             "path/average_path",
             self.average_path,
@@ -166,35 +179,94 @@ class MazeEnv(ManagerBasedRLEnv):
         )
         self.writer.add_scalar("path/crossed_hole_percentage", self.hole_crossed_percentage, self.common_step_counter)
 
+        # -- REWARD WEIGHTS RELATED -- #
+
         on_hole_weight = self.reward_manager.get_term_cfg("on_hole").weight
         self.writer.add_scalar("reward_weights/penalty_on_hole", on_hole_weight, self.common_step_counter)
         maze_path_weight = self.reward_manager.get_term_cfg("sphere_maze_path_target").weight
         self.writer.add_scalar("reward_weights/maze_path", maze_path_weight, self.common_step_counter)
 
-        stiffness_params = self.event_manager.get_term_cfg("randomize_outer_actuator").params[
-            "stiffness_distribution_params"
-        ]
-        self.writer.add_scalar("params/stiffness_upper_bound", stiffness_params[1], self.common_step_counter)
-
-        friction_params = self.event_manager.get_term_cfg("randomize_outer_joint").params[
-            "friction_distribution_params"
-        ]
-        self.writer.add_scalar("params/friction_upper_bound", friction_params[1], self.common_step_counter)
-
+        # -- DOMAIN RANDOMIZATION RELATED -- #
         inner_joint_pos_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["inner_joint_pos_std"]
         self.writer.add_scalar(
             "adr/inner_joint_pos_std_upper_bound",
             inner_joint_pos_std.upper_bound.value,
             self.common_step_counter,
         )
-
+        self.writer.add_scalar(
+            "adr/inner_joint_pos_std_lower_bound",
+            inner_joint_pos_std.lower_bound.value,
+            self.common_step_counter,
+        )
         outer_joint_pos_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["outer_joint_pos_std"]
         self.writer.add_scalar(
             "adr/outer_joint_pos_std_upper_bound",
             outer_joint_pos_std.upper_bound.value,
             self.common_step_counter,
         )
+        self.writer.add_scalar(
+            "adr/outer_joint_pos_std_lower_bound",
+            outer_joint_pos_std.lower_bound.value,
+            self.common_step_counter,
+        )
 
+        sphere_x_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["sphere_x_std"]
+        self.writer.add_scalar(
+            "adr/sphere_x_std_upper_bound",
+            sphere_x_std.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_x_std_lower_bound",
+            sphere_x_std.lower_bound.value,
+            self.common_step_counter,
+        )
+        sphere_y_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["sphere_y_std"]
+        self.writer.add_scalar(
+            "adr/sphere_y_std_upper_bound",
+            sphere_y_std.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_y_std_lower_bound",
+            sphere_y_std.lower_bound.value,
+            self.common_step_counter,
+        )
+        joint_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters["joint_friction"]
+        self.writer.add_scalar(
+            "adr/joint_friction_upper_bound",
+            joint_friction.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/joint_friction_lower_bound",
+            joint_friction.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        stiffness: rdm.RandomizationParameter = self.randomizer.randomized_parameters["stiffness"]
+        self.writer.add_scalar(
+            "adr/stiffness_upper_bound",
+            stiffness.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/stiffness_lower_bound",
+            stiffness.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        damping: rdm.RandomizationParameter = self.randomizer.randomized_parameters["damping"]
+        self.writer.add_scalar(
+            "adr/damping_upper_bound",
+            damping.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/damping_lower_bound",
+            damping.lower_bound.value,
+            self.common_step_counter,
+        )
         self.writer.flush()
 
     def update_metrics(self):
@@ -211,6 +283,6 @@ class MazeEnv(ManagerBasedRLEnv):
             self.maximum_average_path_after_hole = self.average_path_after_hole
 
         print("Maximum average path: ", self.maximum_average_path)
-        print("Maximum average path before hole: ", self.maximum_average_path_before_hole)
-        print("Percentage of environments going on a hole: ", self.hole_crossed_percentage.item(), "%")
-        print("Number of hole crossings", sum(self.hole_crossings).item())
+        # print("Maximum average path before hole: ", self.maximum_average_path_before_hole)
+        # print("Percentage of environments going on a hole: ", self.hole_crossed_percentage.item(), "%")
+        # print("Number of hole crossings", sum(self.hole_crossings).item())

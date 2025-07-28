@@ -84,8 +84,16 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-07-21_17-01-15/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-07-25_15-04-12/model.zip",
+    # default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-13_17-46-31/model.zip",
     help="Path to model checkpoint.",
+)
+
+parser.add_argument(
+    "--difficulty",
+    type=float,
+    default="None",
+    help="Amount of domain randomization at startup",
 )
 # append AppLauncher cli args
 AppLauncher.add_app_launcher_args(parser)
@@ -127,6 +135,7 @@ if args_cli.multi_maze:
 else:
     globals.init_single_usd()
 
+globals.difficulty = args_cli.difficulty
 
 # launch omniverse app
 app_launcher = AppLauncher(args_cli)

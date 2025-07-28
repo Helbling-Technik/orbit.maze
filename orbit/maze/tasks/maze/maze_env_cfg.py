@@ -516,6 +516,7 @@ if globals.velocity_obs:
 
 # TODO ROV these are timesteps, should be scaled by update frequency to correspond to actual time delay of 50ms
 def get_delay_modifiers(delay_level, synced_obs_delay):
+    print("delay_level:", delay_level)
     if delay_level == -1:
         return None
     elif delay_level == 0:
@@ -527,6 +528,7 @@ def get_delay_modifiers(delay_level, synced_obs_delay):
 
 
 def get_joint_friction_distributions(joint_friction_level):
+    print("joint_friction_level: ", joint_friction_level)
     if joint_friction_level == -1:
         return (0.0, 0.0)
     elif joint_friction_level == 0:
@@ -559,17 +561,9 @@ class ObservationsCfg:
         """Observations for policy group."""
 
         # observation terms (order preserved)
-        # joint_pos = ObsTerm(
-        # func=mdp.joint_pos_with_noise,
-        # history_length=6,
-        # params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
-        # modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
-        # )
-
         joint_pos = ObsTerm(
             func=mdp.maze_joint_pos,
             history_length=6,
-            # params={"asset_cfg": SceneEntityCfg("robot"), "std": 0.01},
             modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
         )
         # TODO ROV normalize if needed again
@@ -579,11 +573,9 @@ class ObservationsCfg:
                 history_length=6,
                 params={"asset_cfg": SceneEntityCfg("robot")},
             )
-
         sphere_pos = ObsTerm(
-            func=mdp.root_pos_xy_w_with_noise,
+            func=mdp.sphere_pos,
             history_length=6,
-            params={"asset_cfg": SceneEntityCfg("sphere"), "std": 0.01},
             modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
         )
         # TODO ROV experimenting with state augmentation, unclear if I should have them delayed as well
@@ -756,23 +748,20 @@ class EventCfg:
     )
 
     randomize_outer_actuator = EventTerm(
-        func=mdp.randomize_actuator_gains,
+        func=mdp.randomize_maze_actuator_gains,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
-            "stiffness_distribution_params": get_actuator_gain_distributions(globals.actuator_gain_level),
-            "damping_distribution_params": get_actuator_gain_distributions(globals.actuator_gain_level),
             "operation": "scale",
             "distribution": "uniform",
         },
     )
 
     randomize_outer_joint = EventTerm(
-        func=mdp.randomize_joint_parameters,
+        func=mdp.randomize_joint_friction,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
-            "friction_distribution_params": get_joint_friction_distributions(globals.joint_friction_level),
             "operation": "abs",
             "distribution": "uniform",
         },
@@ -910,9 +899,9 @@ class CurriculumCfg:
 
 class DomainRandomizationCfg:
     evaluation_probability: float = 1.0
-    buffer_size: int = 10
-    performance_threshold_lower: float = 17
-    performance_threshold_upper: float = 22
+    buffer_size: int = 100
+    performance_threshold_lower: float = 7
+    performance_threshold_upper: float = 9
 
     RANDOMIZABLE_PARAMETERS = [
         rdm.RandomizationParameter(
@@ -920,14 +909,14 @@ class DomainRandomizationCfg:
             lower_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.LOWER_BOUND,
                 value=0.0,
-                min_value=0.0,
-                max_value=0.0,
+                min_value=-0.01,  # Absolute value is taken at observation, negative to comply with update system
+                max_value=0.00,
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.0,
+                value=0.001,
                 min_value=0.0,
-                max_value=0.03,
+                max_value=0.01,
             ),
             delta=0.001,
         ),
@@ -936,17 +925,113 @@ class DomainRandomizationCfg:
             lower_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.LOWER_BOUND,
                 value=0.0,
+                min_value=-0.01,
+                max_value=0.00,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.001,
                 min_value=0.0,
+                max_value=0.01,
+            ),
+            delta=0.001,
+        ),
+        rdm.RandomizationParameter(
+            name="sphere_x_std",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=-0.01,  # Absolute value is taken at observation, negative to comply with update system
+                max_value=0.00,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.001,
+                min_value=0.0,
+                max_value=0.01,
+            ),
+            delta=0.001,
+        ),
+        rdm.RandomizationParameter(
+            name="sphere_y_std",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=-0.01,
+                max_value=0.00,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.001,
+                min_value=0.0,
+                max_value=0.01,
+            ),
+            delta=0.001,
+        ),
+        rdm.RandomizationParameter(
+            name="joint_friction",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=-0.3,
                 max_value=0.0,
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.0,
+                value=0.002,
                 min_value=0.0,
-                max_value=0.03,
+                max_value=0.3,
             ),
-            delta=0.001,
+            delta=0.03,
         ),
+        rdm.RandomizationParameter(
+            name="stiffness",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=1.0,
+                min_value=0.3,
+                max_value=1.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=1.0,
+                min_value=1.0,
+                max_value=1.7,
+            ),
+            delta=0.07,
+        ),
+        rdm.RandomizationParameter(
+            name="damping",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=1.0,
+                min_value=0.3,
+                max_value=1.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=1.0,
+                min_value=1.0,
+                max_value=1.7,
+            ),
+            delta=0.07,
+        ),
+        # rdm.RandomizationParameter(
+        #     name="delay_distribution_param",
+        #     lower_bound=rdm.RandomizationBound(
+        #         type=rdm.RandomizationBoundType.LOWER_BOUND,
+        #         value=0.0,
+        #         min_value=-1.0,
+        #         max_value=0.0,
+        #     ),
+        #     upper_bound=rdm.RandomizationBound(
+        #         type=rdm.RandomizationBoundType.UPPER_BOUND,
+        #         value=0.0,
+        #         min_value=0.0,
+        #         max_value=1.0,
+        #     ),
+        #     delta=0.05,
+        # ),
     ]
 
 
@@ -975,13 +1060,18 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     # No command generator
     commands: CommandsCfg = CommandsCfg()
     domain_randomization: DomainRandomizationCfg = DomainRandomizationCfg()
+    if globals.difficulty:
+        for param in domain_randomization.RANDOMIZABLE_PARAMETERS:
+            param.lower_bound.value = globals.difficulty * param.lower_bound.max_value
+            param.upper_bound.value = globals.difficulty * param.upper_bound.max_value
+            print(f"Param {param.name} : [{param.lower_bound.value}, {param.upper_bound.value}]")
 
     # Post initialization
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
         self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
-        self.episode_length_s = 7.5 if globals.real_maze or globals.use_multi_maze else 10
+        self.episode_length_s = 30 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings

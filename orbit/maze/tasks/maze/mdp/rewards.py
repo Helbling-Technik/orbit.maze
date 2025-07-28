@@ -74,6 +74,10 @@ def path_point_target(
     target5to4 = target5.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
     targetNextto5 = target5.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
 
+    # targetNextto3 = target3.data.root_state_w[target_reached_ids, :7].clone().squeeze(0)
+
+    # if targetNextto3.dim() == 1:
+    # targetNextto3 = targetNextto3.unsqueeze(0)
     if targetNextto5.dim() == 1:
         targetNextto5 = targetNextto5.unsqueeze(0)
 
@@ -108,9 +112,12 @@ def path_point_target(
         targetNext = globals.maze_path[updated_path_idx, :]
 
     targetNextto5[:, :2] = targetNext + env.scene.env_origins[target_reached_ids, :2]
+    # targetNextto3[:, :2] = targetNext + env.scene.env_origins[target_reached_ids, :2]
 
     target1.write_root_pose_to_sim(target2to1, env_ids=target_reached_ids)
     target2.write_root_pose_to_sim(target3to2, env_ids=target_reached_ids)
+
+    # target3.write_root_pose_to_sim(targetNextto3, env_ids=target_reached_ids)
     target3.write_root_pose_to_sim(target4to3, env_ids=target_reached_ids)
     target4.write_root_pose_to_sim(target5to4, env_ids=target_reached_ids)
     target5.write_root_pose_to_sim(targetNextto5, env_ids=target_reached_ids)

@@ -37,21 +37,28 @@ class RandomizationParameter:
         """
         return self.upper_bound.value - self.lower_bound.value
 
-    def sample(self) -> float:
+    def sample(self, mode: str) -> float:
         """
         Sample a value for the randomized parameter.
 
         Returns:
           float
         """
+        if mode == "positive":
+            return np.random.uniform(0, min(abs(self.lower_bound.value), self.upper_bound.value))
         return np.random.uniform(self.lower_bound.value, self.upper_bound.value)
 
-    def sample_n(self, n: int, device: torch.device = torch.device("cpu")) -> torch.Tensor:
+    def sample_n(self, n: int, mode: str, device: torch.device = torch.device("cpu")) -> torch.Tensor:
         """
         Vectorized sampling using PyTorch (GPU-compatible).
         """
         low = self.lower_bound.value
         high = self.upper_bound.value
+
+        if mode == "std":
+            return torch.empty(n, device=device).uniform_(min(abs(low)), high)
+        elif mode == "positive":
+            return torch.empty(n, device=device).uniform_(0, min(abs(self.lower_bound.value), self.upper_bound.value))
         return torch.empty(n, device=device).uniform_(low, high)
 
     def increase_upper_bound(self) -> None:

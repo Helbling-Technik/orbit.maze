@@ -6,8 +6,9 @@
 from __future__ import annotations
 
 import torch
-from typing import TYPE_CHECKING
 import math
+from typing import TYPE_CHECKING
+from collections.abc import Sequence
 
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
@@ -114,7 +115,6 @@ class RandomDelay(DigitalFilter):
 @configclass
 class RandomDelayCfg(DigitalFilterCfg):
     func: type[RandomDelay] = RandomDelay
-    randomizeDelay: bool = True
 
 
 # Can be used to apply a global external force and torque onto an object
@@ -185,13 +185,13 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     outer_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["outer_joint_pos_std"]
 
     device = joint_pos.device
-    inner_stds = inner_param.sample_n(num_envs, device)
-    outer_stds = outer_param.sample_n(num_envs, device)
+    inner_stds = inner_param.sample_n(num_envs, mode="str", device=device)
+    outer_stds = outer_param.sample_n(num_envs, mode="str", device=device)
 
     print("inner_stds:", inner_stds)
     print("outer_stds:", outer_stds)
     stds = torch.stack([inner_stds, outer_stds], dim=1)
-    noise = torch.normal(mean=0.0, std=stds)
+    noise = torch.normal(mean=0.0, std=stds).to(joint_pos.device)
     joint_pos_noisy = joint_pos + noise
 
     # Normalize
@@ -199,7 +199,39 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     joint_limits_rad = joint_limits_deg * math.pi / 180.0
     joint_pos_normalized = joint_pos_noisy / joint_limits_rad
 
+    env.joint_pos_noisy = joint_pos_noisy
+    print("joint_pos_noisy", env.joint_pos_noisy)
+
     return joint_pos_normalized
+
+
+def sphere_pos(env: MazeEnv) -> torch.Tensor:
+    """Sphere position in the environment frame with per-env randomized noise."""
+    # extract the used quantities (to enable type-hinting)
+    sphere_cfg = SceneEntityCfg("sphere")
+    sphere: RigidObject = env.scene[sphere_cfg.name]
+    sphere_pos = sphere.data.root_pos_w - env.scene.env_origins
+
+    num_envs, num_dim = sphere_pos.shape
+
+    x_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["sphere_x_std"]
+    y_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["sphere_y_std"]
+
+    device = sphere_pos.device
+    x_stds = x_param.sample_n(num_envs, mode="str", device=device)
+    y_stds = y_param.sample_n(num_envs, mode="str", device=device)
+
+    print("x_stds:", x_stds)
+    print("y_stds:", y_stds)
+    stds = torch.stack([x_stds, y_stds], dim=1)
+    noise = torch.normal(mean=0.0, std=stds).to(sphere_pos.device)
+    sphere_pos_noisy = sphere_pos[:, :2] + noise
+    sphere_pos_normalized = sphere_pos_noisy / torch.tensor(globals.maze_size, device="cuda:0")
+
+    env.sphere_pos_noisy = sphere_pos_noisy
+    print("sphere_pos_noisy", env.sphere_pos_noisy)
+
+    return sphere_pos_normalized
 
 
 # TODO CLEANUP
@@ -230,17 +262,13 @@ def root_pos_xy_w_with_noise(
 
 
 def simulated_camera_image(
-    env: ManagerBasedRLEnv,
+    env: MazeEnv,
     sphere_cfg: SceneEntityCfg = SceneEntityCfg("sphere"),
     maze_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
 ) -> torch.Tensor:
 
-    sphere = env.scene[sphere_cfg.name]
-    sphere_pos_env = sphere.data.root_pos_w - env.scene.env_origins
-    maze = env.scene[maze_cfg.name]
-    maze_joint_pos = maze.data.joint_pos[:, maze_cfg.joint_ids]
-
-    sphere_pos_env = sphere_pos_env[:, :2] / torch.cos(maze_joint_pos)
+    # Noisifying image with noisy observations of sphere pos and maze joint pos
+    sphere_pos_env = env.sphere_pos_noisy / torch.cos(env.joint_pos_noisy)
 
     pad_size = torch.tensor([8, 8], device="cuda:0").to(torch.int16)
     cropped_images = 255 * torch.ones((sphere_pos_env.shape[0], 16, 16), dtype=torch.float, device="cuda:0")
