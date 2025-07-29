@@ -323,6 +323,7 @@ def reset_maze_state(
         # _step_path_savely(env_ids, path_length)
         # target5_pos[:, :2] = globals.maze_path[globals.path_idx[env_ids], :] + env.scene.env_origins[env_ids, :2]
 
+    sphere_pos[:, 2] = 0.12
     sphere.write_root_pose_to_sim(sphere_pos, env_ids=env_ids)
     sphere.write_root_velocity_to_sim(torch.zeros(len(env_ids), 6, device=sphere.device), env_ids=env_ids)
     target1.write_root_pose_to_sim(target1_pos, env_ids=env_ids)
