@@ -7,7 +7,7 @@ from PIL import Image
 global path_idx, path_accumulated, maze_path, path_direction, simulated_image_tensor, maze_start_point, usd_file_path
 global debug_images, real_maze, position_control, delay_level, synced_obs_delay, ext_force_level, targeted_frequency
 global joint_friction_level, actuator_gain_level, record_path_score, use_pid, velocity_obs
-global difficulty
+global set_params
 path_idx = None
 path_accumulated = None
 path_start_idx = None
@@ -28,7 +28,7 @@ actuator_gain_level = None
 record_path_score = None
 use_pid = None
 velocity_obs = None
-difficulty = None
+set_params = None
 
 global use_multi_maze, usd_list, image_list, maze_path_list, maze_type_array, maze_start_list
 use_multi_maze = None

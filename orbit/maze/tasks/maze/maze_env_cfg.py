@@ -898,7 +898,7 @@ class CurriculumCfg:
 
 
 class DomainRandomizationCfg:
-    evaluation_probability: float = 1.0
+    evaluation_probability: float = 0.8
     buffer_size: int = 100
     performance_threshold_lower: float = 7
     performance_threshold_upper: float = 9
@@ -914,11 +914,11 @@ class DomainRandomizationCfg:
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.001,
+                value=0.0,
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.001,
+            delta=0.0005,
         ),
         rdm.RandomizationParameter(
             name="outer_joint_pos_std",
@@ -930,11 +930,11 @@ class DomainRandomizationCfg:
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.001,
+                value=0.0,
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.001,
+            delta=0.0005,
         ),
         rdm.RandomizationParameter(
             name="sphere_x_std",
@@ -946,11 +946,11 @@ class DomainRandomizationCfg:
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.001,
+                value=0.0,
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.001,
+            delta=0.0005,
         ),
         rdm.RandomizationParameter(
             name="sphere_y_std",
@@ -966,7 +966,7 @@ class DomainRandomizationCfg:
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.001,
+            delta=0.0005,
         ),
         rdm.RandomizationParameter(
             name="joint_friction",
@@ -978,11 +978,11 @@ class DomainRandomizationCfg:
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.002,
+                value=0.0,
                 min_value=0.0,
                 max_value=0.3,
             ),
-            delta=0.03,
+            delta=0.015,
         ),
         rdm.RandomizationParameter(
             name="stiffness",
@@ -998,7 +998,7 @@ class DomainRandomizationCfg:
                 min_value=1.0,
                 max_value=1.7,
             ),
-            delta=0.07,
+            delta=0.035,
         ),
         rdm.RandomizationParameter(
             name="damping",
@@ -1014,7 +1014,7 @@ class DomainRandomizationCfg:
                 min_value=1.0,
                 max_value=1.7,
             ),
-            delta=0.07,
+            delta=0.035,
         ),
         # rdm.RandomizationParameter(
         #     name="delay_distribution_param",
@@ -1033,6 +1033,19 @@ class DomainRandomizationCfg:
         #     delta=0.05,
         # ),
     ]
+
+
+class EvalCfg:
+
+    SET_PARAMS = {
+        "inner_joint_pos_std": [-0.001, 0.001],
+        "outer_joint_pos_std": [-0.001, 0.001],
+        "sphere_x_std": [-0.01, 0.01],
+        "sphere_y_std": [-0.01, 0.01],
+        "joint_friction": [-0.3, 0.3],
+        "stiffness": [0.3, 1.7],
+        "damping": [0.3, 1.7],
+    }
 
 
 ##
@@ -1060,10 +1073,12 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
     # No command generator
     commands: CommandsCfg = CommandsCfg()
     domain_randomization: DomainRandomizationCfg = DomainRandomizationCfg()
-    if globals.difficulty:
+    if globals.set_params:
+        domain_randomization.evaluation_probability = 0.0
+        eval_cfg: EvalCfg = EvalCfg()
         for param in domain_randomization.RANDOMIZABLE_PARAMETERS:
-            param.lower_bound.value = globals.difficulty * param.lower_bound.max_value
-            param.upper_bound.value = globals.difficulty * param.upper_bound.max_value
+            param.lower_bound.value = eval_cfg.SET_PARAMS[param.name][0]
+            param.upper_bound.value = eval_cfg.SET_PARAMS[param.name][1]
             print(f"Param {param.name} : [{param.lower_bound.value}, {param.upper_bound.value}]")
 
     # Post initialization
@@ -1071,7 +1086,7 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
-        self.episode_length_s = 30 if globals.real_maze or globals.use_multi_maze else 10
+        self.episode_length_s = 7.5 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
