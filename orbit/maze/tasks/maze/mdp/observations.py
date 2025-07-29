@@ -16,7 +16,6 @@ from omni.isaac.lab.envs import ManagerBasedEnv
 
 from omni.isaac.lab.utils import configclass
 from omni.isaac.lab.utils.modifiers import DigitalFilter, DigitalFilterCfg
-import random
 
 import omni.isaac.lab.utils.math as math_utils
 
@@ -73,38 +72,74 @@ class VelocityExtractor:
         return current_joint_vel
 
 
-# this will give a weighted change of 1/10 to have a double delay in the observation, normal is single delay
 class RandomDelay(DigitalFilter):
     def __init__(self, cfg: modifier_cfg.DigitalFilterCfg, data_dim: tuple[int, ...], device: str) -> None:
-        self.randomizeDelay = cfg.randomizeDelay
+        # self.randomizeDelay = cfg.randomizeDelay
+        print("random delay device: ", device)
+        self.device = device
+        self.num_envs = data_dim[0]
+        self.delay_len = 5  # e.g., delays 0 to 4 → length 5
+        self.delay_mean = torch.zeros(self.num_envs, device=self.device)
+        self.delay_std = torch.zeros(self.num_envs, device=self.device)
+        self.B_envs = torch.zeros((self.num_envs, self.delay_len, 1), device=self.device)  # one-hot filters
+        self.B_envs[:, 0, :] = 1
+
+        # Initialize with zero delay (default B)
         super().__init__(cfg, data_dim, device)
 
+    def set_delays(
+        self,
+        env_ids: Sequence[int] | None = None,
+        delay_mean: torch.Tensor | None = None,
+        delay_std: torch.Tensor | None = None,
+    ):
+        """Resamples delays."""
+        self.delay_mean[env_ids] = delay_mean
+        self.delay_std[env_ids] = delay_std
+
+        delays = self._sample_delay(env_ids)
+        print("delays ", delays)
+        self._update_B_envs(env_ids, delays)
+        print("updated B delays ", self.B_envs)
+
+    def _sample_delay(self, env_ids: torch.Tensor) -> torch.Tensor:
+        """Sample a discrete delay (0 to max_delay) per env from a Gaussian-shaped categorical."""
+        delay_vals = torch.arange(self.delay_len, device=self.device).float()  # [0, 1, 2, ..., max_delay]
+
+        # Compute Gaussian weights for each env (vectorized)
+        mean = self.delay_mean[env_ids]
+        std = self.delay_std[env_ids]
+        # Shape: [num_envs, delay_len]
+        logits = -0.5 * ((delay_vals[None, :] - mean[:, None]) / std[:, None]) ** 2
+        probs = torch.exp(logits - torch.max(logits))  # - max for numerical stability
+        probs = probs / (probs.sum(dim=-1, keepdim=True))  # normalize
+        if torch.isnan(probs).any():
+            raise RuntimeError("NaNs in probs")
+
+        # Sample from categorical
+        dist = torch.distributions.Categorical(probs=probs)
+        sampled_delays = dist.sample()
+        return sampled_delays
+
+    def _update_B_envs(self, env_ids: torch.Tensor, delays: torch.Tensor):
+        """Create one-hot B filters for each env based on delay."""
+        B_new = torch.zeros((env_ids.shape[0], self.delay_len), device=self.device)
+        B_new[torch.arange(env_ids.shape[0]), delays] = 1.0
+        self.B_envs[env_ids] = B_new.unsqueeze(-1)
+
     def __call__(self, data: torch.Tensor) -> torch.Tensor:
-        """Applies digital filter modification with a rolling history window inputs and outputs.
-
-        Args:
-            data: The data to apply filter to.
-
-        Returns:
-            Filtered data. Shape is the same as data.
-        """
-        # move history window for input
+        """Apply delay filter using per-env B filters."""
         self.x_n = torch.roll(self.x_n, shifts=1, dims=-1)
         self.x_n[..., 0] = data
 
-        # we want single and occasional double delay, for this we roll B=[0.0, 1.0, 0.0] -> B=[0.0, 0.0, 1.0]
-        B_rolled = torch.roll(self.B, shifts=1, dims=0)
-        standard_delayed_obs = {"B": self.B}
-        additional_delayed_obs = {"B": B_rolled}
-        if self.randomizeDelay:
-            choice = random.choices([standard_delayed_obs, additional_delayed_obs], weights=[0.9, 0.1])[0]
-        else:
-            choice = standard_delayed_obs
-        # calculate current filter value: y[i] = -Y*A + X*B
-        y_i = torch.matmul(self.x_n, choice["B"]) - torch.matmul(self.y_n, self.A)
-        y_i.squeeze_(-1)
+        # Dynamically reshape B_envs for broadcasting
+        obs_ndim = data.ndim - 1  # number of dims after num_envs
+        expand_shape = [self.B_envs.shape[0]] + [1] * obs_ndim + [self.B_envs.shape[1]]
+        B_expanded = self.B_envs.view(*expand_shape)  # shape: [num_envs, 1, ..., 1, delay_len]
 
-        # move history window for output and add current filter value to history
+        # Apply elementwise multiply and sum across delay_len
+        y_i = torch.sum(self.x_n * B_expanded, dim=-1)
+
         self.y_n = torch.roll(self.y_n, shifts=1, dims=-1)
         self.y_n[..., 0] = y_i
 

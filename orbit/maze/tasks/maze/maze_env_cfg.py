@@ -520,9 +520,9 @@ def get_delay_modifiers(delay_level, synced_obs_delay):
     if delay_level == -1:
         return None
     elif delay_level == 0:
-        return [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0], randomizeDelay=not synced_obs_delay)]
+        return [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 1.0, 0.0])]
     elif delay_level == 1:
-        return [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0], randomizeDelay=not synced_obs_delay)]
+        return [mdp.RandomDelayCfg(A=[0.0], B=[0.0, 0.0, 0.0, 1.0, 0.0])]
     else:
         raise ValueError(f"Unknown delay_level: {delay_level}")
 
@@ -564,7 +564,7 @@ class ObservationsCfg:
         joint_pos = ObsTerm(
             func=mdp.maze_joint_pos,
             history_length=6,
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
         # TODO ROV normalize if needed again
         if globals.velocity_obs:
@@ -576,14 +576,14 @@ class ObservationsCfg:
         sphere_pos = ObsTerm(
             func=mdp.sphere_pos,
             history_length=6,
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
         # TODO ROV experimenting with state augmentation, unclear if I should have them delayed as well
         past_actions = ObsTerm(
             func=mdp.last_action,
             history_length=6,
             # TODO ROV currently training with this delay
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
 
         # TODO ROV normalize if needed again
@@ -600,38 +600,22 @@ class ObservationsCfg:
             params={
                 "asset_cfg": SceneEntityCfg("target1"),
             },
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
         target2_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
                 "asset_cfg": SceneEntityCfg("target2"),
             },
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
         target3_pos = ObsTerm(
             func=mdp.root_pos_w_xy,
             params={
                 "asset_cfg": SceneEntityCfg("target3"),
             },
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
-
-        # target4_pos = ObsTerm(
-        #     func=mdp.root_pos_w_xy,
-        #     params={
-        #         "asset_cfg": SceneEntityCfg("target4"),
-        #     },
-        #     modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
-        # )
-
-        # target5_pos = ObsTerm(
-        #     func=mdp.root_pos_w_xy,
-        #     params={
-        #         "asset_cfg": SceneEntityCfg("target5"),
-        #     },
-        #     modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
-        # )
 
         def __post_init__(self) -> None:
             self.enable_corruption = False
@@ -650,7 +634,7 @@ class ObservationsCfg:
             # TODO ROV adding history to image? Wrong dimensions if we unsqueeze simulated_camera_image
             history_length=6,
             flatten_history_dim=False,
-            modifiers=get_delay_modifiers(globals.delay_level, globals.synced_obs_delay),
+            modifiers=[mdp.RandomDelayCfg(A=[0.0], B=[1.0, 0.0, 0.0, 0.0, 0.0])],
         )
 
         def __post_init__(self) -> None:
@@ -898,7 +882,7 @@ class CurriculumCfg:
 
 
 class DomainRandomizationCfg:
-    evaluation_probability: float = 0.8
+    evaluation_probability: float = 0.5
     buffer_size: int = 100
     performance_threshold_lower: float = 7
     performance_threshold_upper: float = 9
@@ -1016,35 +1000,53 @@ class DomainRandomizationCfg:
             ),
             delta=0.035,
         ),
-        # rdm.RandomizationParameter(
-        #     name="delay_distribution_param",
-        #     lower_bound=rdm.RandomizationBound(
-        #         type=rdm.RandomizationBoundType.LOWER_BOUND,
-        #         value=0.0,
-        #         min_value=-1.0,
-        #         max_value=0.0,
-        #     ),
-        #     upper_bound=rdm.RandomizationBound(
-        #         type=rdm.RandomizationBoundType.UPPER_BOUND,
-        #         value=0.0,
-        #         min_value=0.0,
-        #         max_value=1.0,
-        #     ),
-        #     delta=0.05,
-        # ),
+        rdm.RandomizationParameter(
+            name="obs_delay_mean",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=-2.0,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=2.0,
+            ),
+            delta=0.05,
+        ),
+        rdm.RandomizationParameter(
+            name="obs_delay_std",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=-1.0,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=1.0,
+            ),
+            delta=0.05,
+        ),
     ]
 
 
 class EvalCfg:
 
     SET_PARAMS = {
-        "inner_joint_pos_std": [-0.001, 0.001],
-        "outer_joint_pos_std": [-0.001, 0.001],
-        "sphere_x_std": [-0.01, 0.01],
-        "sphere_y_std": [-0.01, 0.01],
-        "joint_friction": [-0.3, 0.3],
-        "stiffness": [0.3, 1.7],
-        "damping": [0.3, 1.7],
+        "inner_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
+        "outer_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
+        "sphere_x_std": [-0.01, 0.01],  # [-0.01, 0.01]
+        "sphere_y_std": [-0.01, 0.01],  # [-0.01, 0.01]
+        "joint_friction": [0.0, 0.2],  # [-0.3, 0.3]
+        "stiffness": [0.3, 1.7],  # [0.3, 1.7]
+        "damping": [0.3, 1.7],  # [0.3, 1.7]
+        "obs_delay_mean": [-2.0, 2.0],  # [-2.0, 2.0]
+        "obs_delay_std": [-1.0, 1.0],  # [-1.0, 1.0]
     }
 
 

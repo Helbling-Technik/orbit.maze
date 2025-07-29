@@ -93,3 +93,4 @@ def increase_joint_friction(env: MazeEnv, env_ids: Sequence[int]):
 
 def update_domain_randomization(env: MazeEnv, env_ids: Sequence[int]):
     env.randomizer.step(env_ids)
+    env.update_delay(env_ids)

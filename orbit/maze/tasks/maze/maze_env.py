@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import torch
-import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
 from omni.isaac.lab.envs.manager_based_rl_env import ManagerBasedRLEnv
@@ -11,6 +10,7 @@ from .maze_env_cfg import MazeEnvCfg
 
 # from .maze_observation_manager import MazeObservationManager
 import orbit.maze.tasks.maze.randomization as rdm
+import orbit.maze.tasks.maze.mdp as mdp
 
 import globals
 
@@ -283,6 +283,16 @@ class MazeEnv(ManagerBasedRLEnv):
             self.maximum_average_path_after_hole = self.average_path_after_hole
 
         print("Maximum average path: ", self.maximum_average_path)
-        # print("Maximum average path before hole: ", self.maximum_average_path_before_hole)
-        # print("Percentage of environments going on a hole: ", self.hole_crossed_percentage.item(), "%")
-        # print("Number of hole crossings", sum(self.hole_crossings).item())
+
+    def update_delay(self, env_ids):
+        obs_delay_mean = self.randomizer.randomized_parameters["obs_delay_mean"].sample_n(
+            len(env_ids), "positive", device="cuda:0"
+        )
+        obs_delay_std = self.randomizer.randomized_parameters["obs_delay_std"].sample_n(
+            len(env_ids), "positive", device="cuda:0"
+        )
+        for mod in self.observation_manager._group_obs_class_modifiers:
+            if isinstance(mod, mdp.RandomDelay):
+                print("setting delay in modifier ", mod)
+                mod.set_delays(env_ids, obs_delay_mean, obs_delay_std)
+                break

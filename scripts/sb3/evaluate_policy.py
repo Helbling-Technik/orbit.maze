@@ -81,16 +81,16 @@ parser.add_argument(
     help="Overwrites actuator gain and joint friction: -1 no, 0 small, 1 large",
 )
 
+parser.add_argument(
+    "--set_params", action="store_true", default=False, help="Set domain parameters. Primary use for evaluation"
+)
 # specify model to use here, it is advised to use one which has not overfitted
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-07-28_17-11-29/model_372736000_steps.zip",
-    # default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-13_17-46-31/model.zip",
+    # default="logs/sb3/Isaac-Maze-v0/2025-07-28_17-11-29/model_372736000_steps.zip",
+    default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-13_17-46-31/model.zip",
     help="Path to model checkpoint.",
-)
-parser.add_argument(
-    "--set_params", action="store_true", default=False, help="Set domain parameters. Primary use for evaluation"
 )
 
 # append AppLauncher cli args
