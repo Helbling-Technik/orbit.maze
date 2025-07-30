@@ -368,6 +368,34 @@ class MazeEnv(ManagerBasedRLEnv):
             self.common_step_counter,
         )
 
+        sphere_mass_distribution: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "sphere_mass_distribution"
+        ]
+        self.writer.add_scalar(
+            "adr/sphere_mass_distribution_upper_bound",
+            sphere_mass_distribution.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_mass_distribution_lower_bound",
+            sphere_mass_distribution.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        robot_mass_distribution: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "robot_mass_distribution"
+        ]
+        self.writer.add_scalar(
+            "adr/robot_mass_distribution_upper_bound",
+            robot_mass_distribution.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/robot_mass_distribution_lower_bound",
+            robot_mass_distribution.lower_bound.value,
+            self.common_step_counter,
+        )
+
         self.writer.flush()
 
     def update_metrics(self):

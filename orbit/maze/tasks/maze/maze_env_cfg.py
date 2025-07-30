@@ -708,22 +708,20 @@ class EventCfg:
     )
 
     randomize_robot_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
+        func=mdp.adr_rigid_body_mass,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "mass_distribution_params": (0.5, 1.5),
             "operation": "scale",
             "distribution": "uniform",
         },
     )
 
     randomize_sphere_mass = EventTerm(
-        func=mdp.randomize_rigid_body_mass,
+        func=mdp.adr_rigid_body_mass,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
-            "mass_distribution_params": (0.5, 1.5),
             "operation": "scale",
             "distribution": "uniform",
         },
@@ -1126,6 +1124,38 @@ class DomainRandomizationCfg:
             ),
             delta=0.01,
         ),
+        rdm.RandomizationParameter(
+            name="robot_mass_distribution",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=1.0,
+                min_value=0.5,
+                max_value=1.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=1.0,
+                min_value=1.0,
+                max_value=1.5,
+            ),
+            delta=0.025,
+        ),
+        rdm.RandomizationParameter(
+            name="sphere_mass_distribution",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=1.0,
+                min_value=0.5,
+                max_value=1.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=1.0,
+                min_value=1.0,
+                max_value=1.5,
+            ),
+            delta=0.025,
+        ),
     ]
 
 
@@ -1147,6 +1177,8 @@ class EvalCfg:
         "robot_static_friction": [0.5, 0.5],
         "robot_dynamic_friction": [0.5, 0.5],
         "robot_restitution": [0.2, 0.2],
+        "sphere_mass_distribution": [1.0, 1.0],
+        "robot_mass_distribution": [1.0, 1.0],
     }
 
 
