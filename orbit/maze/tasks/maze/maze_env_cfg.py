@@ -673,13 +673,8 @@ class EventCfg:
     )
 
     reset_joints = EventTerm(
-        func=mdp.reset_joints_by_offset,
+        func=mdp.adr_reset_maze_joints,
         mode="reset",
-        params={
-            "asset_cfg": SceneEntityCfg("robot", joint_names=["OuterDOF_RevoluteJoint", "InnerDOF_RevoluteJoint"]),
-            "position_range": (-0.05 * math.pi, 0.05 * math.pi),
-            "velocity_range": (-0.01 * math.pi, 0.01 * math.pi),
-        },
     )
 
     # add friction randomization to material
@@ -1169,6 +1164,38 @@ class DomainRandomizationCfg:
             ),
             delta=0.0001,
         ),
+        rdm.RandomizationParameter(
+            name="start_inner_joint_pos",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=-0.05 * math.pi,
+                min_value=-0.1 * math.pi,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.05 * math.pi,
+                min_value=0.0,
+                max_value=0.1 * math.pi,
+            ),
+            delta=0.005 * math.pi,
+        ),
+        rdm.RandomizationParameter(
+            name="start_outer_joint_pos",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=-0.05 * math.pi,
+                min_value=-0.1 * math.pi,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.05 * math.pi,
+                min_value=0.0,
+                max_value=0.1 * math.pi,
+            ),
+            delta=0.005 * math.pi,
+        ),
     ]
 
 
@@ -1192,7 +1219,9 @@ class EvalCfg:
         "robot_restitution": [0.2, 0.2],
         "sphere_mass_distribution": [1.0, 1.0],
         "robot_mass_distribution": [1.0, 1.0],
-        "sphere_external_force": [-0.002, 0.002],
+        "sphere_external_force": [0.0, 0.0],
+        "start_inner_joint_pos": [0.0, 0.0],  # [-0.05 * math.pi, 0.05 * math.pi]
+        "start_outer_joint_pos": [0.0, 0.0],  # [-0.05 * math.pi, 0.05 * math.pi]
     }
 
 

@@ -373,13 +373,42 @@ def adr_external_force_and_torque(
 
     # Currently no external torques applied with ADR
     torques = torch.zeros_like(forces, device=asset.device)
-    print("forces ", forces)
 
     # set the forces and torques into the buffers
     # note: these are only applied when you call: `asset.write_data_to_sim()`
     asset.set_external_force_and_torque(
         forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids, is_global_wrench=is_global_wrench
     )
+
+
+def adr_reset_maze_joints(
+    env: MazeEnv,
+    env_ids: torch.Tensor,
+):
+    """Reset the robot joints with offsets around the default position and velocity by the given ranges.
+
+    This function samples random values from the given ranges and biases the default joint positions and velocities
+    by these values. The biased values are then set into the physics simulation.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset_cfg = SceneEntityCfg("robot")
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    start_inner_joint_pos: rdm.RandomizationParameter = env.randomizer.randomized_parameters["start_inner_joint_pos"]
+    start_outer_joint_pos: rdm.RandomizationParameter = env.randomizer.randomized_parameters["start_outer_joint_pos"]
+
+    inner_positions = start_inner_joint_pos.sample_n(len(env_ids), device=asset.device)
+    outer_positions = start_outer_joint_pos.sample_n(len(env_ids), device=asset.device)
+
+    joint_pos = torch.stack([inner_positions, outer_positions], dim=1)
+
+    # joint_vel = asset.data.default_joint_vel[env_ids].clone()
+
+    # Currently no joint velocity at reset with ADR
+    joint_vel = torch.zeros_like(joint_pos, device=asset.device)
+
+    # set into the physics simulation
+    asset.write_joint_state_to_sim(joint_pos, joint_vel, env_ids=env_ids)
 
 
 def _randomize_prop_by_op(
