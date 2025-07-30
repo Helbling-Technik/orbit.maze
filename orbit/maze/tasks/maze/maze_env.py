@@ -396,6 +396,49 @@ class MazeEnv(ManagerBasedRLEnv):
             self.common_step_counter,
         )
 
+        sphere_external_force: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "sphere_external_force"
+        ]
+        self.writer.add_scalar(
+            "adr/sphere_external_force_upper_bound",
+            sphere_external_force.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_external_force_lower_bound",
+            sphere_external_force.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        start_inner_joint_pos: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "start_inner_joint_pos"
+        ]
+        self.writer.add_scalar(
+            "adr/start_inner_joint_pos_upper_bound",
+            start_inner_joint_pos.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/start_inner_joint_pos_lower_bound",
+            start_inner_joint_pos.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        start_outer_joint_pos: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "start_outer_joint_pos"
+        ]
+        self.writer.add_scalar(
+            "adr/start_outer_joint_pos_upper_bound",
+            start_outer_joint_pos.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/start_outer_joint_pos_lower_bound",
+            start_outer_joint_pos.lower_bound.value,
+            self.common_step_counter,
+        )
+        self.update_adr_progress()
+
         self.writer.flush()
 
     def update_metrics(self):
@@ -412,6 +455,29 @@ class MazeEnv(ManagerBasedRLEnv):
             self.maximum_average_path_after_hole = self.average_path_after_hole
 
         print("Maximum average path: ", self.maximum_average_path)
+
+    def update_adr_progress(self):
+        overall_progress = 0
+        for param in self.randomizer.randomized_parameters.values():
+            progress = (
+                (param.upper_bound.value - param.lower_bound.value)
+                / (param.upper_bound.max_value - param.lower_bound.min_value)
+                * 100
+            )
+            self.writer.add_scalar(
+                f"adr_progress/{param.name}",
+                progress,
+                self.common_step_counter,
+            )
+            # print(f"Param {param.name} : {progress} % progress")
+            overall_progress += progress
+        overall_progress /= len(self.randomizer.randomized_parameters)
+        self.writer.add_scalar(
+            "adr_progress/1_overall_progress",
+            overall_progress,
+            self.common_step_counter,
+        )
+        # print(f"Overall progress : {overall_progress} %")
 
     def update_delay(self, env_ids):
         obs_delay_mean = self.randomizer.randomized_parameters["obs_delay_mean"].sample_n(

@@ -872,8 +872,8 @@ class CurriculumCfg:
 class DomainRandomizationCfg:
     evaluation_probability: float = 0.5
     buffer_size: int = 100
-    performance_threshold_lower: float = 7
-    performance_threshold_upper: float = 9
+    performance_threshold_lower: float = 8
+    performance_threshold_upper: float = 12
 
     RANDOMIZABLE_PARAMETERS = [
         rdm.RandomizationParameter(
@@ -934,7 +934,7 @@ class DomainRandomizationCfg:
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
-                value=0.001,
+                value=0.0,
                 min_value=0.0,
                 max_value=0.01,
             ),
@@ -1209,8 +1209,8 @@ class EvalCfg:
         "joint_friction": [0.0, 0.2],  # [-0.3, 0.3]
         "stiffness": [0.3, 1.7],  # [0.3, 1.7]
         "damping": [0.3, 1.7],  # [0.3, 1.7]
-        "obs_delay_mean": [0.0, 0.0],  # [-2.0, 2.0]
-        "obs_delay_std": [0.0, 0.0],  # [-1.0, 1.0]
+        "obs_delay_mean": [-0.2, 0.2],  # [-2.0, 2.0]
+        "obs_delay_std": [-0.6, 0.6],  # [-1.0, 1.0]
         "sphere_static_friction": [0.5, 0.5],
         "sphere_dynamic_friction": [0.5, 0.5],
         "sphere_restitution": [0.2, 0.2],
