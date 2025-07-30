@@ -187,257 +187,7 @@ class MazeEnv(ManagerBasedRLEnv):
         self.writer.add_scalar("reward_weights/maze_path", maze_path_weight, self.common_step_counter)
 
         # -- DOMAIN RANDOMIZATION RELATED -- #
-        inner_joint_pos_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["inner_joint_pos_std"]
-        self.writer.add_scalar(
-            "adr/inner_joint_pos_std_upper_bound",
-            inner_joint_pos_std.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/inner_joint_pos_std_lower_bound",
-            inner_joint_pos_std.lower_bound.value,
-            self.common_step_counter,
-        )
-        outer_joint_pos_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["outer_joint_pos_std"]
-        self.writer.add_scalar(
-            "adr/outer_joint_pos_std_upper_bound",
-            outer_joint_pos_std.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/outer_joint_pos_std_lower_bound",
-            outer_joint_pos_std.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        sphere_x_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["sphere_x_std"]
-        self.writer.add_scalar(
-            "adr/sphere_x_std_upper_bound",
-            sphere_x_std.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_x_std_lower_bound",
-            sphere_x_std.lower_bound.value,
-            self.common_step_counter,
-        )
-        sphere_y_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["sphere_y_std"]
-        self.writer.add_scalar(
-            "adr/sphere_y_std_upper_bound",
-            sphere_y_std.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_y_std_lower_bound",
-            sphere_y_std.lower_bound.value,
-            self.common_step_counter,
-        )
-        joint_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters["joint_friction"]
-        self.writer.add_scalar(
-            "adr/joint_friction_upper_bound",
-            joint_friction.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/joint_friction_lower_bound",
-            joint_friction.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        stiffness: rdm.RandomizationParameter = self.randomizer.randomized_parameters["stiffness"]
-        self.writer.add_scalar(
-            "adr/stiffness_upper_bound",
-            stiffness.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/stiffness_lower_bound",
-            stiffness.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        damping: rdm.RandomizationParameter = self.randomizer.randomized_parameters["damping"]
-        self.writer.add_scalar(
-            "adr/damping_upper_bound",
-            damping.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/damping_lower_bound",
-            damping.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        obs_delay_mean: rdm.RandomizationParameter = self.randomizer.randomized_parameters["obs_delay_mean"]
-        self.writer.add_scalar(
-            "adr/obs_delay_mean_upper_bound",
-            obs_delay_mean.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/obs_delay_mean_lower_bound",
-            obs_delay_mean.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        obs_delay_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["obs_delay_std"]
-        self.writer.add_scalar(
-            "adr/obs_delay_std_upper_bound",
-            obs_delay_std.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/obs_delay_std_lower_bound",
-            obs_delay_std.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        sphere_static_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "sphere_static_friction"
-        ]
-        self.writer.add_scalar(
-            "adr/sphere_static_friction_upper_bound",
-            sphere_static_friction.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_static_friction_lower_bound",
-            sphere_static_friction.lower_bound.value,
-            self.common_step_counter,
-        )
-        sphere_dynamic_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "sphere_dynamic_friction"
-        ]
-        self.writer.add_scalar(
-            "adr/sphere_dynamic_friction_upper_bound",
-            sphere_dynamic_friction.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_dynamic_friction_lower_bound",
-            sphere_dynamic_friction.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        sphere_restitution: rdm.RandomizationParameter = self.randomizer.randomized_parameters["sphere_restitution"]
-        self.writer.add_scalar(
-            "adr/sphere_restitution_upper_bound",
-            sphere_restitution.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_restitution_lower_bound",
-            sphere_restitution.lower_bound.value,
-            self.common_step_counter,
-        )
-        robot_static_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "robot_static_friction"
-        ]
-        self.writer.add_scalar(
-            "adr/robot_static_friction_upper_bound",
-            robot_static_friction.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/robot_static_friction_lower_bound",
-            robot_static_friction.lower_bound.value,
-            self.common_step_counter,
-        )
-        robot_dynamic_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "robot_dynamic_friction"
-        ]
-        self.writer.add_scalar(
-            "adr/robot_dynamic_friction_upper_bound",
-            robot_dynamic_friction.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/robot_dynamic_friction_lower_bound",
-            robot_dynamic_friction.lower_bound.value,
-            self.common_step_counter,
-        )
-        robot_restitution: rdm.RandomizationParameter = self.randomizer.randomized_parameters["robot_restitution"]
-        self.writer.add_scalar(
-            "adr/robot_restitution_upper_bound",
-            robot_restitution.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/robot_restitution_lower_bound",
-            robot_restitution.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        sphere_mass_distribution: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "sphere_mass_distribution"
-        ]
-        self.writer.add_scalar(
-            "adr/sphere_mass_distribution_upper_bound",
-            sphere_mass_distribution.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_mass_distribution_lower_bound",
-            sphere_mass_distribution.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        robot_mass_distribution: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "robot_mass_distribution"
-        ]
-        self.writer.add_scalar(
-            "adr/robot_mass_distribution_upper_bound",
-            robot_mass_distribution.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/robot_mass_distribution_lower_bound",
-            robot_mass_distribution.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        sphere_external_force: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "sphere_external_force"
-        ]
-        self.writer.add_scalar(
-            "adr/sphere_external_force_upper_bound",
-            sphere_external_force.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/sphere_external_force_lower_bound",
-            sphere_external_force.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        start_inner_joint_pos: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "start_inner_joint_pos"
-        ]
-        self.writer.add_scalar(
-            "adr/start_inner_joint_pos_upper_bound",
-            start_inner_joint_pos.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/start_inner_joint_pos_lower_bound",
-            start_inner_joint_pos.lower_bound.value,
-            self.common_step_counter,
-        )
-
-        start_outer_joint_pos: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
-            "start_outer_joint_pos"
-        ]
-        self.writer.add_scalar(
-            "adr/start_outer_joint_pos_upper_bound",
-            start_outer_joint_pos.upper_bound.value,
-            self.common_step_counter,
-        )
-        self.writer.add_scalar(
-            "adr/start_outer_joint_pos_lower_bound",
-            start_outer_joint_pos.lower_bound.value,
-            self.common_step_counter,
-        )
-        self.update_adr_progress()
+        self.update_adr_metrics()
 
         self.writer.flush()
 
@@ -456,9 +206,21 @@ class MazeEnv(ManagerBasedRLEnv):
 
         print("Maximum average path: ", self.maximum_average_path)
 
-    def update_adr_progress(self):
+    def update_adr_metrics(self):
         overall_progress = 0
+
         for param in self.randomizer.randomized_parameters.values():
+            self.writer.add_scalar(
+                f"adr/{param.name}_upper_bound",
+                param.upper_bound.value,
+                self.common_step_counter,
+            )
+            self.writer.add_scalar(
+                f"adr/{param.name}_lower_bound",
+                param.lower_bound.value,
+                self.common_step_counter,
+            )
+
             progress = (
                 (param.upper_bound.value - param.lower_bound.value)
                 / (param.upper_bound.max_value - param.lower_bound.min_value)
@@ -469,15 +231,14 @@ class MazeEnv(ManagerBasedRLEnv):
                 progress,
                 self.common_step_counter,
             )
-            # print(f"Param {param.name} : {progress} % progress")
             overall_progress += progress
+
         overall_progress /= len(self.randomizer.randomized_parameters)
         self.writer.add_scalar(
             "adr_progress/1_overall_progress",
             overall_progress,
             self.common_step_counter,
         )
-        # print(f"Overall progress : {overall_progress} %")
 
     def update_delay(self, env_ids):
         obs_delay_mean = self.randomizer.randomized_parameters["obs_delay_mean"].sample_n(
