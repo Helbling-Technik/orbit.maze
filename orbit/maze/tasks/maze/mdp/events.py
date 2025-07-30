@@ -12,11 +12,95 @@ import omni.isaac.lab.utils.math as math_utils
 from omni.isaac.lab.assets import Articulation, RigidObject
 from omni.isaac.lab.managers import SceneEntityCfg
 from omni.isaac.lab.actuators import ImplicitActuator
+from omni.isaac.lab.envs.mdp import randomize_rigid_body_material, EventTermCfg
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
     from ..maze_env import MazeEnv
     import orbit.maze.tasks.maze.randomization as rdm
+
+
+class adr_rigid_body_material(randomize_rigid_body_material):
+    def __init__(self, cfg: EventTermCfg, env: MazeEnv):
+        """Initialize the term.
+
+        Args:
+            cfg: The configuration of the event term.
+            env: The environment instance.
+
+        Raises:
+            ValueError: If the asset is not a RigidObject or an Articulation.
+        """
+        super().__init__(cfg, env)
+
+    def __call__(
+        self,
+        env: MazeEnv,
+        env_ids: torch.Tensor | None,
+        static_friction_range: tuple[float, float],
+        dynamic_friction_range: tuple[float, float],
+        restitution_range: tuple[float, float],
+        num_buckets: int,
+        asset_cfg: SceneEntityCfg,
+        make_consistent: bool = False,
+    ):
+        # resolve environment ids
+        if env_ids is None:
+            env_ids = torch.arange(env.scene.num_envs, device="cpu")
+        else:
+            env_ids = env_ids.cpu()
+
+        # randomly assign material IDs to the geometries
+        total_num_shapes = self.asset.root_physx_view.max_shapes
+        bucket_ids = torch.randint(0, num_buckets, (len(env_ids), total_num_shapes), device="cpu")
+
+        asset_name: str = asset_cfg.name
+
+        # obtain parameters for sampling friction and restitution values
+        static_friction: rdm.RandomizationParameter = env.randomizer.randomized_parameters[
+            f"{asset_name}_static_friction"
+        ]
+        dynamic_friction: rdm.RandomizationParameter = env.randomizer.randomized_parameters[
+            f"{asset_name}_dynamic_friction"
+        ]
+        restitution: rdm.RandomizationParameter = env.randomizer.randomized_parameters[f"{asset_name}_restitution"]
+
+        static_friction_range = (static_friction.lower_bound.value, static_friction.upper_bound.value)
+        dynamic_friction_range = (dynamic_friction.lower_bound.value, dynamic_friction.upper_bound.value)
+        restitution_range = (restitution.lower_bound.value, restitution.upper_bound.value)
+
+        # sample material properties from the given ranges
+        # note: we only sample the materials once during initialization
+        #   afterwards these are randomly assigned to the geometries of the asset
+        range_list = [static_friction_range, dynamic_friction_range, restitution_range]
+        ranges = torch.tensor(range_list, device="cpu")
+        self.material_buckets = math_utils.sample_uniform(ranges[:, 0], ranges[:, 1], (num_buckets, 3), device="cpu")
+
+        # ensure dynamic friction is always less than static friction
+        if make_consistent:
+            self.material_buckets[:, 1] = torch.min(self.material_buckets[:, 0], self.material_buckets[:, 1])
+
+        material_samples = self.material_buckets[bucket_ids]
+
+        # retrieve material buffer from the physics simulation
+        materials = self.asset.root_physx_view.get_material_properties()
+
+        # update material buffer with new samples
+        if self.num_shapes_per_body is not None:
+            # sample material properties from the given ranges
+            for body_id in self.asset_cfg.body_ids:
+                # obtain indices of shapes for the body
+                start_idx = sum(self.num_shapes_per_body[:body_id])
+                end_idx = start_idx + self.num_shapes_per_body[body_id]
+                # assign the new materials
+                # material samples are of shape: num_env_ids x total_num_shapes x 3
+                materials[env_ids, start_idx:end_idx] = material_samples[:, start_idx:end_idx]
+        else:
+            # assign all the materials
+            materials[env_ids] = material_samples[:]
+
+        # apply to simulation
+        self.asset.root_physx_view.set_material_properties(materials, env_ids)
 
 
 def set_random_target_pos(
@@ -65,14 +149,12 @@ def randomize_maze_actuator_gains(
         stiffness_params.lower_bound.value,
         stiffness_params.upper_bound.value,
     )
-    print("stiffness params:", stiffness_distribution_params)
 
     damping_params: rdm.RandomizationParameter = env.randomizer.randomized_parameters["damping"]
     damping_distribution_params: tuple[float, float] | None = (
         damping_params.lower_bound.value,
         damping_params.upper_bound.value,
     )
-    print("damping params:", damping_distribution_params)
 
     # Resolve environment ids
     if env_ids is None:
@@ -149,7 +231,6 @@ def randomize_joint_friction(
 
     # Converting Uniform distribution from [-|param_a|, |param_b| ] to [0, |param_a| + |param_b|] for joint friction sampling
     friction_distribution_params: tuple[float, float] | None = (0, abs(low) + high)
-    print("friction params:", friction_distribution_params)
 
     # resolve environment ids
     if env_ids is None:

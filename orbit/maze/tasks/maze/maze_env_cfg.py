@@ -516,7 +516,6 @@ if globals.velocity_obs:
 
 # TODO ROV these are timesteps, should be scaled by update frequency to correspond to actual time delay of 50ms
 def get_delay_modifiers(delay_level, synced_obs_delay):
-    print("delay_level:", delay_level)
     if delay_level == -1:
         return None
     elif delay_level == 0:
@@ -528,7 +527,6 @@ def get_delay_modifiers(delay_level, synced_obs_delay):
 
 
 def get_joint_friction_distributions(joint_friction_level):
-    print("joint_friction_level: ", joint_friction_level)
     if joint_friction_level == -1:
         return (0.0, 0.0)
     elif joint_friction_level == 0:
@@ -686,7 +684,7 @@ class EventCfg:
 
     # add friction randomization to material
     robot_physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
+        func=mdp.adr_rigid_body_material,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("robot", body_names=["InnerDOF", "InnerDOFWalls"]),
@@ -698,7 +696,7 @@ class EventCfg:
     )
 
     sphere_physics_material = EventTerm(
-        func=mdp.randomize_rigid_body_material,
+        func=mdp.adr_rigid_body_material,
         mode="reset",
         params={
             "asset_cfg": SceneEntityCfg("sphere"),
@@ -1032,6 +1030,102 @@ class DomainRandomizationCfg:
             ),
             delta=0.05,
         ),
+        rdm.RandomizationParameter(
+            name="sphere_static_friction",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.5,
+                min_value=0.0,
+                max_value=0.5,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.5,
+                min_value=0.5,
+                max_value=1.0,
+            ),
+            delta=0.025,
+        ),
+        rdm.RandomizationParameter(
+            name="sphere_dynamic_friction",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.5,
+                min_value=0.0,
+                max_value=0.5,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.5,
+                min_value=0.5,
+                max_value=1.0,
+            ),
+            delta=0.025,
+        ),
+        rdm.RandomizationParameter(
+            name="sphere_restitution",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.2,
+                min_value=0.0,
+                max_value=0.2,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.2,
+                min_value=0.2,
+                max_value=0.4,
+            ),
+            delta=0.01,
+        ),
+        rdm.RandomizationParameter(
+            name="robot_static_friction",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.5,
+                min_value=0.0,
+                max_value=0.5,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.5,
+                min_value=0.5,
+                max_value=1.0,
+            ),
+            delta=0.025,
+        ),
+        rdm.RandomizationParameter(
+            name="robot_dynamic_friction",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.5,
+                min_value=0.0,
+                max_value=0.5,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.5,
+                min_value=0.5,
+                max_value=1.0,
+            ),
+            delta=0.025,
+        ),
+        rdm.RandomizationParameter(
+            name="robot_restitution",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.2,
+                min_value=0.0,
+                max_value=0.2,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.2,
+                min_value=0.2,
+                max_value=0.4,
+            ),
+            delta=0.01,
+        ),
     ]
 
 
@@ -1045,8 +1139,14 @@ class EvalCfg:
         "joint_friction": [0.0, 0.2],  # [-0.3, 0.3]
         "stiffness": [0.3, 1.7],  # [0.3, 1.7]
         "damping": [0.3, 1.7],  # [0.3, 1.7]
-        "obs_delay_mean": [-2.0, 2.0],  # [-2.0, 2.0]
-        "obs_delay_std": [-1.0, 1.0],  # [-1.0, 1.0]
+        "obs_delay_mean": [0.0, 0.0],  # [-2.0, 2.0]
+        "obs_delay_std": [0.0, 0.0],  # [-1.0, 1.0]
+        "sphere_static_friction": [0.5, 0.5],
+        "sphere_dynamic_friction": [0.5, 0.5],
+        "sphere_restitution": [0.2, 0.2],
+        "robot_static_friction": [0.5, 0.5],
+        "robot_dynamic_friction": [0.5, 0.5],
+        "robot_restitution": [0.2, 0.2],
     }
 
 

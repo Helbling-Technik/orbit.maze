@@ -267,6 +267,107 @@ class MazeEnv(ManagerBasedRLEnv):
             damping.lower_bound.value,
             self.common_step_counter,
         )
+
+        obs_delay_mean: rdm.RandomizationParameter = self.randomizer.randomized_parameters["obs_delay_mean"]
+        self.writer.add_scalar(
+            "adr/obs_delay_mean_upper_bound",
+            obs_delay_mean.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/obs_delay_mean_lower_bound",
+            obs_delay_mean.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        obs_delay_std: rdm.RandomizationParameter = self.randomizer.randomized_parameters["obs_delay_std"]
+        self.writer.add_scalar(
+            "adr/obs_delay_std_upper_bound",
+            obs_delay_std.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/obs_delay_std_lower_bound",
+            obs_delay_std.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        sphere_static_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "sphere_static_friction"
+        ]
+        self.writer.add_scalar(
+            "adr/sphere_static_friction_upper_bound",
+            sphere_static_friction.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_static_friction_lower_bound",
+            sphere_static_friction.lower_bound.value,
+            self.common_step_counter,
+        )
+        sphere_dynamic_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "sphere_dynamic_friction"
+        ]
+        self.writer.add_scalar(
+            "adr/sphere_dynamic_friction_upper_bound",
+            sphere_dynamic_friction.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_dynamic_friction_lower_bound",
+            sphere_dynamic_friction.lower_bound.value,
+            self.common_step_counter,
+        )
+
+        sphere_restitution: rdm.RandomizationParameter = self.randomizer.randomized_parameters["sphere_restitution"]
+        self.writer.add_scalar(
+            "adr/sphere_restitution_upper_bound",
+            sphere_restitution.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/sphere_restitution_lower_bound",
+            sphere_restitution.lower_bound.value,
+            self.common_step_counter,
+        )
+        robot_static_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "robot_static_friction"
+        ]
+        self.writer.add_scalar(
+            "adr/robot_static_friction_upper_bound",
+            robot_static_friction.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/robot_static_friction_lower_bound",
+            robot_static_friction.lower_bound.value,
+            self.common_step_counter,
+        )
+        robot_dynamic_friction: rdm.RandomizationParameter = self.randomizer.randomized_parameters[
+            "robot_dynamic_friction"
+        ]
+        self.writer.add_scalar(
+            "adr/robot_dynamic_friction_upper_bound",
+            robot_dynamic_friction.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/robot_dynamic_friction_lower_bound",
+            robot_dynamic_friction.lower_bound.value,
+            self.common_step_counter,
+        )
+        robot_restitution: rdm.RandomizationParameter = self.randomizer.randomized_parameters["robot_restitution"]
+        self.writer.add_scalar(
+            "adr/robot_restitution_upper_bound",
+            robot_restitution.upper_bound.value,
+            self.common_step_counter,
+        )
+        self.writer.add_scalar(
+            "adr/robot_restitution_lower_bound",
+            robot_restitution.lower_bound.value,
+            self.common_step_counter,
+        )
+
         self.writer.flush()
 
     def update_metrics(self):
@@ -293,6 +394,5 @@ class MazeEnv(ManagerBasedRLEnv):
         )
         for mod in self.observation_manager._group_obs_class_modifiers:
             if isinstance(mod, mdp.RandomDelay):
-                print("setting delay in modifier ", mod)
                 mod.set_delays(env_ids, obs_delay_mean, obs_delay_std)
                 break
