@@ -749,17 +749,14 @@ class EventCfg:
 
     # radius of sphere 0.00625m, density 7850kg/m3 -> mass 0.008028kg
     # With force of 0.001N -> 0.12m/s2
-    if globals.ext_force_level >= 0:
-        randomize_sphere_force = EventTerm(
-            func=mdp.apply_global_external_force_torque,
-            mode="reset",
-            params={
-                "asset_cfg": SceneEntityCfg("sphere"),
-                "force_range": [-0.0005, 0.0005] if globals.ext_force_level == 0 else [-0.002, 0.002],
-                "torque_range": [-0, 0],
-                "is_global_wrench": True,
-            },
-        )
+    randomize_sphere_force = EventTerm(
+        func=mdp.adr_external_force_and_torque,
+        mode="reset",
+        params={
+            "asset_cfg": SceneEntityCfg("sphere"),
+            "is_global_wrench": True,
+        },
+    )
 
 
 @configclass
@@ -1156,6 +1153,22 @@ class DomainRandomizationCfg:
             ),
             delta=0.025,
         ),
+        rdm.RandomizationParameter(
+            name="sphere_external_force",
+            lower_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.LOWER_BOUND,
+                value=0.0,
+                min_value=-0.002,
+                max_value=0.0,
+            ),
+            upper_bound=rdm.RandomizationBound(
+                type=rdm.RandomizationBoundType.UPPER_BOUND,
+                value=0.0,
+                min_value=0.0,
+                max_value=0.002,
+            ),
+            delta=0.0001,
+        ),
     ]
 
 
@@ -1179,6 +1192,7 @@ class EvalCfg:
         "robot_restitution": [0.2, 0.2],
         "sphere_mass_distribution": [1.0, 1.0],
         "robot_mass_distribution": [1.0, 1.0],
+        "sphere_external_force": [-0.002, 0.002],
     }
 
 

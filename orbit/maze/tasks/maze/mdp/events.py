@@ -342,6 +342,46 @@ def adr_rigid_body_mass(
         asset.root_physx_view.set_inertias(inertias, env_ids)
 
 
+def adr_external_force_and_torque(
+    env: MazeEnv,
+    env_ids: torch.Tensor,
+    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    is_global_wrench: bool = False,
+):
+    """Randomize the external forces and torques applied to the bodies.
+
+    This function creates a set of random forces and torques sampled from the given ranges. The number of forces
+    and torques is equal to the number of bodies times the number of environments. The forces and torques are
+    applied to the bodies by calling ``asset.set_external_force_and_torque``. The forces and torques are only
+    applied when ``asset.write_data_to_sim()`` is called in the environment.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: RigidObject = env.scene[asset_cfg.name]
+    # resolve environment ids
+    if env_ids is None:
+        env_ids = torch.arange(env.scene.num_envs, device=asset.device)
+    # resolve number of bodies
+    num_bodies = len(asset_cfg.body_ids) if isinstance(asset_cfg.body_ids, list) else asset.num_bodies
+
+    # sample random forces and torques
+    size = (len(env_ids), num_bodies, 3)
+
+    asset_name = asset_cfg.name
+    external_force: rdm.RandomizationParameter = env.randomizer.randomized_parameters[f"{asset_name}_external_force"]
+    force_range = (external_force.lower_bound.value, external_force.upper_bound.value)
+    forces = math_utils.sample_uniform(*force_range, size, asset.device)
+
+    # Currently no external torques applied with ADR
+    torques = torch.zeros_like(forces, device=asset.device)
+    print("forces ", forces)
+
+    # set the forces and torques into the buffers
+    # note: these are only applied when you call: `asset.write_data_to_sim()`
+    asset.set_external_force_and_torque(
+        forces, torques, env_ids=env_ids, body_ids=asset_cfg.body_ids, is_global_wrench=is_global_wrench
+    )
+
+
 def _randomize_prop_by_op(
     data: torch.Tensor,
     distribution_parameters: tuple[float | torch.Tensor, float | torch.Tensor],
