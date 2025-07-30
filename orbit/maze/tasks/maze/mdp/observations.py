@@ -75,7 +75,6 @@ class VelocityExtractor:
 class RandomDelay(DigitalFilter):
     def __init__(self, cfg: modifier_cfg.DigitalFilterCfg, data_dim: tuple[int, ...], device: str) -> None:
         # self.randomizeDelay = cfg.randomizeDelay
-        print("random delay device: ", device)
         self.device = device
         self.num_envs = data_dim[0]
         self.delay_len = 5  # e.g., delays 0 to 4 → length 5
@@ -98,9 +97,7 @@ class RandomDelay(DigitalFilter):
         self.delay_std[env_ids] = delay_std
 
         delays = self._sample_delay(env_ids)
-        print("delays ", delays)
         self._update_B_envs(env_ids, delays)
-        print("updated B delays ", self.B_envs)
 
     def _sample_delay(self, env_ids: torch.Tensor) -> torch.Tensor:
         """Sample a discrete delay (0 to max_delay) per env from a Gaussian-shaped categorical."""
@@ -110,8 +107,8 @@ class RandomDelay(DigitalFilter):
         mean = self.delay_mean[env_ids]
         std = self.delay_std[env_ids]
         # Shape: [num_envs, delay_len]
-        logits = -0.5 * ((delay_vals[None, :] - mean[:, None]) / std[:, None]) ** 2
-        probs = torch.exp(logits - torch.max(logits))  # - max for numerical stability
+        logits = -0.5 * ((delay_vals[None, :] - mean[:, None]) / (std[:, None] + 1e-6)) ** 2
+        probs = torch.exp(logits - logits.max(dim=-1, keepdim=True).values)  # - max for numerical stability
         probs = probs / (probs.sum(dim=-1, keepdim=True))  # normalize
         if torch.isnan(probs).any():
             raise RuntimeError("NaNs in probs")
@@ -223,8 +220,6 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     inner_stds = inner_param.sample_n(num_envs, mode="positive", device=device)
     outer_stds = outer_param.sample_n(num_envs, mode="positive", device=device)
 
-    print("inner_stds:", inner_stds)
-    print("outer_stds:", outer_stds)
     stds = torch.stack([inner_stds, outer_stds], dim=1)
     noise = torch.normal(mean=0.0, std=stds).to(joint_pos.device)
     joint_pos_noisy = joint_pos + noise
@@ -235,7 +230,6 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     joint_pos_normalized = joint_pos_noisy / joint_limits_rad
 
     env.joint_pos_noisy = joint_pos_noisy
-    print("joint_pos_noisy", env.joint_pos_noisy)
 
     return joint_pos_normalized
 
@@ -256,15 +250,12 @@ def sphere_pos(env: MazeEnv) -> torch.Tensor:
     x_stds = x_param.sample_n(num_envs, mode="positive", device=device)
     y_stds = y_param.sample_n(num_envs, mode="positive", device=device)
 
-    print("x_stds:", x_stds)
-    print("y_stds:", y_stds)
     stds = torch.stack([x_stds, y_stds], dim=1)
     noise = torch.normal(mean=0.0, std=stds).to(sphere_pos.device)
     sphere_pos_noisy = sphere_pos[:, :2] + noise
     sphere_pos_normalized = sphere_pos_noisy / torch.tensor(globals.maze_size, device="cuda:0")
 
     env.sphere_pos_noisy = sphere_pos_noisy
-    print("sphere_pos_noisy", env.sphere_pos_noisy)
 
     return sphere_pos_normalized
 
