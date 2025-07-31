@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 
 import torch
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from omni.isaac.lab.assets import RigidObject, Articulation
 from omni.isaac.lab.managers import SceneEntityCfg
@@ -122,6 +122,72 @@ def path_point_target(
     # target4.write_root_pose_to_sim(target5to4, env_ids=target_reached_ids)
     # target5.write_root_pose_to_sim(targetNextto5, env_ids=target_reached_ids)
     return xy_sparse_reward
+
+
+def waypoint_reward(
+    env: ManagerBasedRLEnv,
+    waypoint_cfgs: List[SceneEntityCfg],  # len = K
+    sphere_cfg: SceneEntityCfg,
+) -> torch.Tensor:
+    sphere: RigidObject = env.scene[sphere_cfg.name]
+    sphere_pos = sphere.data.root_pos_w - env.scene.env_origins  # (N, 3)
+    sphere_xy = sphere_pos[:, :2]
+    device = sphere_xy.device
+    K = len(waypoint_cfgs)
+
+    # Get shared path and current indices
+    path = globals.maze_path  # (P, 2)
+    P = path.shape[0]
+    path_idx = globals.path_idx.clone()  # (N,)
+    path_dir = globals.path_direction.clone()  # (N,)
+
+    # Build (N, K) index tensor for next waypoints
+    offsets = torch.arange(K, device=device).unsqueeze(0)  # (1, K)
+    idx_matrix = path_idx.unsqueeze(1) + offsets * path_dir.unsqueeze(1)  # (N, K)
+    idx_matrix = idx_matrix.clamp(0, P - 1)
+
+    # Gather (N, K, 2) waypoint positions
+    waypoints = path[idx_matrix]  # (N, K, 2)
+
+    # Compute distance (N, K)
+    dists = torch.norm(waypoints - sphere_xy.unsqueeze(1), dim=2)
+    reached_mask = dists < globals.reward_distance  # (N, K)
+
+    # Find furthest reached index per env
+    reached_any = reached_mask.any(dim=1)
+    reward = reached_mask.float().argmax(dim=1) + 1  # +1 so reaching index 0 gets reward 1
+    reward[~reached_any] = 0
+
+    # Update only envs that reached a target
+    reached_env_ids = torch.nonzero(reached_any).squeeze(1)
+
+    # Update globals
+    reward_delta = reward.long()
+    globals.path_idx[reached_env_ids] += path_dir[reached_env_ids] * reward_delta[reached_env_ids]
+    globals.path_accumulated[reached_env_ids] += reward_delta[reached_env_ids]
+
+    # Clamp & reverse direction if out of bounds
+    over = globals.path_idx >= P
+    under = globals.path_idx < 0
+    globals.path_direction[over] *= -1
+    globals.path_idx[over] = P - 1
+    globals.path_direction[under] *= -1
+    globals.path_idx[under] = 0
+
+    # Update waypoints' positions for rendering
+    # Compute updated idx_matrix (N, K) again from updated path_idx
+    updated_offsets = torch.arange(K, device=device).unsqueeze(0)
+    updated_idx_matrix = globals.path_idx.unsqueeze(1) + updated_offsets * globals.path_direction.unsqueeze(1)
+    updated_idx_matrix = updated_idx_matrix.clamp(0, P - 1)
+    updated_waypoints = path[updated_idx_matrix] + env.scene.env_origins[:, :2].unsqueeze(1)  # (N, K, 2)
+
+    for k in range(K):
+        wp_obj: RigidObject = env.scene[waypoint_cfgs[k].name]
+        root_state = wp_obj.data.root_state_w[:, :7].clone()
+        root_state[:, :2] = updated_waypoints[:, k]
+        wp_obj.write_root_pose_to_sim(root_state, env_ids=None)
+
+    return reward
 
 
 def on_hole(

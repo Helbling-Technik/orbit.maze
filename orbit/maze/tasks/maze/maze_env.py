@@ -183,8 +183,8 @@ class MazeEnv(ManagerBasedRLEnv):
 
         on_hole_weight = self.reward_manager.get_term_cfg("on_hole").weight
         self.writer.add_scalar("reward_weights/penalty_on_hole", on_hole_weight, self.common_step_counter)
-        maze_path_weight = self.reward_manager.get_term_cfg("sphere_maze_path_target").weight
-        self.writer.add_scalar("reward_weights/maze_path", maze_path_weight, self.common_step_counter)
+        # maze_path_weight = self.reward_manager.get_term_cfg("sphere_maze_path_target").weight
+        # self.writer.add_scalar("reward_weights/maze_path", maze_path_weight, self.common_step_counter)
 
         # -- DOMAIN RANDOMIZATION RELATED -- #
         self.update_adr_metrics()

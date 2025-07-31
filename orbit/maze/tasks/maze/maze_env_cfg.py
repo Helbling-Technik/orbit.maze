@@ -768,39 +768,19 @@ class RewardsCfg:
         weight=-1.0 * globals.targeted_frequency,
     )
 
-    # # (2) Failure penalty
-    # on_hole = RewTerm(
-    #     func=mdp.on_hole,
-    #     params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
-    #     weight=-0.5 * globals.targeted_frequency,
-    # )
-
     # (3) Primary task: control maze path
-    sphere_maze_path_target = RewTerm(
-        func=mdp.path_point_target,
-        # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
+    waypoint = RewTerm(
+        func=mdp.waypoint_reward,
         weight=1.0 * globals.targeted_frequency,
         params={
-            "target1_cfg": SceneEntityCfg("target1"),
-            "target2_cfg": SceneEntityCfg("target2"),
-            "target3_cfg": SceneEntityCfg("target3"),
-            # "target4_cfg": SceneEntityCfg("target4"),
-            # "target5_cfg": SceneEntityCfg("target5"),
+            "waypoint_cfgs": [
+                SceneEntityCfg("target1"),
+                SceneEntityCfg("target2"),
+                SceneEntityCfg("target3"),
+            ],
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
-
-    # TODO ROV reward shaping
-    # sphere_path_distance = RewTerm(
-    #     func=mdp.root_xypos_target,
-    #     weight=-0.01,
-    #     params={
-    #         "target_cfg": SceneEntityCfg("target1"),
-    #         "asset_cfg": SceneEntityCfg("sphere"),
-    #     },
-    # )
-
-    # TODO DRP Try "force field" dense velocity rewards: attractive gaussians for targets, repulsive gaussians for holes
 
     # smoother with increased penalty here
     joint_action = RewTerm(
@@ -1204,12 +1184,12 @@ class EvalCfg:
     SET_PARAMS = {
         "inner_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
         "outer_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
-        "sphere_x_std": [-0.01, 0.01],  # [-0.01, 0.01]
-        "sphere_y_std": [-0.01, 0.01],  # [-0.01, 0.01]
+        "sphere_x_std": [-0.004, 0.004],  # [-0.01, 0.01]
+        "sphere_y_std": [-0.004, 0.004],  # [-0.01, 0.01]
         "joint_friction": [0.0, 0.2],  # [-0.3, 0.3]
         "stiffness": [0.3, 1.7],  # [0.3, 1.7]
         "damping": [0.3, 1.7],  # [0.3, 1.7]
-        "obs_delay_mean": [-0.2, 0.2],  # [-2.0, 2.0]
+        "obs_delay_mean": [-1.0, 1.0],  # [-2.0, 2.0]
         "obs_delay_std": [-0.6, 0.6],  # [-1.0, 1.0]
         "sphere_static_friction": [0.5, 0.5],
         "sphere_dynamic_friction": [0.5, 0.5],
@@ -1263,7 +1243,7 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         """Post initialization."""
         # general settings
         self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
-        self.episode_length_s = 7.5 if globals.real_maze or globals.use_multi_maze else 10
+        self.episode_length_s = 30 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
