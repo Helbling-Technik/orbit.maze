@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
@@ -49,6 +50,19 @@ class MazeEnv(ManagerBasedRLEnv):
 
         self.joint_pos_noisy = None
         self.sphere_pos_noisy = None
+
+        # TODO DRP: Related to globals, avoid hardcoding params
+        self.max_inactive_time_s = 7.5
+        self.inactive_buf = torch.zeros(self.num_envs, device=self.device, dtype=torch.long)
+
+        self.full_completion_threshold = math.floor(
+            1.5 * globals.maze_path.shape[0]
+        )  # About 160: 1.5 * 107 (Hard maze length)
+
+    @property
+    def max_inactive_time(self) -> int:
+        """Maximum episode length in environment steps."""
+        return math.ceil(self.max_inactive_time_s / self.step_dt)
 
     def step(self, action: torch.Tensor) -> VecEnvStepReturn:
         """Execute one time-step of the environment's dynamics and reset terminated environments.
@@ -203,8 +217,6 @@ class MazeEnv(ManagerBasedRLEnv):
         self.average_path_after_hole = self.average_path - self.average_path_before_hole
         if self.average_path_after_hole > self.maximum_average_path_after_hole:
             self.maximum_average_path_after_hole = self.average_path_after_hole
-
-        print("Maximum average path: ", self.maximum_average_path)
 
     def update_adr_metrics(self):
         overall_progress = 0

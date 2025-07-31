@@ -22,6 +22,7 @@ import globals
 
 if TYPE_CHECKING:
     from omni.isaac.lab.envs import ManagerBasedRLEnv
+    from ..maze_env import MazeEnv
 
 
 def termination_reward(env: ManagerBasedRLEnv, term_name: str) -> torch.Tensor:
@@ -63,6 +64,9 @@ def path_point_target(
         xy_sparse_reward = torch.norm(sphere_pos[:, :2] - target1_pos[:, :2], dim=1) < distance_from_target
 
     target_reached_ids = torch.nonzero(xy_sparse_reward).view(-1)
+    # Update inactivity time
+    env.inactive_buf += 1
+    env.inactive_buf[target_reached_ids] = 0
     if target_reached_ids.numel() == 0:
         return xy_sparse_reward
 
@@ -125,7 +129,7 @@ def path_point_target(
 
 
 def waypoint_reward(
-    env: ManagerBasedRLEnv,
+    env: MazeEnv,
     waypoint_cfgs: List[SceneEntityCfg],  # len = K
     sphere_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
@@ -275,7 +279,7 @@ def store_accumulated_path_score(env: ManagerBasedEnv, env_ids: torch.Tensor, fi
 
 
 def reset_maze_state(
-    env: ManagerBasedEnv,
+    env: MazeEnv,
     env_ids: torch.Tensor,
     target1_cfg: SceneEntityCfg,
     target2_cfg: SceneEntityCfg,
@@ -351,6 +355,7 @@ def reset_maze_state(
     env.hole_crossed[env_ids] = False
     env.path_before_hole[env_ids] = 0
     env.hole_crossings[env_ids] = 0
+    env.inactive_buf[env_ids] = 0
 
     sphere_pos = sphere.data.default_root_state[env_ids, :7].clone()
     target1_pos = sphere_pos.clone()

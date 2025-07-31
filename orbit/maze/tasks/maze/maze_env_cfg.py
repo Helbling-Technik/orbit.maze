@@ -237,8 +237,8 @@ def get_multi_maze_cfg():
                 joint_names_expr=["OuterDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,
-                stiffness=5.15 if globals.position_control else 0.0,
-                damping=1.74 if globals.position_control else 10.0,
+                stiffness=20.0 if globals.position_control else 0.0,
+                damping=2.0 if globals.position_control else 10.0,
             ),
             "inner_actuator": DelayedImplicitActuatorCfg(
                 min_delay=min_delay,  # timesteps
@@ -246,8 +246,8 @@ def get_multi_maze_cfg():
                 joint_names_expr=["InnerDOF_RevoluteJoint"],
                 effort_limit=0.2,  # 5g * 9.81 * 0.15m = 0.007357
                 velocity_limit=600 * 2 * math.pi / 60,
-                stiffness=5.15 if globals.position_control else 0.0,
-                damping=1.74 if globals.position_control else 10.0,
+                stiffness=20.0 if globals.position_control else 0.0,
+                damping=2.0 if globals.position_control else 10.0,
             ),
         },
     )
@@ -768,19 +768,33 @@ class RewardsCfg:
         weight=-1.0 * globals.targeted_frequency,
     )
 
-    # (3) Primary task: control maze path
-    waypoint = RewTerm(
-        func=mdp.waypoint_reward,
+    sphere_maze_path_target = RewTerm(
+        func=mdp.path_point_target,
+        # Making the reward sparse by multiplying with inv_dt since rewards are handled in continuous way * dt
         weight=1.0 * globals.targeted_frequency,
         params={
-            "waypoint_cfgs": [
-                SceneEntityCfg("target1"),
-                SceneEntityCfg("target2"),
-                SceneEntityCfg("target3"),
-            ],
+            "target1_cfg": SceneEntityCfg("target1"),
+            "target2_cfg": SceneEntityCfg("target2"),
+            "target3_cfg": SceneEntityCfg("target3"),
+            # "target4_cfg": SceneEntityCfg("target4"),
+            # "target5_cfg": SceneEntityCfg("target5"),
             "sphere_cfg": SceneEntityCfg("sphere"),
         },
     )
+
+    # # (3) Primary task: control maze path
+    # waypoint = RewTerm(
+    #     func=mdp.waypoint_reward,
+    #     weight=1.0 * globals.targeted_frequency,
+    #     params={
+    #         "waypoint_cfgs": [
+    #             SceneEntityCfg("target1"),
+    #             SceneEntityCfg("target2"),
+    #             SceneEntityCfg("target3"),
+    #         ],
+    #         "sphere_cfg": SceneEntityCfg("sphere"),
+    #     },
+    # )
 
     # smoother with increased penalty here
     joint_action = RewTerm(
@@ -800,7 +814,8 @@ class TerminationsCfg:
     """Termination terms for the MDP."""
 
     # (1) Time out
-    time_out = DoneTerm(func=mdp.time_out, time_out=True)
+    # time_out = DoneTerm(func=mdp.time_out, time_out=True)
+
     # (2) Sphere off maze
     sphere_on_ground = DoneTerm(
         func=mdp.root_height_below_minimum,
@@ -811,6 +826,12 @@ class TerminationsCfg:
         func=mdp.on_hole,
         params={"sphere_cfg": SceneEntityCfg("sphere"), "maze_cfg": SceneEntityCfg("robot"), "hole_radius": 0.0075},
     )
+
+    # (3) Inactivity
+    inactivity = DoneTerm(func=mdp.inactivity, time_out=True)
+
+    # (4) Full completion, termination when reaching more than 1.5 times the total amount of waypoints
+    full_completion = DoneTerm(func=mdp.full_completion)
 
 
 @configclass
@@ -852,8 +873,8 @@ class CurriculumCfg:
 class DomainRandomizationCfg:
     evaluation_probability: float = 0.5
     buffer_size: int = 100
-    performance_threshold_lower: float = 8
-    performance_threshold_upper: float = 12
+    performance_threshold_lower: float = 13
+    performance_threshold_upper: float = 16
 
     RANDOMIZABLE_PARAMETERS = [
         rdm.RandomizationParameter(
@@ -941,46 +962,46 @@ class DomainRandomizationCfg:
             lower_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.LOWER_BOUND,
                 value=1.0,
-                min_value=0.3,
+                min_value=0.5,
                 max_value=1.0,
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
                 value=1.0,
                 min_value=1.0,
-                max_value=1.7,
+                max_value=1.5,
             ),
-            delta=0.035,
+            delta=0.025,
         ),
         rdm.RandomizationParameter(
             name="damping",
             lower_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.LOWER_BOUND,
                 value=1.0,
-                min_value=0.3,
+                min_value=0.5,
                 max_value=1.0,
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
                 value=1.0,
                 min_value=1.0,
-                max_value=1.7,
+                max_value=1.5,
             ),
-            delta=0.035,
+            delta=0.025,
         ),
         rdm.RandomizationParameter(
             name="obs_delay_mean",
             lower_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.LOWER_BOUND,
                 value=0.0,
-                min_value=-2.0,
+                min_value=-3.0,
                 max_value=0.0,
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
                 value=0.0,
                 min_value=0.0,
-                max_value=2.0,
+                max_value=3.0,
             ),
             delta=0.05,
         ),
@@ -989,14 +1010,14 @@ class DomainRandomizationCfg:
             lower_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.LOWER_BOUND,
                 value=0.0,
-                min_value=-1.0,
+                min_value=-0.7,
                 max_value=0.0,
             ),
             upper_bound=rdm.RandomizationBound(
                 type=rdm.RandomizationBoundType.UPPER_BOUND,
                 value=0.0,
                 min_value=0.0,
-                max_value=1.0,
+                max_value=0.7,
             ),
             delta=0.05,
         ),
@@ -1184,8 +1205,8 @@ class EvalCfg:
     SET_PARAMS = {
         "inner_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
         "outer_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
-        "sphere_x_std": [-0.004, 0.004],  # [-0.01, 0.01]
-        "sphere_y_std": [-0.004, 0.004],  # [-0.01, 0.01]
+        "sphere_x_std": [-0.01, 0.01],  # [-0.01, 0.01]
+        "sphere_y_std": [-0.01, 0.01],  # [-0.01, 0.01]
         "joint_friction": [0.0, 0.2],  # [-0.3, 0.3]
         "stiffness": [0.3, 1.7],  # [0.3, 1.7]
         "damping": [0.3, 1.7],  # [0.3, 1.7]
@@ -1236,14 +1257,14 @@ class MazeEnvCfg(ManagerBasedRLEnvCfg):
         for param in domain_randomization.RANDOMIZABLE_PARAMETERS:
             param.lower_bound.value = eval_cfg.SET_PARAMS[param.name][0]
             param.upper_bound.value = eval_cfg.SET_PARAMS[param.name][1]
-            print(f"Param {param.name} : [{param.lower_bound.value}, {param.upper_bound.value}]")
+            # print(f"Param {param.name} : [{param.lower_bound.value}, {param.upper_bound.value}]")
 
     # Post initialization
     def __post_init__(self) -> None:
         """Post initialization."""
         # general settings
         self.decimation = 3  # we simulate observations at 30Hz => dt=1/90*3 = 30Hz
-        self.episode_length_s = 30 if globals.real_maze or globals.use_multi_maze else 10
+        self.episode_length_s = 7.5 if globals.real_maze or globals.use_multi_maze else 10
         # viewer settings
         self.viewer.eye = (1, 1, 1.5)
         # simulation settings
