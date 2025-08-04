@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import random
 import numpy as np
+import torch
 import globals
 from typing import TYPE_CHECKING, List, Tuple, Sequence
 
@@ -22,7 +23,7 @@ class DomainRandomizer:
         self.env = env
         domain_cfg: DomainRandomizationCfg = cfg.domain_randomization
         randomizable_params: List[RandomizationParameter] = domain_cfg.RANDOMIZABLE_PARAMETERS
-        self.randomized_parameters = self._init_params(randomizable_params)
+        self.randomized_parameters, self.sampling_weights = self._init_params(randomizable_params)
         self.buffer = RandomizationPerformanceBuffer(randomizable_params, buffer_size=domain_cfg.buffer_size)
 
         self.evaluation_probability = domain_cfg.evaluation_probability
@@ -35,7 +36,7 @@ class DomainRandomizer:
         self.upper_performance_threshold = domain_cfg.performance_threshold_upper
 
     @staticmethod
-    def _init_params(params: List[RandomizationParameter]) -> dict:
+    def _init_params(params: List[RandomizationParameter]) -> tuple[dict, dict]:
         """
         Convert a list of parameters to dict.
 
@@ -46,14 +47,19 @@ class DomainRandomizer:
             dict
         """
         randomized = dict()
+        weights = dict()
 
         for param in params:
             randomized[param.name] = param
+            weights[param.name] = param.sampling_weight
 
-        return randomized
+        return randomized, weights
 
     def step(self, env_ids: Sequence[int]):
 
+        if globals.path_accumulated is not None:
+            print(f"Overall performance at ADR step: {torch.median(globals.path_accumulated[env_ids]).item()}")
+            print("Maximum average path: ", self.env.maximum_average_path)
         for env_id in env_ids:
             boundary = self.sampled_boundaries[env_id]
             if boundary is not None:
@@ -91,7 +97,10 @@ class DomainRandomizer:
         if not self.buffer.is_full(sampled_boundary):
             return
 
-        performance = np.mean(np.array(self.buffer.get(sampled_boundary)))
+        performance = np.median(np.array(self.buffer.get(sampled_boundary)))
+        print(
+            f"Performance for parameter: {sampled_boundary.parameter.name} {sampled_boundary.bound.type.name} = {performance}"
+        )
         self.buffer.truncate(sampled_boundary)
 
         param: RandomizationParameter = sampled_boundary.parameter
@@ -135,7 +144,9 @@ class DomainRandomizer:
 
         # adr
         if np.random.uniform(0, 1) <= self.evaluation_probability:
-            sampled_param = random.choice(list(self.randomized_parameters.values()))
+            params = list(self.randomized_parameters.values())
+            weights = list(self.sampling_weights.values())
+            sampled_param = random.choices(params, weights=weights, k=1)[0]
             sampled_bound = random.choice(list([sampled_param.lower_bound, sampled_param.upper_bound]))
 
             # boundary sampling

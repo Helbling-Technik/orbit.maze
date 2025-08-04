@@ -58,9 +58,9 @@ class RandomizationPerformanceBuffer:
         param = randomization_boundary.parameter
         bound = randomization_boundary.bound
 
-        print(
-            f"Buffer size for param: {param.name}, boundary {bound.type}: {len(self._buffer[param.name][bound.type.value])}"
-        )
+        # print(
+        #     f"Buffer size for param: {param.name}, boundary {bound.type}: {len(self._buffer[param.name][bound.type.value])}"
+        # )
         return len(self._buffer[param.name][bound.type.value]) >= self._buffer_size
 
     def insert(self, randomization_boundary: RandomizationBoundary, episode_return: float) -> None:

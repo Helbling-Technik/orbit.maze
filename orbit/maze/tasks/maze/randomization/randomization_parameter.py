@@ -16,6 +16,7 @@ class RandomizationParameter:
     lower_bound: RandomizationBound
     upper_bound: RandomizationBound
     delta: float
+    sampling_weight: float = 1.0
 
     def __post_init__(self):
         """
