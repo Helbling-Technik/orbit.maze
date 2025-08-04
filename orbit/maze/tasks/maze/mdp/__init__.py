@@ -12,3 +12,4 @@ from .observations import *  # noqa: F401, F403
 from .events import *  # noqa: F401, F403
 from .actions import *  # noqa: F401, F403
 from .curriculums import *
+from .terminations import *
