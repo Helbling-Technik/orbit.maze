@@ -397,8 +397,8 @@ def adr_reset_maze_joints(
     start_inner_joint_pos: rdm.RandomizationParameter = env.randomizer.randomized_parameters["start_inner_joint_pos"]
     start_outer_joint_pos: rdm.RandomizationParameter = env.randomizer.randomized_parameters["start_outer_joint_pos"]
 
-    inner_positions = start_inner_joint_pos.sample_n(len(env_ids), device=asset.device)
-    outer_positions = start_outer_joint_pos.sample_n(len(env_ids), device=asset.device)
+    inner_positions = start_inner_joint_pos.sample_n(len(env_ids), env.torch_rng, device=asset.device)
+    outer_positions = start_outer_joint_pos.sample_n(len(env_ids), env.torch_rng, device=asset.device)
 
     joint_pos = torch.stack([inner_positions, outer_positions], dim=1)
 

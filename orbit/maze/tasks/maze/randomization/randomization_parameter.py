@@ -38,7 +38,7 @@ class RandomizationParameter:
         """
         return self.upper_bound.value - self.lower_bound.value
 
-    def sample(self, mode: str = "other") -> float:
+    def sample(self, mode: str = "other") -> float:  # TODO DRP Verify when used that it is behaving according to seed
         """
         Sample a value for the randomized parameter.
 
@@ -49,7 +49,9 @@ class RandomizationParameter:
             return abs(np.random.uniform(self.lower_bound.value, self.upper_bound.value))
         return np.random.uniform(self.lower_bound.value, self.upper_bound.value)
 
-    def sample_n(self, n: int, mode: str = "other", device: torch.device = torch.device("cpu")) -> torch.Tensor:
+    def sample_n(
+        self, n: int, generator, mode: str = "other", device: torch.device = torch.device("cpu")
+    ) -> torch.Tensor:
         """
         Vectorized sampling using PyTorch (GPU-compatible).
         """
@@ -57,8 +59,12 @@ class RandomizationParameter:
         high = self.upper_bound.value
 
         if mode == "positive":
-            return torch.abs(torch.empty(n, device=device).uniform_(self.lower_bound.value, self.upper_bound.value))
-        return torch.empty(n, device=device).uniform_(low, high)
+            return torch.abs(
+                torch.empty(n, device=device).uniform_(
+                    self.lower_bound.value, self.upper_bound.value, generator=generator
+                )
+            )
+        return torch.empty(n, device=device).uniform_(low, high, generator=generator)
 
     def increase_upper_bound(self) -> None:
         """

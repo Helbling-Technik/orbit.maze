@@ -98,6 +98,7 @@ class RandomDelay(DigitalFilter):
 
         delays = self._sample_delay(env_ids)
         self._update_B_envs(env_ids, delays)
+        return self.B_envs
 
     def _sample_delay(self, env_ids: torch.Tensor) -> torch.Tensor:
         """Sample a discrete delay (0 to max_delay) per env from a Gaussian-shaped categorical."""
@@ -187,6 +188,19 @@ def apply_global_external_force_torque(
     )
 
 
+# TODO ROV only for calibration
+def joint_pos_rad(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    """The joint positions of the asset.
+
+    Note: Only the joints configured in :attr:`asset_cfg.joint_ids` will have their positions returned.
+    """
+    # extract the used quantities (to enable type-hinting)
+    asset: Articulation = env.scene[asset_cfg.name]
+
+    joint_pos = asset.data.joint_pos[:, asset_cfg.joint_ids]
+    return joint_pos
+
+
 def joint_pos_with_noise(
     env: ManagerBasedEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"), std: float = 0.0
 ) -> torch.Tensor:
@@ -217,8 +231,8 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     outer_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["outer_joint_pos_std"]
 
     device = joint_pos.device
-    inner_stds = inner_param.sample_n(num_envs, mode="positive", device=device)
-    outer_stds = outer_param.sample_n(num_envs, mode="positive", device=device)
+    inner_stds = inner_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
+    outer_stds = outer_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
 
     stds = torch.stack([inner_stds, outer_stds], dim=1)
     noise = torch.normal(mean=0.0, std=stds).to(joint_pos.device)
@@ -247,8 +261,8 @@ def sphere_pos(env: MazeEnv) -> torch.Tensor:
     y_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["sphere_y_std"]
 
     device = sphere_pos.device
-    x_stds = x_param.sample_n(num_envs, mode="positive", device=device)
-    y_stds = y_param.sample_n(num_envs, mode="positive", device=device)
+    x_stds = x_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
+    y_stds = y_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
 
     stds = torch.stack([x_stds, y_stds], dim=1)
     noise = torch.normal(mean=0.0, std=stds).to(sphere_pos.device)

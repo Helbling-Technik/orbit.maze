@@ -28,6 +28,7 @@ class MazeEnv(ManagerBasedRLEnv):
             cfg: The configuration for the environment.
         """
         # initialize the base class to setup the scene.
+        self.torch_rng = torch.Generator("cuda:0").manual_seed(42)
         self.randomizer = rdm.DomainRandomizer(self, cfg=cfg)
         super().__init__(cfg=cfg)
         # self.observation_manager = MazeObservationManager(self.cfg.observations, self)
@@ -264,11 +265,15 @@ class MazeEnv(ManagerBasedRLEnv):
 
     def update_delay(self, env_ids):
         obs_delay_mean = self.randomizer.randomized_parameters["obs_delay_mean"].sample_n(
-            len(env_ids), "positive", device="cuda:0"
+            len(env_ids), self.torch_rng, "positive", device="cuda:0"
         )
         obs_delay_std = self.randomizer.randomized_parameters["obs_delay_std"].sample_n(
-            len(env_ids), "positive", device="cuda:0"
+            len(env_ids), self.torch_rng, "positive", device="cuda:0"
         )
         for mod in self.observation_manager._group_obs_class_modifiers:
             if isinstance(mod, mdp.RandomDelay):
-                mod.set_delays(env_ids, obs_delay_mean, obs_delay_std)
+                B_envs = mod.set_delays(env_ids, obs_delay_mean, obs_delay_std)
+                break
+        for mod in self.observation_manager._group_obs_class_modifiers:
+            if isinstance(mod, mdp.RandomDelay):
+                mod.B_envs = B_envs
