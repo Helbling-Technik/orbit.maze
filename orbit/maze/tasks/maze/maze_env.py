@@ -272,4 +272,3 @@ class MazeEnv(ManagerBasedRLEnv):
         for mod in self.observation_manager._group_obs_class_modifiers:
             if isinstance(mod, mdp.RandomDelay):
                 mod.set_delays(env_ids, obs_delay_mean, obs_delay_std)
-                break
