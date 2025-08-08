@@ -236,17 +236,17 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     eval_ids = env.randomizer.evaluated_param_ids
 
     eval_mask_inner = eval_ids == env.randomizer.PARAM_IDS["inner_joint_pos_std"]
-    eval_mask_outer = eval_ids == env.randomizer.PARAM_IDS["sphere_inner_std"]
+    eval_mask_outer = eval_ids == env.randomizer.PARAM_IDS["outer_joint_pos_std"]
 
     inner_stds = torch.zeros(num_envs, device=device)
     outer_stds = torch.zeros(num_envs, device=device)
 
     # 1. Fill from boundary for evaluated envs (mask_inner / mask_y)
     for env_id in torch.nonzero(eval_mask_inner, as_tuple=False).flatten().tolist():
-        inner_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+        inner_stds[env_id] = abs(env.randomizer.sampled_boundaries[env_id].bound.value)
 
     for env_id in torch.nonzero(eval_mask_outer, as_tuple=False).flatten().tolist():
-        outer_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+        outer_stds[env_id] = abs(env.randomizer.sampled_boundaries[env_id].bound.value)
 
     # 2. Sample for non-evaluated envs
     if (~eval_mask_inner).any():
@@ -296,10 +296,10 @@ def sphere_pos(env: MazeEnv) -> torch.Tensor:
 
     # 1. Fill from boundary for evaluated envs (mask_x / mask_y)
     for env_id in torch.nonzero(eval_mask_x, as_tuple=False).flatten().tolist():
-        x_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+        x_stds[env_id] = abs(env.randomizer.sampled_boundaries[env_id].bound.value)
 
     for env_id in torch.nonzero(eval_mask_y, as_tuple=False).flatten().tolist():
-        y_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+        y_stds[env_id] = abs(env.randomizer.sampled_boundaries[env_id].bound.value)
 
     # 2. Sample for non-evaluated envs
     if (~eval_mask_x).any():

@@ -226,12 +226,12 @@ class MazeEnv(ManagerBasedRLEnv):
         if self.average_path_after_hole > self.maximum_average_path_after_hole:
             self.maximum_average_path_after_hole = self.average_path_after_hole
 
-        print("Average path: ", self.average_path)
-        print("Median path: ", self.median_path)
+        # print("Average path: ", self.average_path)
+        # print("Median path: ", self.median_path)
 
     def update_adr_metrics(self):
-        overall_progress = 0
-
+        total_weighted_progress = 0.0
+        total_weight = 0.0
         for param in self.randomizer.randomized_parameters.values():
             self.writer.add_scalar(
                 f"adr/{param.name}_upper_bound",
@@ -254,9 +254,13 @@ class MazeEnv(ManagerBasedRLEnv):
                 progress,
                 self.common_step_counter,
             )
-            overall_progress += progress
+            total_weighted_progress += progress * param.sampling_weight
+            total_weight += param.sampling_weight
 
-        overall_progress /= len(self.randomizer.randomized_parameters)
+        if total_weight > 0:
+            overall_progress = total_weighted_progress / total_weight
+        else:
+            overall_progress = 0.0
         self.writer.add_scalar(
             "adr_progress/1_overall_progress",
             overall_progress,
@@ -264,16 +268,40 @@ class MazeEnv(ManagerBasedRLEnv):
         )
 
     def update_delay(self, env_ids):
-        obs_delay_mean = self.randomizer.randomized_parameters["obs_delay_mean"].sample_n(
-            len(env_ids), self.torch_rng, "positive", device="cuda:0"
-        )
-        obs_delay_std = self.randomizer.randomized_parameters["obs_delay_std"].sample_n(
-            len(env_ids), self.torch_rng, "positive", device="cuda:0"
-        )
+
+        eval_ids = self.randomizer.evaluated_param_ids[env_ids]
+
+        mean_param = self.randomizer.randomized_parameters["obs_delay_mean"]
+        std_param = self.randomizer.randomized_parameters["obs_delay_std"]
+
+        eval_mask_delay_mean = eval_ids == self.randomizer.PARAM_IDS["obs_delay_mean"]
+        eval_mask_delay_std = eval_ids == self.randomizer.PARAM_IDS["obs_delay_std"]
+
+        obs_delay_mean = torch.zeros(len(env_ids), device="cuda:0")
+        obs_delay_std = torch.zeros(len(env_ids), device="cuda:0")
+
+        for i in torch.nonzero(eval_mask_delay_mean, as_tuple=False).flatten().tolist():
+            obs_delay_mean[i] = abs(self.randomizer.sampled_boundaries[env_ids[i]].bound.value)
+
+        for i in torch.nonzero(eval_mask_delay_std, as_tuple=False).flatten().tolist():
+            obs_delay_std[i] = abs(self.randomizer.sampled_boundaries[env_ids[i]].bound.value)
+
+        num_mean_samples = (~eval_mask_delay_mean).sum().item()
+        num_std_samples = (~eval_mask_delay_std).sum().item()
+        if (~eval_mask_delay_mean).any():
+            obs_delay_mean[~eval_mask_delay_mean] = mean_param.sample_n(
+                num_mean_samples, generator=self.torch_rng, mode="positive", device="cuda:0"
+            )
+        if (~eval_mask_delay_std).any():
+            obs_delay_std[~eval_mask_delay_std] = std_param.sample_n(
+                num_std_samples, generator=self.torch_rng, mode="positive", device="cuda:0"
+            )
+
         for mod in self.observation_manager._group_obs_class_modifiers:
             if isinstance(mod, mdp.RandomDelay):
                 B_envs = mod.set_delays(env_ids, obs_delay_mean, obs_delay_std)
                 break
+        # Synchronizing delays in observations
         for mod in self.observation_manager._group_obs_class_modifiers:
             if isinstance(mod, mdp.RandomDelay):
                 mod.B_envs = B_envs

@@ -99,6 +99,19 @@ class adr_rigid_body_material(randomize_rigid_body_material):
             # assign all the materials
             materials[env_ids] = material_samples[:]
 
+        eval_ids = env.randomizer.evaluated_param_ids[env_ids]
+
+        eval_mask_static = eval_ids == env.randomizer.PARAM_IDS[f"{asset_name}_static_friction"]
+        eval_mask_dynamic = eval_ids == env.randomizer.PARAM_IDS[f"{asset_name}_dynamic_friction"]
+        eval_mask_restitution = eval_ids == env.randomizer.PARAM_IDS[f"{asset_name}_restitution"]
+
+        for i in torch.nonzero(eval_mask_static, as_tuple=False).flatten().tolist():
+            materials[env_ids[i], :, 0] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+        for i in torch.nonzero(eval_mask_dynamic, as_tuple=False).flatten().tolist():
+            materials[env_ids[i], :, 1] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+        for i in torch.nonzero(eval_mask_restitution, as_tuple=False).flatten().tolist():
+            materials[env_ids[i], :, 2] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
         # apply to simulation
         self.asset.root_physx_view.set_material_properties(materials, env_ids)
 
@@ -160,15 +173,32 @@ def randomize_maze_actuator_gains(
     if env_ids is None:
         env_ids = torch.arange(env.scene.num_envs, device=asset.device)
 
-    def randomize(data: torch.Tensor, params: tuple[float, float]) -> torch.Tensor:
-        return _randomize_prop_by_op(
-            data,
-            params,
-            dim_0_ids=None,
-            dim_1_ids=actuator_indices,
-            operation=operation,
-            distribution=distribution,
-        )
+    def randomize(data: torch.Tensor, params: tuple[float, float], eval_mask=None, eval_values=None) -> torch.Tensor:
+        if eval_mask is not None and eval_values is not None:
+            # First: set eval envs directly to boundary values
+            if eval_mask.any():
+                data[eval_mask, actuator_indices] *= eval_values[eval_mask].unsqueeze(1)
+
+            # Then: randomize only the non-eval envs
+            rand_mask = ~eval_mask
+            if rand_mask.any():
+                _randomize_prop_by_op(
+                    data,
+                    params,
+                    dim_0_ids=rand_mask.nonzero(as_tuple=False).squeeze(1),
+                    dim_1_ids=actuator_indices,
+                    operation=operation,
+                    distribution=distribution,
+                )
+        else:
+            _randomize_prop_by_op(
+                data,
+                params,
+                dim_0_ids=None,
+                dim_1_ids=actuator_indices,
+                operation=operation,
+                distribution=distribution,
+            )
 
     # Loop through actuators and randomize gains
     for actuator in asset.actuators.values():
@@ -192,11 +222,24 @@ def randomize_maze_actuator_gains(
                 continue
             # maps actuator indices that have to be randomized to global joint indices
             global_indices = actuator_joint_indices[actuator_indices]
+
+        eval_ids = env.randomizer.evaluated_param_ids[env_ids]
+
+        eval_stiffness_mask = eval_ids == env.randomizer.PARAM_IDS["stiffness"]
+        eval_stiffness_values = torch.zeros(len(env_ids), device=asset.device)
+        for i in torch.nonzero(eval_stiffness_mask, as_tuple=False).flatten().tolist():
+            eval_stiffness_values[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
+        eval_damping_mask = eval_ids == env.randomizer.PARAM_IDS["damping"]
+        eval_damping_values = torch.zeros(len(env_ids), device=asset.device)
+        for i in torch.nonzero(eval_damping_mask, as_tuple=False).flatten().tolist():
+            eval_damping_values[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
         # Randomize stiffness
         if stiffness_distribution_params is not None:
             stiffness = actuator.stiffness[env_ids].clone()
             stiffness[:, actuator_indices] = asset.data.default_joint_stiffness[env_ids][:, global_indices].clone()
-            randomize(stiffness, stiffness_distribution_params)
+            randomize(stiffness, stiffness_distribution_params, eval_stiffness_mask, eval_stiffness_values)
             actuator.stiffness[env_ids] = stiffness
             if isinstance(actuator, ImplicitActuator):
                 asset.write_joint_stiffness_to_sim(stiffness, joint_ids=actuator.joint_indices, env_ids=env_ids)
@@ -204,7 +247,7 @@ def randomize_maze_actuator_gains(
         if damping_distribution_params is not None:
             damping = actuator.damping[env_ids].clone()
             damping[:, actuator_indices] = asset.data.default_joint_damping[env_ids][:, global_indices].clone()
-            randomize(damping, damping_distribution_params)
+            randomize(damping, damping_distribution_params, eval_damping_mask, eval_damping_values)
             actuator.damping[env_ids] = damping
             if isinstance(actuator, ImplicitActuator):
                 asset.write_joint_damping_to_sim(damping, joint_ids=actuator.joint_indices, env_ids=env_ids)
@@ -254,6 +297,13 @@ def randomize_joint_friction(
             operation=operation,
             distribution=distribution,
         )[env_ids][:, joint_ids]
+
+        # Set to boundary for evaluated environments TODO DRP test when friction reused in ADR
+        eval_ids = env.randomizer.evaluated_param_ids[env_ids]
+        eval_joint_friction_mask = eval_ids == env.randomizer.PARAM_IDS["joint_friction"]
+        for i in torch.nonzero(eval_joint_friction_mask, as_tuple=False).flatten().tolist():
+            friction[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
         asset.write_joint_friction_to_sim(friction, joint_ids=joint_ids, env_ids=env_ids)
 
 
@@ -311,14 +361,42 @@ def adr_rigid_body_mass(
     # sample from the given range
     # note: we modify the masses in-place for all environments
     #   however, the setter takes care that only the masses of the specified environments are modified
-    masses = _randomize_prop_by_op(
-        masses,
-        mass_distribution_params,
-        env_ids,
-        body_ids,
-        operation=operation,
-        distribution=distribution,
-    )
+
+    eval_ids = env.randomizer.evaluated_param_ids[env_ids]
+
+    eval_mask = eval_ids == env.randomizer.PARAM_IDS[f"{asset_name}_mass_distribution"]
+    eval_values = torch.zeros(len(env_ids), device=asset.device)
+
+    for i in torch.nonzero(eval_mask, as_tuple=False).flatten().tolist():
+        eval_values[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
+    eval_values = eval_values.to("cpu")
+    eval_mask = eval_mask.to("cpu")
+    if eval_mask is not None and eval_values is not None:
+        # First: set eval envs directly to boundary values
+        if eval_mask.any():
+            masses[env_ids[eval_mask]] *= eval_values[eval_mask].unsqueeze(1)
+
+        # Then: randomize only the non-eval envs
+        rand_mask = ~eval_mask
+        if rand_mask.any():
+            _randomize_prop_by_op(
+                masses,
+                mass_distribution_params,
+                dim_0_ids=rand_mask.nonzero(as_tuple=False).squeeze(1),
+                dim_1_ids=body_ids,
+                operation=operation,
+                distribution=distribution,
+            )
+    else:
+        _randomize_prop_by_op(
+            masses,
+            mass_distribution_params,
+            env_ids,
+            body_ids,
+            operation=operation,
+            distribution=distribution,
+        )
 
     # set the mass into the physics simulation
     asset.root_physx_view.set_masses(masses, env_ids)
@@ -371,6 +449,11 @@ def adr_external_force_and_torque(
     force_range = (external_force.lower_bound.value, external_force.upper_bound.value)
     forces = math_utils.sample_uniform(*force_range, size, asset.device)
 
+    eval_ids = env.randomizer.evaluated_param_ids[env_ids]
+    eval_mask = eval_ids == env.randomizer.PARAM_IDS[f"{asset_name}_external_force"]
+    for i in torch.nonzero(eval_mask, as_tuple=False).flatten().tolist():
+        forces[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
     # Currently no external torques applied with ADR
     torques = torch.zeros_like(forces, device=asset.device)
 
@@ -397,8 +480,28 @@ def adr_reset_maze_joints(
     start_inner_joint_pos: rdm.RandomizationParameter = env.randomizer.randomized_parameters["start_inner_joint_pos"]
     start_outer_joint_pos: rdm.RandomizationParameter = env.randomizer.randomized_parameters["start_outer_joint_pos"]
 
-    inner_positions = start_inner_joint_pos.sample_n(len(env_ids), env.torch_rng, device=asset.device)
-    outer_positions = start_outer_joint_pos.sample_n(len(env_ids), env.torch_rng, device=asset.device)
+    eval_ids = env.randomizer.evaluated_param_ids[env_ids]
+
+    eval_mask_inner = eval_ids == env.randomizer.PARAM_IDS["start_inner_joint_pos"]
+    eval_mask_outer = eval_ids == env.randomizer.PARAM_IDS["start_outer_joint_pos"]
+
+    inner_positions = torch.zeros(len(env_ids), device=asset.device)
+    outer_positions = torch.zeros(len(env_ids), device=asset.device)
+
+    for i in torch.nonzero(eval_mask_inner, as_tuple=False).flatten().tolist():
+        inner_positions[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
+    for i in torch.nonzero(eval_mask_outer, as_tuple=False).flatten().tolist():
+        outer_positions[i] = env.randomizer.sampled_boundaries[env_ids[i]].bound.value
+
+    if (~eval_mask_inner).any():
+        inner_positions[~eval_mask_inner] = start_inner_joint_pos.sample_n(
+            (~eval_mask_inner).sum().item(), generator=env.torch_rng, mode="other", device=asset.device
+        )
+    if (~eval_mask_outer).any():
+        outer_positions[~eval_mask_outer] = start_outer_joint_pos.sample_n(
+            (~eval_mask_outer).sum().item(), generator=env.torch_rng, mode="other", device=asset.device
+        )
 
     joint_pos = torch.stack([inner_positions, outer_positions], dim=1)
 

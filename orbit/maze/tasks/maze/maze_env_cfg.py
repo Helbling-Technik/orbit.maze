@@ -891,7 +891,7 @@ class DomainRandomizationCfg:
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.0005,
+            delta=0.0003,
             sampling_weight=5.0,
         ),
         rdm.RandomizationParameter(
@@ -908,7 +908,7 @@ class DomainRandomizationCfg:
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.0005,
+            delta=0.0003,
             sampling_weight=5.0,
         ),
         rdm.RandomizationParameter(
@@ -925,7 +925,7 @@ class DomainRandomizationCfg:
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.0005,
+            delta=0.0003,
             sampling_weight=5.0,
         ),
         rdm.RandomizationParameter(
@@ -942,7 +942,7 @@ class DomainRandomizationCfg:
                 min_value=0.0,
                 max_value=0.01,
             ),
-            delta=0.0005,
+            delta=0.0003,
             sampling_weight=5.0,
         ),
         rdm.RandomizationParameter(
@@ -1010,7 +1010,7 @@ class DomainRandomizationCfg:
                 min_value=0.0,
                 max_value=3.0,
             ),
-            delta=0.05,
+            delta=0.1,
             sampling_weight=5.0,
         ),
         rdm.RandomizationParameter(
@@ -1213,18 +1213,18 @@ class EvalCfg:
     SET_PARAMS = {
         "inner_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
         "outer_joint_pos_std": [-0.001, 0.001],  # [-0.001, 0.001]
-        "sphere_x_std": [-0.005, 0.005],  # [-0.01, 0.01]
-        "sphere_y_std": [-0.005, 0.005],  # [-0.01, 0.01]
-        "joint_friction": [-0.3, 0.3],  # [-0.3, 0.3]
-        "stiffness": [0.3, 1.7],  # [0.3, 1.7]
-        "damping": [0.3, 1.7],  # [0.3, 1.7]
-        "obs_delay_mean": [-1.0, 1.0],  # [-2.0, 2.0]
-        "obs_delay_std": [-0.6, 0.6],  # [-1.0, 1.0]
-        "sphere_static_friction": [0.0, 1.0],
-        "sphere_dynamic_friction": [0.0, 1.0],
+        "sphere_x_std": [-0.003, 0.003],  # [-0.01, 0.01]
+        "sphere_y_std": [-0.003, 0.003],  # [-0.01, 0.01]
+        "joint_friction": [0.0, 0.0],  # [-0.3, 0.3]
+        "stiffness": [1.0, 1.0],  # [0.3, 1.7]
+        "damping": [1.0, 1.0],  # [0.3, 1.7]
+        "obs_delay_mean": [3.0, 3.0],  # [-2.0, 2.0]
+        "obs_delay_std": [0.0, 0.0],  # [-1.0, 1.0]
+        "sphere_static_friction": [0.5, 0.5],
+        "sphere_dynamic_friction": [0.5, 0.5],
         "sphere_restitution": [0.1, 0.3],
-        "robot_static_friction": [0.0, 1.0],
-        "robot_dynamic_friction": [0.0, 1.0],
+        "robot_static_friction": [0.5, 0.5],
+        "robot_dynamic_friction": [0.5, 0.5],
         "robot_restitution": [0.1, 0.3],
         "sphere_mass_distribution": [1.0, 1.0],
         "robot_mass_distribution": [1.0, 1.0],
