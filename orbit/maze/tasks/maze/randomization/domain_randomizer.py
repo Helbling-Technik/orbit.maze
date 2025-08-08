@@ -24,12 +24,14 @@ class DomainRandomizer:
         domain_cfg: DomainRandomizationCfg = cfg.domain_randomization
         randomizable_params: List[RandomizationParameter] = domain_cfg.RANDOMIZABLE_PARAMETERS
         self.randomized_parameters, self.sampling_weights = self._init_params(randomizable_params)
-        self.buffer = RandomizationPerformanceBuffer(randomizable_params, buffer_size=domain_cfg.buffer_size)
+        self.PARAM_IDS = {p.name: idx for idx, p in enumerate(randomizable_params)}
 
-        self.evaluation_probability = domain_cfg.evaluation_probability
+        self.buffer = RandomizationPerformanceBuffer(randomizable_params, buffer_size=domain_cfg.buffer_size)
         self.buffer_size = domain_cfg.buffer_size
+        self.evaluation_probability = domain_cfg.evaluation_probability
 
         self.sampled_boundaries = [None] * cfg.scene.num_envs
+        self.evaluated_param_ids = torch.full((cfg.scene.num_envs,), -1, dtype=torch.int64, device="cuda:0")
 
         # performance
         self.lower_performance_threshold = domain_cfg.performance_threshold_lower
@@ -67,8 +69,7 @@ class DomainRandomizer:
                 self.update_boundary(boundary)
 
             # sample
-            randomized_param, boundary = self._sample_param_and_boundary()
-            self.sampled_boundaries[env_id] = boundary
+            self._sample_boundary(env_id)
 
     def update_buffer(self, sampled_boundary: RandomizationBoundary, episode_return: float) -> None:
         """
@@ -124,40 +125,20 @@ class DomainRandomizer:
             else:
                 raise ValueError
 
-    def _sample_param_and_boundary(self) -> Tuple:
+    def _sample_boundary(self, env_id):
         """
         Get randomized parameter values.
 
         Returns:
           Tuple
         """
-        randomized_params = dict()
-
-        # boundary
-        sampled_boundary = None
-
-        for param in self.randomized_parameters.values():
-            lower_bound = param.lower_bound
-            upper_bound = param.upper_bound
-
-            randomized_params[param.name] = np.random.uniform(lower_bound.value, upper_bound.value)
-
-        # adr
         if np.random.uniform(0, 1) <= self.evaluation_probability:
             params = list(self.randomized_parameters.values())
             weights = list(self.sampling_weights.values())
             sampled_param = random.choices(params, weights=weights, k=1)[0]
             sampled_bound = random.choice(list([sampled_param.lower_bound, sampled_param.upper_bound]))
 
-            # boundary sampling
-            if sampled_bound.type == RandomizationBoundType.UPPER_BOUND:
-                randomized_params[sampled_param.name] = sampled_bound.value
-            elif sampled_bound.type == RandomizationBoundType.LOWER_BOUND:
-                randomized_params[sampled_param.name] = sampled_bound.value
-            else:
-                raise ValueError
-
             sampled_boundary = RandomizationBoundary(parameter=sampled_param, bound=sampled_bound)
-            pass
 
-        return randomized_params, sampled_boundary
+            self.sampled_boundaries[env_id] = sampled_boundary
+            self.evaluated_param_ids[env_id] = self.PARAM_IDS[sampled_boundary.parameter.name]

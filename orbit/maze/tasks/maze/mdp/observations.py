@@ -97,6 +97,7 @@ class RandomDelay(DigitalFilter):
         self.delay_std[env_ids] = delay_std
 
         delays = self._sample_delay(env_ids)
+        print("delay: ", delays)
         self._update_B_envs(env_ids, delays)
         return self.B_envs
 
@@ -231,8 +232,31 @@ def maze_joint_pos(env: MazeEnv) -> torch.Tensor:
     outer_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["outer_joint_pos_std"]
 
     device = joint_pos.device
-    inner_stds = inner_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
-    outer_stds = outer_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
+
+    eval_ids = env.randomizer.evaluated_param_ids
+
+    eval_mask_inner = eval_ids == env.randomizer.PARAM_IDS["inner_joint_pos_std"]
+    eval_mask_outer = eval_ids == env.randomizer.PARAM_IDS["sphere_inner_std"]
+
+    inner_stds = torch.zeros(num_envs, device=device)
+    outer_stds = torch.zeros(num_envs, device=device)
+
+    # 1. Fill from boundary for evaluated envs (mask_inner / mask_y)
+    for env_id in torch.nonzero(eval_mask_inner, as_tuple=False).flatten().tolist():
+        inner_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+
+    for env_id in torch.nonzero(eval_mask_outer, as_tuple=False).flatten().tolist():
+        outer_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+
+    # 2. Sample for non-evaluated envs
+    if (~eval_mask_inner).any():
+        inner_stds[~eval_mask_inner] = inner_param.sample_n(
+            (~eval_mask_inner).sum().item(), generator=env.torch_rng, mode="positive", device=device
+        )
+    if (~eval_mask_outer).any():
+        outer_stds[~eval_mask_outer] = outer_param.sample_n(
+            (~eval_mask_outer).sum().item(), generator=env.torch_rng, mode="positive", device=device
+        )
 
     stds = torch.stack([inner_stds, outer_stds], dim=1)
     noise = torch.normal(mean=0.0, std=stds).to(joint_pos.device)
@@ -261,8 +285,31 @@ def sphere_pos(env: MazeEnv) -> torch.Tensor:
     y_param: rdm.RandomizationParameter = env.randomizer.randomized_parameters["sphere_y_std"]
 
     device = sphere_pos.device
-    x_stds = x_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
-    y_stds = y_param.sample_n(num_envs, generator=env.torch_rng, mode="positive", device=device)
+
+    eval_ids = env.randomizer.evaluated_param_ids
+
+    eval_mask_x = eval_ids == env.randomizer.PARAM_IDS["sphere_x_std"]
+    eval_mask_y = eval_ids == env.randomizer.PARAM_IDS["sphere_x_std"]
+
+    x_stds = torch.zeros(num_envs, device=device)
+    y_stds = torch.zeros(num_envs, device=device)
+
+    # 1. Fill from boundary for evaluated envs (mask_x / mask_y)
+    for env_id in torch.nonzero(eval_mask_x, as_tuple=False).flatten().tolist():
+        x_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+
+    for env_id in torch.nonzero(eval_mask_y, as_tuple=False).flatten().tolist():
+        y_stds[env_id] = env.randomizer.sampled_boundaries[env_id].bound.value
+
+    # 2. Sample for non-evaluated envs
+    if (~eval_mask_x).any():
+        x_stds[~eval_mask_x] = x_param.sample_n(
+            (~eval_mask_x).sum().item(), generator=env.torch_rng, mode="positive", device=device
+        )
+    if (~eval_mask_y).any():
+        y_stds[~eval_mask_y] = y_param.sample_n(
+            (~eval_mask_y).sum().item(), generator=env.torch_rng, mode="positive", device=device
+        )
 
     stds = torch.stack([x_stds, y_stds], dim=1)
     noise = torch.normal(mean=0.0, std=stds).to(sphere_pos.device)
