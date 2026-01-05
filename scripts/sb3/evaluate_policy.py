@@ -88,8 +88,9 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint",
     type=str,
-    # default="logs/sb3/Isaac-Maze-v0/2025-07-28_17-11-29/model_372736000_steps.zip",
-    default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-13_17-46-31/model.zip",
+    # default="logs/sb3/Isaac-Maze-v0/2025-07-28_17-11-29/model_372736000_steps.zip"
+    default="logs/sb3/Isaac-Maze-v0/2025-11-28_16-36-12/model_2211840000_steps.zip",
+    # default="logs/sb3/Isaac-Maze-v0/2025-08-11_11-32-26/model_1437696000_steps.zip",
     help="Path to model checkpoint.",
 )
 
@@ -229,7 +230,8 @@ def run_evaluation_loop(env: VecEnv, agent: PPO, num_envs: int, num_episodes: in
     # reset environment
     obs = env.reset()
 
-    if num_episodes:
+    if num_episodes is not None:
+        scores = torch.zeros((num_envs, num_episodes))
         episodes_per_env = num_episodes
         episode_counts = [0] * num_envs
 
@@ -238,6 +240,7 @@ def run_evaluation_loop(env: VecEnv, agent: PPO, num_envs: int, num_episodes: in
         # run everything in inference mode
         with torch.inference_mode():
             # agent stepping
+            prev_scores = globals.path_accumulated.clone()
             actions, _ = agent.predict(obs, deterministic=True)
             # actions = np.zeros_like(actions)
             # env stepping
@@ -245,12 +248,15 @@ def run_evaluation_loop(env: VecEnv, agent: PPO, num_envs: int, num_episodes: in
 
         if num_episodes:
             for i in range(num_envs):
-                if dones[i]:
-                    episode_counts[i] += 1
+                if dones[i] and episode_counts[i] < episodes_per_env:
+                    scores[i, episode_counts[i]] = prev_scores[i]
                     print(f"[Env {i}] Episode {episode_counts[i]} done")
-
+                    print(f"Score of env {i}: {prev_scores[i]}")
+                    # print(f"Scores : {scores}")
+                    episode_counts[i] += 1
             if all(c >= episodes_per_env for c in episode_counts):
                 break
+    return scores
 
 
 def evaluate_policy(args):
@@ -259,8 +265,14 @@ def evaluate_policy(args):
 
     num_envs = args.num_envs
     num_episodes = args.num_episodes
-    run_evaluation_loop(env, agent, num_envs, num_episodes)
-
+    scores = run_evaluation_loop(env, agent, num_envs, num_episodes)
+    if scores is not None:
+        mean_score = torch.mean(scores[:, :num_episodes])
+        median_score = torch.median(scores[:, :num_episodes])
+        max_score = torch.max(scores[:, :num_episodes])
+        print(f"FINAL_MEAN_SCORE: {mean_score:.4f}", flush=True)
+        print(f"FINAL_MEDIAN_SCORE: {median_score:.4f}", flush=True)
+        print(f"FINAL_MAX_SCORE: {max_score:.4f}", flush=True)
     # close the simulator
     env.close()
 

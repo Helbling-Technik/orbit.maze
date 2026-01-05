@@ -48,8 +48,8 @@ class DomainRandomizer:
         Returns:
             dict
         """
-        randomized = dict()
-        weights = dict()
+        randomized: dict[str, RandomizationParameter] = dict()
+        weights: dict[str, float] = dict()
 
         for param in params:
             randomized[param.name] = param

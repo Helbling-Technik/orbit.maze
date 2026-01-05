@@ -84,7 +84,7 @@ parser.add_argument(
 parser.add_argument(
     "--checkpoint",
     type=str,
-    default="logs/sb3/Isaac-Maze-v0/2025-07-25_15-04-12/model.zip",
+    default="logs/sb3/Isaac-Maze-v0/2025-07-30_15-30-19/model.zip",
     # default="logs/gridsearch/2025-06-13_14-14-52_Gridsearch/2025-06-13_17-46-31/model.zip",
     help="Path to model checkpoint.",
 )
@@ -92,7 +92,7 @@ parser.add_argument(
 parser.add_argument(
     "--difficulty",
     type=float,
-    default="None",
+    default=None,
     help="Amount of domain randomization at startup",
 )
 # append AppLauncher cli args
