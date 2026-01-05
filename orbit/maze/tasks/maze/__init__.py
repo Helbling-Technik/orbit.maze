@@ -11,6 +11,8 @@ import gymnasium as gym
 
 from . import agents
 from .maze_env_cfg import MazeEnvCfg
+
+from .maze_calibration_cfg import CalibrationEnvCfg
 from .maze_env import MazeEnv
 
 ##
@@ -23,6 +25,17 @@ gym.register(
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": MazeEnvCfg,
+        "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
+        "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
+    },
+)
+
+gym.register(
+    id="Maze-Calibration-v0",
+    entry_point="omni.isaac.lab.envs:ManagerBasedRLEnv",
+    disable_env_checker=True,
+    kwargs={
+        "env_cfg_entry_point": CalibrationEnvCfg,
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_ppo_cfg.yaml",
         "sb3_cfg_entry_point": f"{agents.__name__}:sb3_ppo_cfg.yaml",
     },
